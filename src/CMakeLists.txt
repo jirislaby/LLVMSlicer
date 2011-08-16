@@ -1,0 +1,5 @@
+add_llvm_loadable_module(LLVMSlicer
+	Kleerer.cpp
+	ModStats.cpp
+	Slicer.cpp
+)
