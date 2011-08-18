@@ -1,4 +1,8 @@
 *.cbp
+*.o
+*.o.post
+main.*.c
+Project.layout
 
 CMakeFiles/
 cmake_install.cmake
