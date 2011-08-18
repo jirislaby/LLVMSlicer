@@ -5,6 +5,8 @@ find_package(LLVM)
 # Define add_llvm_* macro's.
 include(AddLLVM)
 
+llvm_replace_compiler_option(CMAKE_CXX_FLAGS "-frtti" "-fno-rtti")
+
 add_definitions(${LLVM_DEFINITIONS})
 include_directories(${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
