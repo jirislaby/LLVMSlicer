@@ -6,6 +6,7 @@
 #include "llvm/Support/InstIterator.h"
 #include "llvm/Support/TypeBuilder.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Target/TargetData.h"
 
 using namespace llvm;
 
@@ -20,20 +21,25 @@ namespace {
 
     virtual void getAnalysisUsage(AnalysisUsage &AU) const {
       AU.setPreservesAll();
-//      AU.addRequired<LoopInfo>();
+      AU.addRequired<TargetData>();
     }
   };
 }
 
 class Kleerer {
 public:
-  Kleerer(ModulePass &modPass, Module &M) : modPass(modPass), M(M), done(false) {}
+  Kleerer(ModulePass &modPass, Module &M, TargetData &TD) : modPass(modPass),
+      M(M), TD(TD), C(M.getContext()), intPtrTy(TD.getIntPtrType(C)),
+      done(false) {}
 
   bool run();
 
 private:
   ModulePass &modPass;
   Module &M;
+  TargetData &TD;
+  LLVMContext &C;
+  IntegerType *intPtrTy;
   bool done;
 
   void handleFun(Function &F);
@@ -41,6 +47,14 @@ private:
   bool handleIns(const Instruction &ins);
 
   void writeMain(Function &F);
+
+  Instruction *createMalloc(BasicBlock *BB, Type *type, Value *arraySize);
+  Instruction *call_klee_make_symbolic(Function *klee_make_symbolic,
+                                       Constant *noname, BasicBlock *BB,
+                                       Type *type, Value *addr,
+                                       Value *arraySize = 0);
+  void makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
+                           BasicBlock *BB, Constant *noname);
 };
 
 static RegisterPass<KleererPass> X("kleerer", "Prepares a module for Klee");
@@ -48,11 +62,35 @@ char KleererPass::ID;
 
 bool Kleerer::handleIns(const Instruction &ins) {
   switch (ins.getOpcode()) {
-  case Instruction::Store:
-    const Value *LHS = ins.getOperand(1);
+  case Instruction::Store: {
+    const StoreInst *SI = cast<const StoreInst>(&ins);
+    const Value *LHS = SI->getPointerOperand();
     if (LHS->hasName() && LHS->getName().equals("__ai_state"))
       return true;
     break;
+  }
+/*  case Instruction::Call: {
+    const CallInst *CI = cast<const CallInst>(&ins);
+    const Value *arg0 = CI->getArgOperand(0);
+    const ConstantExpr *CE = dyn_cast<const ConstantExpr>(arg0);
+    const GlobalVariable *GV = dyn_cast<const GlobalVariable>(CE->getOperand(0));
+    errs() << "Tuk\n";
+    ins.print(errs());
+    errs() << "\n  arg0=";
+    CE->print(errs());
+    errs() << "\n  type=";
+    CE->getType()->print(errs());
+    errs() << "\n  opcode=" << CE->getOpcodeName() << "\n  operand:\n  ";
+    GV->print(errs());
+    errs() << "\n  type=";
+    GV->getType()->print(errs());
+    errs() << "\n  init=";
+    GV->getInitializer()->print(errs());
+    errs() << "\n  init_type=";
+    GV->getInitializer()->getType()->print(errs());
+    errs() << "\n";
+    break;
+  }*/
   }
   return false;
 }
@@ -92,30 +130,119 @@ static void check(Value *Func, ArrayRef<Value *> Args) {
   }
 }
 
+static unsigned getTypeSize(TargetData &TD, Type *type) {
+  unsigned TypeSize = TD.getTypeAllocSize(type);
+
+  if (StructType *ST = dyn_cast<StructType>(type))
+    TypeSize = TD.getStructLayout(ST)->getSizeInBytes();
+
+  return TypeSize;
+}
+
+Instruction *Kleerer::createMalloc(BasicBlock *BB, Type *type,
+                                   Value *arraySize) {
+  unsigned typeSize = getTypeSize(TD, type);
+
+  return CallInst::CreateMalloc(BB, intPtrTy, type,
+                                ConstantInt::get(intPtrTy, typeSize),
+                                arraySize);
+}
+
+static Constant *getNonameGlobal(LLVMContext &C, Module &M) {
+  Constant *noname = ConstantArray::get(C, "noname");
+  GlobalVariable *noname_var =
+        new GlobalVariable(M, noname->getType(), true,
+                           GlobalValue::PrivateLinkage, noname, "noname_str");
+  noname_var->setUnnamedAddr(true);
+  noname_var->setAlignment(1);
+
+  std::vector<Value *> params;
+  params.push_back(ConstantInt::get(TypeBuilder<types::i<32>, true>::get(C), 0));
+  params.push_back(ConstantInt::get(TypeBuilder<types::i<32>, true>::get(C), 0));
+
+  return ConstantExpr::getInBoundsGetElementPtr(noname_var, params);
+}
+
+Instruction *Kleerer::call_klee_make_symbolic(Function *klee_make_symbolic,
+                                              Constant *noname, BasicBlock *BB,
+                                              Type *type, Value *addr,
+                                              Value *arraySize) {
+  std::vector<Value *> p;
+  Type *voidPtrType = TypeBuilder<void *, false>::get(C);
+
+  if (addr->getType() != voidPtrType)
+    addr = new BitCastInst(addr, voidPtrType, "", BB);
+  p.push_back(addr);
+  Value *size = ConstantInt::get(TypeBuilder<unsigned, false>::get(C),
+                                 getTypeSize(TD, type));
+  if (arraySize)
+    size = BinaryOperator::CreateMul(arraySize, size,
+                                     "make_symbolic_size", BB);
+  p.push_back(size);
+  p.push_back(noname);
+
+  check(klee_make_symbolic, p);
+
+  return CallInst::Create(klee_make_symbolic, p);
+}
+
+void Kleerer::makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
+                                  BasicBlock *BB, Constant *noname) {
+  Type *intType = TypeBuilder<int, false>::get(C);
+  GlobalVariable *ai_state =
+      new GlobalVariable(M, intType, false, GlobalValue::ExternalLinkage,
+                         NULL, "__ai_state");
+  BB->getInstList().push_back(call_klee_make_symbolic(klee_make_symbolic,
+                                                      noname, BB, intType,
+                                                      ai_state));
+}
+
 void Kleerer::writeMain(Function &F) {
-  LLVMContext &C = M.getContext();
+
   std::string name = "main." + F.getNameStr() + ".o";
   Module mainMod(name, C);
   Function *mainFun = Function::Create(TypeBuilder<int(), false>::get(C),
-                   GlobalValue::ExternalLinkage, "main", &mainMod);
+                    GlobalValue::ExternalLinkage, "main", &mainMod);
   BasicBlock *mainBB = BasicBlock::Create(C, "entry", mainFun);
   BasicBlock::InstListType &insList = mainBB->getInstList();
 
+  Function *klee_make_symbolic = Function::Create(
+              TypeBuilder<void(void *, unsigned, const char *), false>::get(C),
+              GlobalValue::ExternalLinkage, "klee_make_symbolic", &mainMod);
+  Function *klee_int = Function::Create(
+              TypeBuilder<int(const char *), false>::get(C),
+              GlobalValue::ExternalLinkage, "klee_int", &mainMod);
+
+  Constant *noname = getNonameGlobal(C, mainMod);
+  std::vector<Value *> noname_vec;
+  noname_vec.push_back(noname);
 //  F.dump();
+
   std::vector<Value *> params;
   for (Function::const_arg_iterator I = F.arg_begin(), E = F.arg_end(); I != E;
        ++I) {
     const Value &param = *I;
     Type *type = param.getType();
-    errs() << "param\n";
-    param.dump();
+    errs() << "param\n  ";
+    param.print(errs());
+    errs() << "\n  type=";
+    type->print(errs());
+    errs() << "\n";
     Value *val;
     Instruction *ins;
     if (const PointerType *PT = dyn_cast<const PointerType>(type)) {
-      insList.push_back(ins = new AllocaInst(PT->getElementType()));
+      insList.push_back(ins = CallInst::Create(klee_int, noname_vec));
+      Value *arrSize = ins;
+      insList.push_back(ins = createMalloc(mainBB, PT->getElementType(),
+                                           arrSize));
       val = ins;
+      insList.push_back(call_klee_make_symbolic(klee_make_symbolic, noname,
+                                                mainBB, PT->getElementType(),
+                                                ins, arrSize));
     } else if (IntegerType *IT = dyn_cast<IntegerType>(type)) {
-      insList.push_back(ins = new AllocaInst(IT));
+      insList.push_front(ins = new AllocaInst(IT));
+      insList.push_back(call_klee_make_symbolic(klee_make_symbolic, noname,
+                                                mainBB, type, ins));
       insList.push_back(ins = new LoadInst(ins));
       val = ins;
     }
@@ -123,6 +250,11 @@ void Kleerer::writeMain(Function &F) {
       params.push_back(val);
   }
 //  mainFun->viewCFG();
+
+  makeAiStateSymbolic(klee_make_symbolic, mainMod, mainBB, noname);
+  errs() << "==============\n";
+  errs() << mainMod;
+  errs() << "==============\n";
 
   check(&F, params);
 
@@ -167,6 +299,7 @@ bool Kleerer::run() {
 }
 
 bool KleererPass::runOnModule(Module &M) {
-  Kleerer K(*this, M);
+  TargetData &TD = getAnalysis<TargetData>();
+  Kleerer K(*this, M, TD);
   return K.run();
 }
