@@ -136,9 +136,10 @@ public:
                PostDominanceFrontier &PDF) : fun(F), PDT(PDT), PDF(PDF) {}
   ~StaticSlicer();
 
-  void addInitialCriterion(const Instruction *ins, const Value *cond) {
+  void addInitialCriterion(const Instruction *ins, const Value *cond = 0) {
     InsInfo *ii = getInsInfo(ins);
-    ii->addRC(cond);
+    if (cond)
+      ii->addRC(cond);
     ii->deslice();
   }
   void calculateStaticSlice();
@@ -551,14 +552,17 @@ void Slicer::findInitialCriterion(Function &F, StaticSlicer &ss) {
     i->print(errs());
     errs() << '\n';
 #endif
-    if (i->getOpcode() != Instruction::Store)
-      continue;
-    const Value *LHS = i->getOperand(1);
-    if (LHS->hasName() && LHS->getName().equals("__ai_state")) {
+    if (const StoreInst *SI = dyn_cast<const StoreInst>(i)) {
+      const Value *LHS = SI->getPointerOperand();
+      if (LHS->hasName() && LHS->getName().equals("__ai_state")) {
 #ifdef DEBUG_INITCRIT
-      errs() << "    adding\n";
+        errs() << "    adding\n";
 #endif
-      ss.addInitialCriterion(i, LHS);
+        ss.addInitialCriterion(SI, LHS);
+      }
+    } else if (const UnreachableInst *UI = dyn_cast<const UnreachableInst>(i)) {
+      errs() << "unreach at: " << UI->getParent()->getParent()->getName() << '\n';
+      ss.addInitialCriterion(UI);
     }
   }
 #ifdef DEBUG_INITCRIT
@@ -610,9 +614,9 @@ static void writeCFG(std::string suffix, Function &F) {
 
 bool Slicer::runOnFunction(Function &F) {
 /*  errs() << "AT: " << F.getName() << '\n';
-  if (!F.getName().equals("moxa_board_deinit"))
+  if (!F.getName().equals("tty_init"))
     return false;
-  writeCFG("pre", F);
+//  writeCFG("pre", F);
   F.viewCFG();*/
   PostDominanceFrontier &PDF = getAnalysis<PostDominanceFrontier>();
   PostDominatorTree &PDT = getAnalysis<PostDominatorTree>();
@@ -627,8 +631,8 @@ bool Slicer::runOnFunction(Function &F) {
 
   bool sliced = ss.slice();
 
-/*  F.viewCFG();
-  writeCFG("post", F);*/
+//  F.viewCFG();
+  //writeCFG("post", F);
   return sliced;
 }
 
