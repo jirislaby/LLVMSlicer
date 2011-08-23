@@ -1,3 +1,4 @@
+#include "llvm/Instructions.h"
 #include "llvm/Pass.h"
 #include "llvm/Module.h"
 #include "llvm/Analysis/LoopInfo.h"
@@ -114,18 +115,15 @@ void ModInfo::dump() const {
 }
 
 void StatsComputer::handleIns(FunInfo &funInfo, const Instruction &ins) {
-  switch (ins.getOpcode()) {
-  case Instruction::Call:
-    if (ins.getOperand(0)->getValueID() == Value::InlineAsmVal)
+  if (const CallInst *CI = dyn_cast<const CallInst>(&ins)) {
+    if (CI->isInlineAsm())
       funInfo.setHasAsm();
     else
       funInfo.setHasCall();
-    break;
-  case Instruction::Store:
-    const Value *LHS = ins.getOperand(1);
+  } else if (const StoreInst *SI = dyn_cast<const StoreInst>(&ins)) {
+    const Value *LHS = SI->getPointerOperand();
     if (LHS->hasName() && LHS->getName().equals("__ai_state"))
       funInfo.setHasLock();
-    break;
   }
 }
 
@@ -162,6 +160,22 @@ void StatsComputer::handleFun(ModInfo &modInfo, const Function &F,
       if (!funInfo.hasLoop())
         modInfo.incFunSafeWOLoop();
     }
+#if 0
+    if (!funInfo.hasAsm() && !funInfo.hasLoop())
+      errs() << "w/o asm+loop: " << F.getName() << '\n';
+    else
+      errs() << "co-w/o asm+loop: " << F.getName() << '\n';
+
+    if (!funInfo.hasAsm() && !funInfo.hasCall())
+      errs() << "w/o asm+call: " << F.getName() << '\n';
+    else
+      errs() << "co-w/o asm+call: " << F.getName() << '\n';
+
+    if (!funInfo.hasAsm() && !funInfo.hasLoop() && !funInfo.hasCall())
+      errs() << "w/o asm+loop+call: " << F.getName() << '\n';
+    else
+      errs() << "co-w/o asm+loop+call: " << F.getName() << '\n';
+#endif
   }
 }
 
