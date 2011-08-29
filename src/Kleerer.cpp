@@ -192,44 +192,59 @@ Instruction *Kleerer::call_klee_make_symbolic(Function *klee_make_symbolic,
 void Kleerer::makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
                                   BasicBlock *BB, Constant *noname) {
   Type *intType = TypeBuilder<int, false>::get(C);
-  GlobalVariable *ai_state =
-      new GlobalVariable(M, intType, false, GlobalValue::CommonLinkage,
-                         ConstantInt::get(intType, 0), "__ai_state");
+  GlobalVariable *ai_state = M.getGlobalVariable("__ai_state", true);
+/*      new GlobalVariable(M, intType, false, GlobalValue::ExternLinkage,
+                         ConstantInt::get(intType, 0), "__ai_state");*/
+  ai_state->setInitializer(ConstantInt::get(intType, 0));
   BB->getInstList().push_back(call_klee_make_symbolic(klee_make_symbolic,
                                                       noname, BB, intType,
                                                       ai_state));
 }
 
 void Kleerer::addGlobals(Module &mainMod) {
-  for (Module::const_global_iterator I = M.global_begin(), E = M.global_end();
+  for (Module::global_iterator I = M.global_begin(), E = M.global_end();
        I != E; ++I) {
-    const GlobalVariable &G = *I;
+    GlobalVariable &G = *I;
     if (!G.isDeclaration() || G.hasInitializer())
       continue;
     errs() << "glob: " << G.getName() << '\n';
-    new GlobalVariable(mainMod, G.getType(), G.isConstant(), G.getLinkage(),
-                       Constant::getNullValue(G.getType()), G.getName());
+    if (G.getName().equals("__crc_tty_std_termios")) {
+      errs() << "XXXXXXX: link=" << G.getLinkage() << " ";
+      G.print(errs());
+    }
+/*    GlobalValue::LinkageTypes linkage = G.getLinkage();
+    if (linkage == GlobalValue::ExternalWeakLinkage)
+      linkage = GlobalValue::CommonLinkage;
+    new GlobalVariable(mainMod, G.getType(), G.isConstant(), linkage,
+                       Constant::getNullValue(G.getType()), G.getName());*/
+    Constant *xxx = Constant::getNullValue(G.getType()->getElementType());
+/*    errs() << "xxx=";
+    xxx->getType()->print(errs());
+    errs() << "\nyyy=";
+    G.getType()->getElementType()->print(errs());
+    errs() << "\n";*/
+    G.setInitializer(xxx);
   }
 }
 
 void Kleerer::writeMain(Function &F) {
   std::string name = M.getModuleIdentifier() + ".main." + F.getNameStr() + ".o";
-  Module mainMod(name, C);
-  Function *callie = Function::Create(F.getFunctionType(),
-                    GlobalValue::ExternalLinkage, F.getName(), &mainMod);
+//  Module mainMod(name, C);
+/*  Function *callie = Function::Create(F.getFunctionType(),
+                    GlobalValue::ExternalLinkage, F.getName(), &mainMod);*/
   Function *mainFun = Function::Create(TypeBuilder<int(), false>::get(C),
-                    GlobalValue::ExternalLinkage, "main", &mainMod);
+                    GlobalValue::ExternalLinkage, "main", &M);
   BasicBlock *mainBB = BasicBlock::Create(C, "entry", mainFun);
   BasicBlock::InstListType &insList = mainBB->getInstList();
 
   Function *klee_make_symbolic = Function::Create(
               TypeBuilder<void(void *, unsigned, const char *), false>::get(C),
-              GlobalValue::ExternalLinkage, "klee_make_symbolic", &mainMod);
+              GlobalValue::ExternalLinkage, "klee_make_symbolic", &M);
   Function *klee_int = Function::Create(
               TypeBuilder<int(const char *), false>::get(C),
-              GlobalValue::ExternalLinkage, "klee_int", &mainMod);
+              GlobalValue::ExternalLinkage, "klee_int", &M);
 
-  Constant *noname = getNonameGlobal(C, mainMod);
+  Constant *noname = getNonameGlobal(C, M);
   std::vector<Value *> noname_vec;
   noname_vec.push_back(noname);
 //  F.dump();
@@ -249,8 +264,8 @@ void Kleerer::writeMain(Function &F) {
     Value *val;
     Instruction *ins;
     if (const PointerType *PT = dyn_cast<const PointerType>(type)) {
-      insList.push_back(ins = CallInst::Create(klee_int, noname_vec));
-      Value *arrSize = ins;
+//      insList.push_back(ins = CallInst::Create(klee_int, noname_vec));
+      Value *arrSize = ConstantInt::get(TypeBuilder<int, false>::get(C), 100);//ins;
       insList.push_back(ins = createMalloc(mainBB, PT->getElementType(),
                                            arrSize));
       val = ins;
@@ -269,8 +284,8 @@ void Kleerer::writeMain(Function &F) {
   }
 //  mainFun->viewCFG();
 
-  makeAiStateSymbolic(klee_make_symbolic, mainMod, mainBB, noname);
-  addGlobals(mainMod);
+  makeAiStateSymbolic(klee_make_symbolic, M, mainBB, noname);
+  addGlobals(M);
 #ifdef DEBUG_WRITE_MAIN
   errs() << "==============\n";
   errs() << mainMod;
@@ -278,7 +293,7 @@ void Kleerer::writeMain(Function &F) {
 #endif
   check(&F, params);
 
-  CallInst::Create(callie, params, "", mainBB);
+  CallInst::Create(&F, params, "", mainBB);
   ReturnInst::Create(C, ConstantInt::get(mainFun->getReturnType(), 0),
                      mainBB);
 
@@ -297,10 +312,11 @@ void Kleerer::writeMain(Function &F) {
 
   PassManager Passes;
   Passes.add(createVerifierPass());
-  Passes.run(mainMod);
+  Passes.run(M);
 
-  WriteBitcodeToFile(&mainMod, out);
+  WriteBitcodeToFile(&M, out);
   errs() << __func__ << ": written: '" << name << "'\n";
+  mainFun->eraseFromParent();
 //  done = true;
 }
 
