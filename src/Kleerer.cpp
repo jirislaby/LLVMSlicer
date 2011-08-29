@@ -1,7 +1,9 @@
 #include "llvm/Constants.h"
 #include "llvm/Instructions.h"
 #include "llvm/Pass.h"
+#include "llvm/PassManager.h"
 #include "llvm/Module.h"
+#include "llvm/Analysis/Verifier.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Support/InstIterator.h"
 #include "llvm/Support/TypeBuilder.h"
@@ -55,6 +57,7 @@ private:
                                        Value *arraySize = 0);
   void makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
                            BasicBlock *BB, Constant *noname);
+  void addGlobals(Module &M);
 };
 
 static RegisterPass<KleererPass> X("kleerer", "Prepares a module for Klee");
@@ -190,17 +193,30 @@ void Kleerer::makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
                                   BasicBlock *BB, Constant *noname) {
   Type *intType = TypeBuilder<int, false>::get(C);
   GlobalVariable *ai_state =
-      new GlobalVariable(M, intType, false, GlobalValue::ExternalLinkage,
-                         NULL, "__ai_state");
+      new GlobalVariable(M, intType, false, GlobalValue::CommonLinkage,
+                         ConstantInt::get(intType, 0), "__ai_state");
   BB->getInstList().push_back(call_klee_make_symbolic(klee_make_symbolic,
                                                       noname, BB, intType,
                                                       ai_state));
 }
 
-void Kleerer::writeMain(Function &F) {
+void Kleerer::addGlobals(Module &mainMod) {
+  for (Module::const_global_iterator I = M.global_begin(), E = M.global_end();
+       I != E; ++I) {
+    const GlobalVariable &G = *I;
+    if (!G.isDeclaration() || G.hasInitializer())
+      continue;
+    errs() << "glob: " << G.getName() << '\n';
+    new GlobalVariable(mainMod, G.getType(), G.isConstant(), G.getLinkage(),
+                       Constant::getNullValue(G.getType()), G.getName());
+  }
+}
 
-  std::string name = "main." + F.getNameStr() + ".o";
+void Kleerer::writeMain(Function &F) {
+  std::string name = M.getModuleIdentifier() + ".main." + F.getNameStr() + ".o";
   Module mainMod(name, C);
+  Function *callie = Function::Create(F.getFunctionType(),
+                    GlobalValue::ExternalLinkage, F.getName(), &mainMod);
   Function *mainFun = Function::Create(TypeBuilder<int(), false>::get(C),
                     GlobalValue::ExternalLinkage, "main", &mainMod);
   BasicBlock *mainBB = BasicBlock::Create(C, "entry", mainFun);
@@ -223,11 +239,13 @@ void Kleerer::writeMain(Function &F) {
        ++I) {
     const Value &param = *I;
     Type *type = param.getType();
+#ifdef DEBUG_WRITE_MAIN
     errs() << "param\n  ";
     param.print(errs());
     errs() << "\n  type=";
     type->print(errs());
     errs() << "\n";
+#endif
     Value *val;
     Instruction *ins;
     if (const PointerType *PT = dyn_cast<const PointerType>(type)) {
@@ -252,17 +270,21 @@ void Kleerer::writeMain(Function &F) {
 //  mainFun->viewCFG();
 
   makeAiStateSymbolic(klee_make_symbolic, mainMod, mainBB, noname);
+  addGlobals(mainMod);
+#ifdef DEBUG_WRITE_MAIN
   errs() << "==============\n";
   errs() << mainMod;
   errs() << "==============\n";
-
+#endif
   check(&F, params);
 
-  CallInst::Create(&F, params, "", mainBB);
+  CallInst::Create(callie, params, "", mainBB);
   ReturnInst::Create(C, ConstantInt::get(mainFun->getReturnType(), 0),
                      mainBB);
 
+#ifdef DEBUG_WRITE_MAIN
   mainFun->viewCFG();
+#endif
 
   std::string ErrorInfo;
   raw_fd_ostream out(name.c_str(), ErrorInfo);
@@ -270,8 +292,14 @@ void Kleerer::writeMain(Function &F) {
     errs() << __func__ << ": cannot write '" << name << "'!\n";
     return;
   }
-//  WriteBitcodeToFile(&mainMod, out);
-  out << mainMod;
+
+//  errs() << mainMod;
+
+  PassManager Passes;
+  Passes.add(createVerifierPass());
+  Passes.run(mainMod);
+
+  WriteBitcodeToFile(&mainMod, out);
   errs() << __func__ << ": written: '" << name << "'\n";
 //  done = true;
 }
@@ -290,6 +318,8 @@ bool Kleerer::run() {
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
     if (F.isDeclaration())
+      continue;
+    if (!F.getName().equals("tty_reset_termios"))
       continue;
     handleFun(F);
     if (done)
