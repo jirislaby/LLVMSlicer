@@ -561,7 +561,9 @@ void Slicer::findInitialCriterion(Function &F, StaticSlicer &ss) {
         ss.addInitialCriterion(SI, LHS);
       }
     } else if (const UnreachableInst *UI = dyn_cast<const UnreachableInst>(i)) {
+#ifdef DEBUG_INITCRIT
       errs() << "unreach at: " << UI->getParent()->getParent()->getName() << '\n';
+#endif
       ss.addInitialCriterion(UI);
     }
   }
@@ -623,7 +625,7 @@ bool Slicer::runOnFunction(Function &F) {
 
   StaticSlicer ss(F, PDT, PDF);
 
-  errs() << "XXX " << F.getName() << "\n";
+//  errs() << "XXX " << F.getName() << "\n";
 
   findInitialCriterion(F, ss);
 

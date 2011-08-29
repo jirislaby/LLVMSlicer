@@ -145,6 +145,7 @@ void StatsComputer::handleFun(ModInfo &modInfo, const Function &F,
     handleBB(funInfo, LI, *I);
 
   if (funInfo.hasLock()) {
+//      errs() << "FUN: " << F.getName() << "\n";
     modInfo.incFun();
     modInfo.addIns(funInfo.getIns());
     if (funInfo.hasAsm())
