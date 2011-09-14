@@ -240,9 +240,9 @@ void Kleerer::writeMain(Function &F) {
   Function *klee_make_symbolic = Function::Create(
               TypeBuilder<void(void *, unsigned, const char *), false>::get(C),
               GlobalValue::ExternalLinkage, "klee_make_symbolic", &M);
-  Function *klee_int = Function::Create(
+/*  Function *klee_int = Function::Create(
               TypeBuilder<int(const char *), false>::get(C),
-              GlobalValue::ExternalLinkage, "klee_int", &M);
+              GlobalValue::ExternalLinkage, "klee_int", &M);*/
 
   Constant *noname = getNonameGlobal(C, M);
   std::vector<Value *> noname_vec;
@@ -317,6 +317,7 @@ void Kleerer::writeMain(Function &F) {
   WriteBitcodeToFile(&M, out);
   errs() << __func__ << ": written: '" << name << "'\n";
   mainFun->eraseFromParent();
+  klee_make_symbolic->eraseFromParent();
 //  done = true;
 }
 
@@ -335,8 +336,8 @@ bool Kleerer::run() {
     Function &F = *I;
     if (F.isDeclaration())
       continue;
-    if (!F.getName().equals("tty_reset_termios"))
-      continue;
+/*    if (!F.getName().equals("tty_reset_termios"))
+      continue;*/
     handleFun(F);
     if (done)
       break;
