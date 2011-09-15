@@ -50,6 +50,8 @@ private:
 
   void writeMain(Function &F);
 
+  Constant *get_assert_fail();
+
   Instruction *createMalloc(BasicBlock *BB, Type *type, Value *arraySize);
   Instruction *call_klee_make_symbolic(Function *klee_make_symbolic,
                                        Constant *noname, BasicBlock *BB,
@@ -57,6 +59,7 @@ private:
                                        Value *arraySize = 0);
   void makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
                            BasicBlock *BB, Constant *noname);
+  BasicBlock *checkAiState(Function *mainFun, BasicBlock *BB, Constant *noname);
   void addGlobals(Module &M);
 };
 
@@ -192,13 +195,49 @@ Instruction *Kleerer::call_klee_make_symbolic(Function *klee_make_symbolic,
 void Kleerer::makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
                                   BasicBlock *BB, Constant *noname) {
   Type *intType = TypeBuilder<int, false>::get(C);
+  Constant *zero = ConstantInt::get(intType, 0);
   GlobalVariable *ai_state = M.getGlobalVariable("__ai_state", true);
 /*      new GlobalVariable(M, intType, false, GlobalValue::ExternLinkage,
                          ConstantInt::get(intType, 0), "__ai_state");*/
-  ai_state->setInitializer(ConstantInt::get(intType, 0));
+  ai_state->setInitializer(zero);
   BB->getInstList().push_back(call_klee_make_symbolic(klee_make_symbolic,
                                                       noname, BB, intType,
                                                       ai_state));
+  new StoreInst(zero, ai_state, "", true, BB);
+}
+
+Constant *Kleerer::get_assert_fail()
+{
+  Type *constCharPtrTy = TypeBuilder<const char *, false>::get(C);
+  AttrListPtr attrs;
+  attrs = attrs.addAttr(0, Attribute::NoReturn);
+  return M.getOrInsertFunction("__assert_fail", attrs, Type::getVoidTy(C),
+                               constCharPtrTy, constCharPtrTy,
+                               TypeBuilder<unsigned, false>::get(C),
+                               constCharPtrTy, NULL);
+}
+
+BasicBlock *Kleerer::checkAiState(Function *mainFun, BasicBlock *BB,
+                                  Constant *noname) {
+  Type *intType = TypeBuilder<int, false>::get(C);
+  Constant *zero = ConstantInt::get(intType, 0);
+  GlobalVariable *ai_state = M.getGlobalVariable("__ai_state", true);
+
+  BasicBlock *finalBB = BasicBlock::Create(C, "final", mainFun);
+  BasicBlock *assBB = BasicBlock::Create(C, "assertBB", mainFun);
+  std::vector<Value *> params;
+  params.push_back(noname);
+  params.push_back(noname);
+  params.push_back(zero);
+  params.push_back(noname);
+  CallInst::Create(get_assert_fail(), params, "", assBB);
+  new UnreachableInst(C, assBB);
+
+  Value *ai_stateVal = new LoadInst(ai_state, "", true, BB);
+  Value *ai_stateIsZero = new ICmpInst(*BB, CmpInst::ICMP_EQ, ai_stateVal, zero);
+  BranchInst::Create(finalBB, assBB, ai_stateIsZero, BB);
+
+  return finalBB;
 }
 
 void Kleerer::addGlobals(Module &mainMod) {
@@ -294,8 +333,9 @@ void Kleerer::writeMain(Function &F) {
   check(&F, params);
 
   CallInst::Create(&F, params, "", mainBB);
+  BasicBlock *final = checkAiState(mainFun, mainBB, noname);
   ReturnInst::Create(C, ConstantInt::get(mainFun->getReturnType(), 0),
-                     mainBB);
+                     final);
 
 #ifdef DEBUG_WRITE_MAIN
   mainFun->viewCFG();
