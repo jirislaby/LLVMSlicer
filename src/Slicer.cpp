@@ -562,9 +562,17 @@ void Slicer::findInitialCriterion(Function &F, StaticSlicer &ss) {
       }
     } else if (const UnreachableInst *UI = dyn_cast<const UnreachableInst>(i)) {
 #ifdef DEBUG_INITCRIT
-      errs() << "unreach at: " << UI->getParent()->getParent()->getName() << '\n';
+      errs() << "    unreach at: " << UI->getParent()->getParent()->getName() << '\n';
 #endif
       ss.addInitialCriterion(UI);
+    } else if (const CallInst *CI = dyn_cast<const CallInst>(i)) {
+      Function *callie = CI->getCalledFunction();
+      if (callie && callie->getName().equals("__assert_fail")) {
+#ifdef DEBUG_INITCRIT
+        errs() << "    adding\n";
+#endif
+        ss.addInitialCriterion(CI);
+      }
     }
   }
 #ifdef DEBUG_INITCRIT
