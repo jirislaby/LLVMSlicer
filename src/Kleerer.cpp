@@ -210,7 +210,7 @@ Constant *Kleerer::get_assert_fail()
 {
   Type *constCharPtrTy = TypeBuilder<const char *, false>::get(C);
   AttrListPtr attrs;
-  attrs = attrs.addAttr(0, Attribute::NoReturn);
+  attrs = attrs.addAttr(~0, Attribute::NoReturn);
   return M.getOrInsertFunction("__assert_fail", attrs, Type::getVoidTy(C),
                                constCharPtrTy, constCharPtrTy,
                                TypeBuilder<unsigned, false>::get(C),
