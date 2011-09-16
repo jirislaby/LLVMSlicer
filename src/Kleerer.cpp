@@ -46,7 +46,7 @@ private:
 
   void handleFun(Function &F);
   void handleBB(const BasicBlock &BB);
-  bool handleIns(const Instruction &ins);
+  int handleIns(const Instruction &ins);
 
   void writeMain(Function &F);
 
@@ -66,39 +66,37 @@ private:
 static RegisterPass<KleererPass> X("kleerer", "Prepares a module for Klee");
 char KleererPass::ID;
 
-bool Kleerer::handleIns(const Instruction &ins) {
+/**
+ * @return: 1=important fun, 0=no idea, -1=do not handle
+ */
+int Kleerer::handleIns(const Instruction &ins) {
   switch (ins.getOpcode()) {
   case Instruction::Store: {
     const StoreInst *SI = cast<const StoreInst>(&ins);
     const Value *LHS = SI->getPointerOperand();
     if (LHS->hasName() && LHS->getName().equals("__ai_state"))
-      return true;
+      return 1;
     break;
   }
-/*  case Instruction::Call: {
+  case Instruction::Call: {
     const CallInst *CI = cast<const CallInst>(&ins);
-    const Value *arg0 = CI->getArgOperand(0);
-    const ConstantExpr *CE = dyn_cast<const ConstantExpr>(arg0);
-    const GlobalVariable *GV = dyn_cast<const GlobalVariable>(CE->getOperand(0));
-    errs() << "Tuk\n";
-    ins.print(errs());
-    errs() << "\n  arg0=";
-    CE->print(errs());
-    errs() << "\n  type=";
-    CE->getType()->print(errs());
-    errs() << "\n  opcode=" << CE->getOpcodeName() << "\n  operand:\n  ";
-    GV->print(errs());
-    errs() << "\n  type=";
-    GV->getType()->print(errs());
-    errs() << "\n  init=";
-    GV->getInitializer()->print(errs());
-    errs() << "\n  init_type=";
-    GV->getInitializer()->getType()->print(errs());
-    errs() << "\n";
-    break;
-  }*/
+    const Function *callie = CI->getCalledFunction();
+    errs() << "CALL: ";
+    if (callie) {
+      errs() << callie->getName() << '\n';
+      if (!callie->isDeclaration()) {
+        errs() << "  has body\n";
+        return 0;
+      }
+      if (callie->getName().startswith("mutex_") ||
+          callie->getName().equals("__assert_fail"))
+        return 0;
+    }
+    errs() << "  ignoring fun\n";
+    return -1;
   }
-  return false;
+  }
+  return 0;
 }
 
 #if 0
@@ -364,11 +362,16 @@ void Kleerer::writeMain(Function &F) {
 void Kleerer::handleFun(Function &F) {
 /*  for (Function::const_iterator I = F.begin(), E = F.end(); I != E; ++I)
     handleBB()*/
-  for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I)
-    if (handleIns(*I)) {
-      writeMain(F);
-      break;
-    }
+  bool handle = false;
+  for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
+    int ret = handleIns(*I);
+    if (ret < 0)
+      return;
+    handle |= !!ret;
+  }
+
+  if (handle)
+    writeMain(F);
 }
 
 bool Kleerer::run() {
