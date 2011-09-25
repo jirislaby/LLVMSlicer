@@ -81,7 +81,7 @@ int Kleerer::handleIns(const Instruction &ins) {
   case Instruction::Call: {
     const CallInst *CI = cast<const CallInst>(&ins);
     const Function *callie = CI->getCalledFunction();
-    errs() << "CALL: ";
+    errs() << "in " << ins.getParent()->getParent()->getName() << " CALL: ";
     if (callie) {
       errs() << callie->getName() << '\n';
       if (!callie->isDeclaration()) {
