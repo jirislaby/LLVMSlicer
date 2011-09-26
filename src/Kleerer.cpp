@@ -81,17 +81,18 @@ int Kleerer::handleIns(const Instruction &ins) {
   case Instruction::Call: {
     const CallInst *CI = cast<const CallInst>(&ins);
     const Function *callie = CI->getCalledFunction();
-    errs() << "in " << ins.getParent()->getParent()->getName() << " CALL: ";
     if (callie) {
-      errs() << callie->getName() << '\n';
-      if (!callie->isDeclaration()) {
-        errs() << "  has body\n";
+      if (!callie->isDeclaration())
         return 0;
-      }
       if (callie->getName().startswith("mutex_") ||
           callie->getName().equals("__assert_fail"))
         return 0;
     }
+    errs() << "in " << ins.getParent()->getParent()->getName() << " CALL: ";
+    if (callie)
+      errs() << callie->getName();
+    if (CI->isInlineAsm())
+        errs() << "is ASM";
     errs() << "  ignoring fun\n";
     return -1;
   }
