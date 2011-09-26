@@ -244,11 +244,7 @@ void Kleerer::addGlobals(Module &mainMod) {
     GlobalVariable &G = *I;
     if (!G.isDeclaration() || G.hasInitializer())
       continue;
-    errs() << "glob: " << G.getName() << '\n';
-    if (G.getName().equals("__crc_tty_std_termios")) {
-      errs() << "XXXXXXX: link=" << G.getLinkage() << " ";
-      G.print(errs());
-    }
+//    errs() << "glob: " << G.getName() << '\n';
 /*    GlobalValue::LinkageTypes linkage = G.getLinkage();
     if (linkage == GlobalValue::ExternalWeakLinkage)
       linkage = GlobalValue::CommonLinkage;
