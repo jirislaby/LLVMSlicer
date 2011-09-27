@@ -32,7 +32,11 @@ class Kleerer {
 public:
   Kleerer(ModulePass &modPass, Module &M, TargetData &TD) : modPass(modPass),
       M(M), TD(TD), C(M.getContext()), intPtrTy(TD.getIntPtrType(C)),
-      done(false) {}
+      done(false) {
+    voidPtrType = TypeBuilder<void *, false>::get(C);
+    intType = TypeBuilder<int, false>::get(C);
+    uintType = TypeBuilder<unsigned, false>::get(C);
+  }
 
   bool run();
 
@@ -43,6 +47,11 @@ private:
   LLVMContext &C;
   IntegerType *intPtrTy;
   bool done;
+
+  /* types */
+  Type *voidPtrType;
+  Type *intType;
+  Type *uintType;
 
   void handleFun(Function &F);
   void handleBB(const BasicBlock &BB);
@@ -173,13 +182,11 @@ Instruction *Kleerer::call_klee_make_symbolic(Function *klee_make_symbolic,
                                               Type *type, Value *addr,
                                               Value *arraySize) {
   std::vector<Value *> p;
-  Type *voidPtrType = TypeBuilder<void *, false>::get(C);
 
   if (addr->getType() != voidPtrType)
     addr = new BitCastInst(addr, voidPtrType, "", BB);
   p.push_back(addr);
-  Value *size = ConstantInt::get(TypeBuilder<unsigned, false>::get(C),
-                                 getTypeSize(TD, type));
+  Value *size = ConstantInt::get(uintType, getTypeSize(TD, type));
   if (arraySize)
     size = BinaryOperator::CreateMul(arraySize, size,
                                      "make_symbolic_size", BB);
@@ -193,7 +200,6 @@ Instruction *Kleerer::call_klee_make_symbolic(Function *klee_make_symbolic,
 
 void Kleerer::makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
                                   BasicBlock *BB, Constant *noname) {
-  Type *intType = TypeBuilder<int, false>::get(C);
   Constant *zero = ConstantInt::get(intType, 0);
   GlobalVariable *ai_state = M.getGlobalVariable("__ai_state", true);
 /*      new GlobalVariable(M, intType, false, GlobalValue::ExternLinkage,
@@ -211,14 +217,12 @@ Constant *Kleerer::get_assert_fail()
   AttrListPtr attrs;
   attrs = attrs.addAttr(~0, Attribute::NoReturn);
   return M.getOrInsertFunction("__assert_fail", attrs, Type::getVoidTy(C),
-                               constCharPtrTy, constCharPtrTy,
-                               TypeBuilder<unsigned, false>::get(C),
+                               constCharPtrTy, constCharPtrTy, uintType,
                                constCharPtrTy, NULL);
 }
 
 BasicBlock *Kleerer::checkAiState(Function *mainFun, BasicBlock *BB,
                                   Constant *noname) {
-  Type *intType = TypeBuilder<int, false>::get(C);
   Constant *zero = ConstantInt::get(intType, 0);
   GlobalVariable *ai_state = M.getGlobalVariable("__ai_state", true);
 
@@ -295,17 +299,27 @@ void Kleerer::writeMain(Function &F) {
     type->print(errs());
     errs() << "\n";
 #endif
-    Value *val;
+    Value *val = NULL;
     Instruction *ins;
     if (const PointerType *PT = dyn_cast<const PointerType>(type)) {
 //      insList.push_back(ins = CallInst::Create(klee_int, noname_vec));
-      Value *arrSize = ConstantInt::get(TypeBuilder<int, false>::get(C), 100);//ins;
+      Value *arrSize = ConstantInt::get(intType, 4000);
       insList.push_back(ins = createMalloc(mainBB, PT->getElementType(),
                                            arrSize));
-      val = ins;
       insList.push_back(call_klee_make_symbolic(klee_make_symbolic, noname,
                                                 mainBB, PT->getElementType(),
                                                 ins, arrSize));
+      bool cast = false;
+      if (ins->getType() != voidPtrType) {
+        insList.push_back(ins = new BitCastInst(ins, voidPtrType));
+        cast = true;
+      }
+      ins = GetElementPtrInst::CreateInBounds(ins,
+               ConstantInt::get(TypeBuilder<types::i<64>, true>::get(C), 2000));
+      insList.push_back(ins);
+      if (cast)
+        insList.push_back(ins = new BitCastInst(ins, type));
+      val = ins;
     } else if (IntegerType *IT = dyn_cast<IntegerType>(type)) {
       insList.push_front(ins = new AllocaInst(IT));
       insList.push_back(call_klee_make_symbolic(klee_make_symbolic, noname,
