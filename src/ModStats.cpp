@@ -122,7 +122,7 @@ void StatsComputer::handleIns(FunInfo &funInfo, const Instruction &ins) {
       funInfo.setHasCall();
   } else if (const StoreInst *SI = dyn_cast<const StoreInst>(&ins)) {
     const Value *LHS = SI->getPointerOperand();
-    if (LHS->hasName() && LHS->getName().equals("__ai_state"))
+    if (LHS->hasName() && LHS->getName().startswith("__ai_state"))
       funInfo.setHasLock();
   }
 }

@@ -83,7 +83,7 @@ int Kleerer::handleIns(const Instruction &ins) {
   case Instruction::Store: {
     const StoreInst *SI = cast<const StoreInst>(&ins);
     const Value *LHS = SI->getPointerOperand();
-    if (LHS->hasName() && LHS->getName().equals("__ai_state"))
+    if (LHS->hasName() && LHS->getName().startswith("__ai_state"))
       return 1;
     break;
   }

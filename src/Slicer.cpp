@@ -554,7 +554,7 @@ void Slicer::findInitialCriterion(Function &F, StaticSlicer &ss) {
 #endif
     if (const StoreInst *SI = dyn_cast<const StoreInst>(i)) {
       const Value *LHS = SI->getPointerOperand();
-      if (LHS->hasName() && LHS->getName().equals("__ai_state")) {
+      if (LHS->hasName() && LHS->getName().startswith("__ai_state")) {
 #ifdef DEBUG_INITCRIT
         errs() << "    adding\n";
 #endif
