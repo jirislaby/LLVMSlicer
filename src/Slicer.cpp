@@ -550,33 +550,6 @@ void Slicer::findInitialCriterion(Function &F, StaticSlicer &ss) {
 }
 
 #if 0
-static void removeUnreachables(Function &F) {
-  llvm::SmallSet<const BasicBlock *, 100> reachable;
-  llvm::SmallVector<const BasicBlock *, 20> toVisit;
-  toVisit.push_back(&F.front());
-  errs() << __func__ << " ============ BEG\n";
-  while (!toVisit.empty()) {
-    const BasicBlock *BB = toVisit.pop_back_val();
-    reachable.insert(BB);
-    for (succ_const_iterator I = succ_begin(BB), E = succ_end(BB); I != E; I++)
-      if (!reachable.count(*I))
-        toVisit.push_back(*I);
-  }
-  errs() << __func__ << " ============ erase\n";
-  for (Function::iterator I = F.begin(), E = F.end(); I != E;) {
-    BasicBlock &BB = *I;
-    ++I;
-    if (!reachable.count(&BB)) {
-#ifdef DEBUG_UNREACH
-      errs() << "  erasing: " << BB.getName() << "\n";
-      BB.print(errs());
-#endif
-      BB.eraseFromParent();
-    }
-  }
-  errs() << __func__ << " ============ BEG\n";
-}
-
 static void writeCFG(std::string suffix, Function &F) {
   std::string info;
   std::string filename = "/tmp/" + F.getNameStr() + "_" + suffix + ".dot";
