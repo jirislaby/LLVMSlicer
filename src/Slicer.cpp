@@ -9,11 +9,14 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <ctype.h>
 #include <map>
 
 #include "llvm/Constants.h"
 #include "llvm/Function.h"
+#include "llvm/GlobalVariable.h"
 #include "llvm/Instructions.h"
+#include "llvm/Module.h"
 #include "llvm/Pass.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallSet.h"
@@ -23,6 +26,7 @@
 #include "llvm/Support/GraphWriter.h"
 #include "llvm/Support/InstIterator.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/TypeBuilder.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
 #include "PostDominanceFrontier.h"
@@ -564,6 +568,49 @@ static void writeCFG(std::string suffix, Function &F) {
 }
 #endif
 
+static void replaceIns(Function &F, CallInst *CI) {
+//  errs() << __func__ << ": ======\n";
+  const ConstantExpr *GEP =
+    dyn_cast<const ConstantExpr>(CI->getOperand(0));
+  assert(GEP && GEP->getOpcode() == Instruction::GetElementPtrInst);
+  const GlobalVariable *strVar =
+    dyn_cast<const GlobalVariable>(GEP->getOperand(0));
+  assert(strVar && strVar->hasInitializer());
+  const ConstantArray *str =
+    dyn_cast<const ConstantArray>(strVar->getInitializer());
+  assert(str && str->isCString());
+  std::string id = str->getAsCString();
+  char *cstr = new char[11 + id.size() + 1];
+  strcpy(cstr, "__ai_state_"); /* len=11 */
+  strcpy(cstr + 11, id.c_str());
+  for (size_t i = 11; i < 11 + id.size(); i++)
+    if (cstr[i] != '_' && !isupper(cstr[i]) && !islower(cstr[i]))
+      cstr[i] = 'X';
+/*  errs() << "\nCstr=" << str->getAsCString() <<
+    " id=" << cstr << "\n======\n";*/
+  Type *intType = TypeBuilder<int, false>::get(F.getContext());
+  GlobalVariable *glob =
+    dyn_cast<GlobalVariable>(F.getParent()->getOrInsertGlobal(cstr, intType));
+  delete cstr;
+//  errs() << "\nid=" << glob->getValueID() << "\n";
+  glob->setInitializer(ConstantInt::get(intType, 0));
+  ReplaceInstWithInst(CI, new StoreInst(CI->getOperand(1), glob, true));
+}
+
+static void prepareFun(Function &F) {
+//  F.dump();
+  for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E;) {
+    Instruction *ins = &*I;
+    ++I;
+    if (CallInst *CI = dyn_cast<CallInst>(ins)) {
+      Function *callee = CI->getCalledFunction();
+      if (callee && callee->getName().equals("__ai_trans"))
+        replaceIns(F, CI);
+    }
+  }
+//  F.dump();
+}
+
 bool Slicer::runOnFunction(Function &F) {
 /*  errs() << "AT: " << F.getName() << '\n';
   if (!F.getName().equals("tty_init"))
@@ -572,6 +619,8 @@ bool Slicer::runOnFunction(Function &F) {
   F.viewCFG();*/
   PostDominanceFrontier &PDF = getAnalysis<PostDominanceFrontier>();
   PostDominatorTree &PDT = getAnalysis<PostDominatorTree>();
+
+  prepareFun(F);
 
   StaticSlicer ss(F, PDT, PDF);
 
