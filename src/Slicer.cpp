@@ -18,7 +18,6 @@
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/Analysis/DominanceFrontier.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/Support/CFG.h"
 #include "llvm/Support/GraphWriter.h"
@@ -26,6 +25,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
+#include "PostDominanceFrontier.h"
 
 using namespace llvm;
 
@@ -99,35 +99,6 @@ InsInfo::InsInfo(const Instruction *i) : ins(i), sliced(true) {
 #endif
 }
 
-namespace {
-  /// PostDominanceFrontier Class - Concrete subclass of DominanceFrontier that is
-  /// used to compute the a post-dominance frontier.
-  ///
-  struct PostDominanceFrontier : public DominanceFrontierBase {
-    static char ID;
-    PostDominanceFrontier()
-      : DominanceFrontierBase(ID, true) { }
-
-    virtual bool runOnFunction(Function &) {
-      Frontiers.clear();
-      PostDominatorTree &DT = getAnalysis<PostDominatorTree>();
-      Roots = DT.getRoots();
-      if (const DomTreeNode *Root = DT.getRootNode())
-        calculate(DT, Root);
-      return false;
-    }
-
-    virtual void getAnalysisUsage(AnalysisUsage &AU) const {
-      AU.setPreservesAll();
-      AU.addRequired<PostDominatorTree>();
-    }
-
-  private:
-    const DomSetType &calculate(const PostDominatorTree &DT,
-                                const DomTreeNode *Node);
-  };
-}
-
 class StaticSlicer {
 public:
   typedef std::map<const Instruction *, InsInfo *> InsInfoMap;
@@ -196,8 +167,6 @@ namespace {
 
 static RegisterPass<Slicer> X("slice", "Slices the code");
 char Slicer::ID;
-static RegisterPass<PostDominanceFrontier> Y("postdom-frontier", "Computes postdom frontiers");
-char PostDominanceFrontier::ID = 0;
 
 StaticSlicer::~StaticSlicer() {
   for (InsInfoMap::const_iterator I = insInfoMap.begin(), E = insInfoMap.end();
@@ -644,45 +613,4 @@ bool Slicer::runOnFunction(Function &F) {
 //  F.viewCFG();
   //writeCFG("post", F);
   return sliced;
-}
-
-//===----------------------------------------------------------------------===//
-//  PostDominanceFrontier Implementation
-//===----------------------------------------------------------------------===//
-
-const DominanceFrontier::DomSetType &
-PostDominanceFrontier::calculate(const PostDominatorTree &DT,
-                                 const DomTreeNode *Node) {
-  // Loop over CFG successors to calculate DFlocal[Node]
-  BasicBlock *BB = Node->getBlock();
-  DomSetType &S = Frontiers[BB];       // The new set to fill in...
-  if (getRoots().empty()) return S;
-
-  if (BB)
-    for (pred_iterator SI = pred_begin(BB), SE = pred_end(BB);
-         SI != SE; ++SI) {
-      BasicBlock *P = *SI;
-      // Does Node immediately dominate this predecessor?
-      DomTreeNode *SINode = DT[P];
-      if (SINode && SINode->getIDom() != Node)
-        S.insert(P);
-    }
-
-  // At this point, S is DFlocal.  Now we union in DFup's of our children...
-  // Loop through and visit the nodes that Node immediately dominates (Node's
-  // children in the IDomTree)
-  //
-  for (DomTreeNode::const_iterator
-         NI = Node->begin(), NE = Node->end(); NI != NE; ++NI) {
-    DomTreeNode *IDominee = *NI;
-    const DomSetType &ChildDF = calculate(DT, IDominee);
-
-    DomSetType::const_iterator CDFI = ChildDF.begin(), CDFE = ChildDF.end();
-    for (; CDFI != CDFE; ++CDFI) {
-      if (!DT.properlyDominates(Node, DT[*CDFI]))
-        S.insert(*CDFI);
-    }
-  }
-
-  return S;
 }
