@@ -568,8 +568,7 @@ static void writeCFG(std::string suffix, Function &F) {
 }
 #endif
 
-static void replaceIns(Function &F, CallInst *CI) {
-//  errs() << __func__ << ": ======\n";
+static GlobalVariable *getAiVar(Function &F, const CallInst *CI) {
   const ConstantExpr *GEP =
     dyn_cast<const ConstantExpr>(CI->getOperand(0));
   assert(GEP && GEP->getOpcode() == Instruction::GetElementPtrInst);
@@ -586,15 +585,41 @@ static void replaceIns(Function &F, CallInst *CI) {
   for (size_t i = 11; i < 11 + id.size(); i++)
     if (cstr[i] != '_' && !isupper(cstr[i]) && !islower(cstr[i]))
       cstr[i] = 'X';
-/*  errs() << "\nCstr=" << str->getAsCString() <<
-    " id=" << cstr << "\n======\n";*/
   Type *intType = TypeBuilder<int, false>::get(F.getContext());
   GlobalVariable *glob =
     dyn_cast<GlobalVariable>(F.getParent()->getOrInsertGlobal(cstr, intType));
   delete cstr;
+  return glob;
+}
+
+static void replaceInsTrans(Function &F, CallInst *CI) {
+  Type *intType = TypeBuilder<int, false>::get(F.getContext());
+//  errs() << __func__ << ": ======\n";
+  GlobalVariable *glob = getAiVar(F, CI);
 //  errs() << "\nid=" << glob->getValueID() << "\n";
   glob->setInitializer(ConstantInt::get(intType, 0));
   ReplaceInstWithInst(CI, new StoreInst(CI->getOperand(1), glob, true));
+}
+
+static void replaceInsCheck(Function &F, CallInst *CI) {
+  errs() << __func__ << ": ======\n";
+  CI->dump();
+  GlobalVariable *glob = getAiVar(F, CI);
+  errs() << "\nVAR=";
+  glob->dump();
+  errs() << " compare to=";
+  CI->getOperand(1)->dump();
+  errs() << "\n";
+  BasicBlock *CIBB = CI->getParent();
+  BasicBlock *contBB = CIBB->splitBasicBlock(BasicBlock::iterator(CI));
+  BasicBlock *assBB = BasicBlock::Create(F.getContext(), "assertBlk", &F);
+  new UnreachableInst(F.getContext(), assBB);
+  CI->eraseFromParent();
+  Value *ai_stateVal = new LoadInst(glob, "", true, 4, CIBB);
+  Value *ai_stateIsEq = new ICmpInst(*CIBB, CmpInst::ICMP_EQ, ai_stateVal,
+                                     CI->getOperand(1));
+  BranchInst::Create(contBB, assBB, ai_stateIsEq, CIBB);
+  F.viewCFG();
 }
 
 static void prepareFun(Function &F) {
@@ -604,8 +629,13 @@ static void prepareFun(Function &F) {
     ++I;
     if (CallInst *CI = dyn_cast<CallInst>(ins)) {
       Function *callee = CI->getCalledFunction();
-      if (callee && callee->getName().equals("__ai_trans"))
-        replaceIns(F, CI);
+      if (callee) {
+        StringRef calleeName = callee->getName();
+        if (calleeName.equals("__ai_trans"))
+          replaceInsTrans(F, CI);
+        else if (calleeName.equals("__ai_check_eq"))
+          replaceInsCheck(F, CI);
+      }
     }
   }
 //  F.dump();
