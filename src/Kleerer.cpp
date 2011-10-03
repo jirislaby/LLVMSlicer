@@ -202,8 +202,6 @@ void Kleerer::makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
                                   BasicBlock *BB, Constant *noname) {
   Constant *zero = ConstantInt::get(intType, 0);
   GlobalVariable *ai_state = M.getGlobalVariable("__ai_state", true);
-/*      new GlobalVariable(M, intType, false, GlobalValue::ExternLinkage,
-                         ConstantInt::get(intType, 0), "__ai_state");*/
   ai_state->setInitializer(zero);
   BB->getInstList().push_back(call_klee_make_symbolic(klee_make_symbolic,
                                                       noname, BB, intType,
