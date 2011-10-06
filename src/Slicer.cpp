@@ -153,19 +153,20 @@ private:
 
 
 namespace {
-  class Slicer : public FunctionPass {
+  class Slicer : public ModulePass {
     public:
       static char ID;
 
-      Slicer() : FunctionPass(ID) {}
+      Slicer() : ModulePass(ID) {}
 
-      virtual bool runOnFunction(Function &F);
+      virtual bool runOnModule(Module &M);
 
       void getAnalysisUsage(AnalysisUsage &AU) const {
         AU.addRequired<PostDominatorTree>();
         AU.addRequired<PostDominanceFrontier>();
       }
     private:
+      bool runOnFunction(Function &F);
       void findInitialCriterion(Function &F, StaticSlicer &ss);
   };
 }
@@ -648,8 +649,8 @@ bool Slicer::runOnFunction(Function &F) {
     return false;
 //  writeCFG("pre", F);
   F.viewCFG();*/
-  PostDominanceFrontier &PDF = getAnalysis<PostDominanceFrontier>();
-  PostDominatorTree &PDT = getAnalysis<PostDominatorTree>();
+  PostDominanceFrontier &PDF = getAnalysis<PostDominanceFrontier>(F);
+  PostDominatorTree &PDT = getAnalysis<PostDominatorTree>(F);
 
   prepareFun(F);
 
@@ -666,4 +667,15 @@ bool Slicer::runOnFunction(Function &F) {
 //  F.viewCFG();
   //writeCFG("post", F);
   return sliced;
+}
+
+bool Slicer::runOnModule(Module &M) {
+  bool modified = false;
+  for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
+    Function &F = *I;
+    if (F.isDeclaration())
+      continue;
+    modified |= runOnFunction(F);
+  }
+  return modified;
 }
