@@ -31,6 +31,9 @@
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
 #include "PostDominanceFrontier.h"
+#include "PointsTo/AlgoAndersen.h"
+#include "PointsTo/LangLLVM.h"
+#include "PointsTo/PointsTo.h"
 
 using namespace llvm;
 
@@ -670,6 +673,10 @@ bool Slicer::runOnFunction(Function &F) {
 }
 
 bool Slicer::runOnModule(Module &M) {
+  ptr::PointsToSets<LLVM,ptr::ANDERSEN>::Type PS;
+  ptr::ProgramStructure<LLVM,AlgorithmProperties<ptr::ANDERSEN>::Type>::Type P(M);
+  computePointsToSets(P,PS);
+
   bool modified = false;
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
