@@ -6,7 +6,8 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
-//
+// Details are in a white paper by F. Tip called:
+// A survey of program slicing techniques
 //===----------------------------------------------------------------------===//
 
 #include <ctype.h>
