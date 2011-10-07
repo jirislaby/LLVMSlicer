@@ -31,6 +31,8 @@
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
 #include "PostDominanceFrontier.h"
+#include "Callgraph/Callgraph.h"
+#include "Callgraph/LangLLVM.h"
 #include "PointsTo/AlgoAndersen.h"
 #include "PointsTo/LangLLVM.h"
 #include "PointsTo/PointsTo.h"
@@ -676,6 +678,8 @@ bool Slicer::runOnModule(Module &M) {
   ptr::PointsToSets<LLVM,ptr::ANDERSEN>::Type PS;
   ptr::ProgramStructure<LLVM,AlgorithmProperties<ptr::ANDERSEN>::Type>::Type P(M);
   computePointsToSets(P,PS);
+
+  callgraph::Callgraph<LLVM>::Type CG(M, PS);
 
   bool modified = false;
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
