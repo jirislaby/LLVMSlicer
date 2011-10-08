@@ -33,6 +33,9 @@
 #include "PostDominanceFrontier.h"
 #include "Callgraph/Callgraph.h"
 #include "Callgraph/LangLLVM.h"
+#include "Modifies/LangLLVM.h"
+#include "Modifies/Modifies.h"
+#include "Modifies/AlgoDumbSpeedy.h"
 #include "PointsTo/AlgoAndersen.h"
 #include "PointsTo/LangLLVM.h"
 #include "PointsTo/PointsTo.h"
@@ -680,6 +683,11 @@ bool Slicer::runOnModule(Module &M) {
   computePointsToSets(P,PS);
 
   callgraph::Callgraph<LLVM>::Type CG(M, PS);
+
+  mods::Modifies<LLVM, mods::DUMB_SPEEDY>::Type MOD;
+  mods::ProgramStructure<LLVM, AlgorithmProperties<mods::DUMB_SPEEDY>::Type>::Type
+      P1(M);
+  computeModifies(P1, CG, PS, MOD);
 
   bool modified = false;
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
