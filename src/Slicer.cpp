@@ -117,7 +117,10 @@ public:
   typedef std::map<const Instruction *, InsInfo *> InsInfoMap;
 
   StaticSlicer(Function &F, PostDominatorTree &PDT,
-               PostDominanceFrontier &PDF) : fun(F), PDT(PDT), PDF(PDF) {}
+               PostDominanceFrontier &PDF) : fun(F), PDT(PDT), PDF(PDF) {
+    for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I)
+      insInfoMap.insert(InsInfoMap::value_type(&*I, new InsInfo(&*I)));
+  }
   ~StaticSlicer();
 
   void addInitialCriterion(const Instruction *ins, const Value *cond = 0) {
@@ -149,13 +152,8 @@ private:
 
   void dump();
 
-  InsInfo *getInsInfo(const Instruction *i) {
-    InsInfoMap::const_iterator I = insInfoMap.find(i);
-    if (I != insInfoMap.end())
-      return I->second;
-    InsInfo *insInfo = new InsInfo(i);
-    insInfoMap.insert(InsInfoMap::value_type(i, insInfo));
-    return insInfo;
+  InsInfo *getInsInfo(const Instruction *i) const {
+    return insInfoMap.find(i)->second;
   }
 };
 
