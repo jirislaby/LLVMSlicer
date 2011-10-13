@@ -31,14 +31,14 @@
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
 #include "PostDominanceFrontier.h"
-#include "Callgraph/Callgraph.h"
-#include "Callgraph/LangLLVM.h"
-#include "Modifies/LangLLVM.h"
-#include "Modifies/Modifies.h"
-#include "Modifies/AlgoDumbSpeedy.h"
-#include "PointsTo/AlgoAndersen.h"
-#include "PointsTo/LangLLVM.h"
-#include "PointsTo/PointsTo.h"
+#include "../Callgraph/Callgraph.h"
+#include "../Callgraph/LangLLVM.h"
+#include "../Modifies/LangLLVM.h"
+#include "../Modifies/Modifies.h"
+#include "../Modifies/AlgoDumbSpeedy.h"
+#include "../PointsTo/AlgoAndersen.h"
+#include "../PointsTo/LangLLVM.h"
+#include "../PointsTo/PointsTo.h"
 
 using namespace llvm;
 
@@ -198,18 +198,18 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
   }
 }
 
-class StaticSlicer {
+class FunctionStaticSlicer {
 public:
   typedef std::map<const Instruction *, InsInfo *> InsInfoMap;
 
   template<typename PointsToSets, typename ModifiesSets>
-  StaticSlicer(Function &F, PostDominatorTree &PDT, PostDominanceFrontier &PDF,
-	       PointsToSets &PT, ModifiesSets &mods) : fun(F), PDT(PDT),
-	       PDF(PDF) {
+  FunctionStaticSlicer(Function &F, PostDominatorTree &PDT, PostDominanceFrontier &PDF,
+               PointsToSets &PT, ModifiesSets &mods) : fun(F), PDT(PDT),
+               PDF(PDF) {
     for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I)
       insInfoMap.insert(InsInfoMap::value_type(&*I, new InsInfo(&*I, PT, mods)));
   }
-  ~StaticSlicer();
+  ~FunctionStaticSlicer();
 
   void addInitialCriterion(const Instruction *ins, const Value *cond = 0) {
     InsInfo *ii = getInsInfo(ins);
@@ -263,14 +263,14 @@ namespace {
       template<typename PointsToSets, typename ModifiesSets>
       bool runOnFunction(Function &F, const PointsToSets &PS,
                          const ModifiesSets &MOD);
-      void findInitialCriterion(Function &F, StaticSlicer &ss);
+      void findInitialCriterion(Function &F, FunctionStaticSlicer &ss);
   };
 }
 
 static RegisterPass<Slicer> X("slice", "Slices the code");
 char Slicer::ID;
 
-StaticSlicer::~StaticSlicer() {
+FunctionStaticSlicer::~FunctionStaticSlicer() {
   for (InsInfoMap::const_iterator I = insInfoMap.begin(), E = insInfoMap.end();
        I != E; I++)
     delete I->second;
@@ -297,7 +297,7 @@ static SuccList getSuccList(const Instruction *i) {
  *   {v| v \in RC(j), v \notin DEF(i)} \cup
  *   {v| v \in REF(i), DEF(i) \cap RC(j) \neq \emptyset}
  */
-bool StaticSlicer::computeRCi(const Instruction *i, const Instruction *j) {
+bool FunctionStaticSlicer::computeRCi(const Instruction *i, const Instruction *j) {
   InsInfo *insInfoi = getInsInfo(i), *insInfoj = getInsInfo(j);
   bool changed = false;
 
@@ -345,7 +345,7 @@ bool StaticSlicer::computeRCi(const Instruction *i, const Instruction *j) {
   return changed;
 }
 
-bool StaticSlicer::computeRCi(const Instruction *i) {
+bool FunctionStaticSlicer::computeRCi(const Instruction *i) {
   bool changed = false;
 #ifdef DEBUG_RC
   errs() << "  " << __func__ << ": " << i->getOpcodeName();
@@ -364,7 +364,7 @@ bool StaticSlicer::computeRCi(const Instruction *i) {
   return changed;
 }
 
-void StaticSlicer::computeRC() {
+void FunctionStaticSlicer::computeRC() {
   bool changed;
 #ifdef DEBUG_RC
   int it = 1;
@@ -382,7 +382,7 @@ void StaticSlicer::computeRC() {
 /*
  * SC(i)={i| DEF(i) \cap RC(j) \neq \emptyset}
  */
-void StaticSlicer::computeSCi(const Instruction *i, const Instruction *j) {
+void FunctionStaticSlicer::computeSCi(const Instruction *i, const Instruction *j) {
   InsInfo *insInfoi = getInsInfo(i), *insInfoj = getInsInfo(j);
 
   bool isect_nonempty = false;
@@ -408,7 +408,7 @@ void StaticSlicer::computeSCi(const Instruction *i, const Instruction *j) {
   }
 }
 
-void StaticSlicer::computeSC() {
+void FunctionStaticSlicer::computeSC() {
   for (inst_iterator I = inst_begin(fun), E = inst_end(fun); I != E; I++) {
     const Instruction *i = &*I;
     SuccList succList = getSuccList(i);
@@ -418,7 +418,7 @@ void StaticSlicer::computeSC() {
   }
 }
 
-bool StaticSlicer::computeBC() {
+bool FunctionStaticSlicer::computeBC() {
   bool changed = false;
 #ifdef DEBUG_BC
   errs() << __func__ << " ============ BEG\n";
@@ -445,7 +445,7 @@ bool StaticSlicer::computeBC() {
   return changed;
 }
 
-bool StaticSlicer::updateRCSC(
+bool FunctionStaticSlicer::updateRCSC(
                 PostDominanceFrontier::DomSetType::const_iterator start,
                 PostDominanceFrontier::DomSetType::const_iterator end) {
   bool changed = false;
@@ -497,7 +497,7 @@ static bool canSlice(const Instruction &i) {
   return true;
 }
 
-void StaticSlicer::dump() {
+void FunctionStaticSlicer::dump() {
 #ifdef DEBUG_DUMP
   for (inst_iterator I = inst_begin(fun), E = inst_end(fun); I != E; I++) {
     const Instruction &i = *I;
@@ -525,7 +525,7 @@ void StaticSlicer::dump() {
 /**
  * this method calculates the static slice for the CFG
  */
-void StaticSlicer::calculateStaticSlice() {
+void FunctionStaticSlicer::calculateStaticSlice() {
 #ifdef DEBUG_SLICE
   errs() << __func__ << " ============ BEG\n";
 #endif
@@ -551,7 +551,7 @@ void StaticSlicer::calculateStaticSlice() {
 #endif
 }
 
-bool StaticSlicer::slice() {
+bool FunctionStaticSlicer::slice() {
 #ifdef DEBUG_SLICE
   errs() << __func__ << " ============ BEG\n";
 #endif
@@ -612,7 +612,7 @@ bool StaticSlicer::slice() {
   return removed;
 }
 
-void Slicer::findInitialCriterion(Function &F, StaticSlicer &ss) {
+void Slicer::findInitialCriterion(Function &F, FunctionStaticSlicer &ss) {
 #ifdef DEBUG_INITCRIT
   errs() << __func__ << " ============ BEGIN\n";
 #endif
@@ -752,7 +752,7 @@ bool Slicer::runOnFunction(Function &F, const PointsToSets &PS,
 
   prepareFun(F);
 
-  StaticSlicer ss(F, PDT, PDF, PS, MOD);
+  FunctionStaticSlicer ss(F, PDT, PDF, PS, MOD);
 
 //  errs() << "XXX " << F.getName() << "\n";
 
