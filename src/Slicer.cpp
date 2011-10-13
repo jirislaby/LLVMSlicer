@@ -46,7 +46,9 @@ typedef llvm::SmallSetVector<const Value *, 10> ValSet;
 
 class InsInfo {
 public:
-  InsInfo(const Instruction *i);
+  template<typename PointsToSets, typename ModifiesSets>
+  InsInfo(const Instruction *i, PointsToSets const& PS,
+                   ModifiesSets const& MOD);
 
   bool addRC(const Value *var) { return RC.insert(var); }
   void deslice() { sliced = false; }
@@ -66,60 +68,146 @@ private:
   bool sliced;
 };
 
-InsInfo::InsInfo(const Instruction *i) : ins(i), sliced(true) {
-  unsigned opcode = i->getOpcode();
-#ifdef DEBUG_INSINFO
-  errs() << __func__ << " BEG\n";
-#endif
-  /* whole ins is used as a value somewhere */
-  if (!i->use_empty())
+template<typename PointsToSets, typename ModifiesSets>
+InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
+                 ModifiesSets const& MOD) : ins(i), sliced(true) {
+  if (const LoadInst *LI = dyn_cast<const LoadInst>(i)) {
     DEF.insert(i);
-  switch (opcode) {
-  case Instruction::Store:
-    DEF.insert(i->getOperand(1));
-//    errs() << "  DEF: " << DEF->getNameStr() << " ID=" << DEF->getValueID() << " <- " << i->getOperand(0)->getNameStr() << '\n';
-    break;
-/*  case Instruction::Alloca:
-  case Instruction::Load:
+
+    const Value *op = LI->getPointerOperand();
+    REF.insert(op);
+    if (!hasExtraReference(op)) {
+      typename PointsToSets::PointsToSet const& S = getPointsToSet(op, PS);
+      for (typename PointsToSets::PointsToSet::const_iterator p = S.begin();
+           p != S.end(); ++p)
+        REF.insert(*p);
+    }
+  } else if (const StoreInst *SI = dyn_cast<const StoreInst>(i)) {
+    const Value *l = SI->getPointerOperand();
+    if (hasExtraReference(l)) {
+      DEF.insert(l);
+    } else {
+      typename PointsToSets::PointsToSet const& S = getPointsToSet(l, PS);
+      for (typename PointsToSets::PointsToSet::const_iterator p = S.begin();
+           p != S.end(); ++p)
+	      DEF.insert(*p);
+    }
+
+    const Value *r = SI->getValueOperand();
+    REF.insert(l);
+    if (!hasExtraReference(r) && !isConstantValue(r))
+      REF.insert(r);
+  } else if (const GetElementPtrInst *gep =
+             dyn_cast<const GetElementPtrInst>(i)) {
     DEF.insert(i);
-    break;*/
+
+    REF.insert(gep->getPointerOperand());
+  } else if (CallInst const* const C = dyn_cast<const CallInst>(i)) {
+    const Value *cv = C->getCalledValue();
+
+#if 0 /* bullshit, we do not have malloc/free and other crap */
+    if (isMemoryAllocation(cv)) {
+      DEF.insert(i);
+    } else if (isMemoryDeallocation(cv)) {
+    } else if (isMemoryCopy(cv) || isMemoryMove(cv)) {
+      llvm::Value const* const l = C->getOperand(0);
+      PointsToSets::PointsToSet const& L = getPointsToSet(l,PS);
+      for (PointsToSets::PointsToSet::const_iterator
+        p = L.begin(); p != L.end(); ++p)
+          DEF.insert(*p);
+
+      llvm::Value const* const r = C->getOperand(1);
+      REF.insert(l);
+      REF.insert(r);
+      PointsToSets::PointsToSet const& R = getPointsToSet(r,PS);
+      for (PointsToSets::PointsToSet::const_iterator p = R.begin();
+          p != R.end(); ++p)
+        REF.insert(*p);
+    } else if (!memoryManStuff(C)) {
+#endif
+      typedef std::vector<llvm::Function const*> CalledVec;
+      CalledVec CV;
+      if (C->getCalledFunction() != 0) {
+          CV.push_back(C->getCalledFunction());
+      } else {
+        typename PointsToSets::PointsToSet const& R = getPointsToSet(cv,PS);
+        for (typename PointsToSets::PointsToSet::const_iterator p = R.begin();
+             p != R.end(); ++p)
+          if (const Function *fn = dyn_cast<const Function>(*p))
+            CV.push_back(fn);
+      }
+
+      for (CalledVec::const_iterator f = CV.begin(); f != CV.end(); ++f) {
+        typename ModifiesSets::mapped_type const& M = getModSet(*f, MOD);
+        for (typename ModifiesSets::mapped_type::const_iterator v = M.begin();
+             v != M.end(); ++v)
+          DEF.insert(*v);
+      }
+
+      if (!callToVoidFunction(C))
+          DEF.insert(C);
+//    }
+  } else if (const ReturnInst * RI = dyn_cast<const ReturnInst>(i)) {
+  } else if (const BinaryOperator *BO = dyn_cast<const BinaryOperator>(i)) {
+    DEF.insert(i);
+
+    if (!isConstantValue(BO->getOperand(0)))
+      REF.insert(BO->getOperand(0));
+    if (!isConstantValue(BO->getOperand(1)))
+      REF.insert(BO->getOperand(1));
+  } else if (const CastInst *CI = dyn_cast<const CastInst>(i)) {
+    DEF.insert(i);
+
+    if (!hasExtraReference(CI->getOperand(0)))
+      REF.insert(CI->getOperand(0));
+  } else if (const AllocaInst *AI = dyn_cast<const AllocaInst>(i)) {
+      DEF.insert(i);
+
+      REF.insert(i);
+  } else if (const CmpInst *CI = dyn_cast<const CmpInst>(i)) {
+    DEF.insert(i);
+
+    if (!isConstantValue(CI->getOperand(0)))
+      REF.insert(CI->getOperand(0));
+    if (!isConstantValue(CI->getOperand(1)))
+      REF.insert(CI->getOperand(1));
+  } else if (const BranchInst *BI = dyn_cast<const BranchInst>(i)) {
+    if (BI->isConditional())
+      REF.insert(BI->getCondition());
+  } else if (const PHINode *phi = dyn_cast<const PHINode>(i)) {
+    DEF.insert(i);
+
+    for (unsigned k = 0; k < phi->getNumIncomingValues(); ++k)
+      if (!isConstantValue(phi->getIncomingValue(k)))
+	      REF.insert(phi->getIncomingValue(k));
+  } else if (const SwitchInst *SI = dyn_cast<const SwitchInst>(i)) {
+  } else if (const SelectInst *SI = dyn_cast<const SelectInst>(i)) {
+      // TODO: THE FOLLOWING CODE HAS NOT BEEN TESTED YET
+
+    DEF.insert(i);
+
+    if (!isConstantValue(SI->getCondition()))
+      REF.insert(SI->getCondition());
+    if (!isConstantValue(SI->getTrueValue()))
+      REF.insert(SI->getTrueValue());
+    if (!isConstantValue(SI->getFalseValue()))
+      REF.insert(SI->getFalseValue());
+  } else {
+    errs() << "ERROR: Unsupported instruction reached\n";
+    i->print(errs());
   }
-#ifdef DEBUG_INSINFO
-  errs() << "  DEF:" << '\n';
-  for (ValSet::const_iterator I = DEF.begin(), E = DEF.end(); I != E; I++)
-    errs() << "    " << (*I)->getNameStr() << " ID=" << (*I)->getValueID() << '\n';
-  errs() << "  OP:\n";
-#endif
-  int op = 0;
-  for (Instruction::const_op_iterator I = i->op_begin(), E = i->op_end();
-       I != E; I++, op++) {
-    if (opcode == Instruction::Store && op == 1)
-      continue;
-    const Value *var = *I;
-    if (var->hasName())
-      REF.insert(var);
-#ifdef DEBUG_INSINFO
-    errs() << "    " << (var->hasName() ? var->getNameStr() : "<noname>") << ": ID=" << var->getValueID();
-    if (const ConstantInt *cint = dyn_cast<const ConstantInt>(var))
-      errs() << " val=" << cint->getValue().toString(10, true);
-    if (const Instruction *ins = dyn_cast<const Instruction>(var))
-      errs() << " opcode=" << ins->getOpcodeName();
-    errs() << '\n';
-#endif
-  }
-#ifdef DEBUG_INSINFO
-  errs() << __func__ << " END\n";
-#endif
 }
 
 class StaticSlicer {
 public:
   typedef std::map<const Instruction *, InsInfo *> InsInfoMap;
 
-  StaticSlicer(Function &F, PostDominatorTree &PDT,
-               PostDominanceFrontier &PDF) : fun(F), PDT(PDT), PDF(PDF) {
+  template<typename PointsToSets, typename ModifiesSets>
+  StaticSlicer(Function &F, PostDominatorTree &PDT, PostDominanceFrontier &PDF,
+	       PointsToSets &PT, ModifiesSets &mods) : fun(F), PDT(PDT),
+	       PDF(PDF) {
     for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I)
-      insInfoMap.insert(InsInfoMap::value_type(&*I, new InsInfo(&*I)));
+      insInfoMap.insert(InsInfoMap::value_type(&*I, new InsInfo(&*I, PT, mods)));
   }
   ~StaticSlicer();
 
@@ -172,7 +260,9 @@ namespace {
         AU.addRequired<PostDominanceFrontier>();
       }
     private:
-      bool runOnFunction(Function &F);
+      template<typename PointsToSets, typename ModifiesSets>
+      bool runOnFunction(Function &F, const PointsToSets &PS,
+                         const ModifiesSets &MOD);
       void findInitialCriterion(Function &F, StaticSlicer &ss);
   };
 }
@@ -649,7 +739,9 @@ static void prepareFun(Function &F) {
 //  F.dump();
 }
 
-bool Slicer::runOnFunction(Function &F) {
+template<typename PointsToSets, typename ModifiesSets>
+bool Slicer::runOnFunction(Function &F, const PointsToSets &PS,
+                           const ModifiesSets &MOD) {
 /*  errs() << "AT: " << F.getName() << '\n';
   if (!F.getName().equals("tty_init"))
     return false;
@@ -660,7 +752,7 @@ bool Slicer::runOnFunction(Function &F) {
 
   prepareFun(F);
 
-  StaticSlicer ss(F, PDT, PDF);
+  StaticSlicer ss(F, PDT, PDF, PS, MOD);
 
 //  errs() << "XXX " << F.getName() << "\n";
 
@@ -692,7 +784,7 @@ bool Slicer::runOnModule(Module &M) {
     Function &F = *I;
     if (F.isDeclaration())
       continue;
-    modified |= runOnFunction(F);
+    modified |= runOnFunction(F, PS, MOD);
   }
   return modified;
 }
