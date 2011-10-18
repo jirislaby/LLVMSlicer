@@ -11,31 +11,11 @@
 #include <boost/tr1/memory.hpp>
 #include <boost/tuple/tuple.hpp>
 
-//#include "FunctionStaticSlicer.h"
+#include "FunctionStaticSlicer.h"
 #include "../PointsTo/PointsTo.h"
 #include "../Languages/LLVM.h"
 
 namespace llvm { namespace slicing {
-
-class FunctionStaticSlicer {
-  typedef llvm::SmallSetVector<const llvm::Value *, 10> ValSet;
-  typedef ValSet::const_iterator ConstRelevantIterator;
-  ValSet cr;
-
-  public:
-  ConstRelevantIterator begin_relevant(const Instruction *ins) const { return cr.begin(); }
-  ConstRelevantIterator end_relevant(const Instruction *ins) const { return cr.end(); }
-
-  template<typename FwdValueIterator>
-  bool addCriterion(const llvm::Instruction *ins, FwdValueIterator b,
-                    FwdValueIterator const e, bool initial = false);
-
-  bool addCriterion(const llvm::Instruction *ins, const llvm::Value *var)
-  { return addCriterion(ins,&var,&var+1); }
-
-  void calculateStaticSlice() {}
-  void slice() {}
-};
 
     class StaticSlicer {
     public:
@@ -180,12 +160,11 @@ namespace llvm { namespace slicing {
 
     template<typename OutIterator>
     void StaticSlicer::emitToCalls(llvm::Function const* const f,
-                                   OutIterator out)
-    {
-        FunctionStaticSlicer::ConstRelevantIterator const relBgn =
-            slicers[f]->begin_relevant(getFunctionEntry(f));
-        FunctionStaticSlicer::ConstRelevantIterator const relEnd =
-            slicers[f]->end_relevant(getFunctionEntry(f));
+                                   OutIterator out) {
+	ValSet::const_iterator const relBgn =
+            slicers[f]->relevant_begin(getFunctionEntry(f));
+        ValSet::const_iterator const relEnd =
+            slicers[f]->relevant_end(getFunctionEntry(f));
         FuncsToCalls::const_iterator c,e;
         boost::tie(c,e) = funcsToCalls.equal_range(f);
         for ( ; c != e; ++c)
@@ -208,10 +187,10 @@ namespace llvm { namespace slicing {
         getFunctionCalls(f,std::back_inserter(C));
         for (CallsVec::const_iterator c = C.begin(); c != C.end(); ++c)
         {
-            FunctionStaticSlicer::ConstRelevantIterator const relBgn =
-                slicers[f]->begin_relevant(getSuccInBlock(*c));
-            FunctionStaticSlicer::ConstRelevantIterator const relEnd =
-                slicers[f]->end_relevant(getSuccInBlock(*c));
+            ValSet::const_iterator const relBgn =
+                slicers[f]->relevant_begin(getSuccInBlock(*c));
+            ValSet::const_iterator const relEnd =
+                slicers[f]->relevant_end(getSuccInBlock(*c));
             CallsToFuncs::const_iterator g,e;
             boost::tie(g,e) = callsToFuncs.equal_range(*c);
             for ( ; g != e; ++g)
