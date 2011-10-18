@@ -54,6 +54,13 @@ public:
   }
   ~FunctionStaticSlicer();
 
+  ValSet::const_iterator relevant_begin(const llvm::Instruction *I) const {
+    return getInsInfo(I)->RC_begin();
+  }
+  ValSet::const_iterator relevant_end(const llvm::Instruction *I) const {
+    return getInsInfo(I)->RC_end();
+  }
+
   void addInitialCriterion(const llvm::Instruction *ins,
 			   const llvm::Value *cond = 0) {
     InsInfo *ii = getInsInfo(ins);
