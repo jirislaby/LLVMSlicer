@@ -4,13 +4,12 @@
 #ifndef MODIFIES_MODIFIES_H
 #define MODIFIES_MODIFIES_H
 
-#include "../AnalysisProps.h"
 #include "../Languages.h"
 #include "PredefContainers.h"
 
 namespace llvm { namespace mods {
 
-    template<typename Language, typename AnalysisProperties>
+    template<typename Language>
     struct ProgramStructure;
 
     template<typename Language>

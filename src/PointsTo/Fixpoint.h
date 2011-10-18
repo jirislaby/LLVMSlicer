@@ -8,20 +8,14 @@
 
 namespace llvm { namespace ptr {
 
-    template<typename Language, typename PointsToAlgorithm,
-             bool IsMayAnalysis, bool IsInterproc, bool FieldSensitivity>
+    template<typename Language, typename PointsToAlgorithm>
     bool executeRules(
-        typename ProgramStructure<Language,
-          typename AlgorithmProperties<PointsToAlgorithm>::Type>::Type const& P,
-        typename PointsToSets<Language,PointsToAlgorithm>::Type& S,
-        AnalysisProperties<IsMayAnalysis,IsInterproc,false,false,
-                           FieldSensitivity,false>)
+        typename ProgramStructure<Language>::Type const& P,
+        typename PointsToSets<Language,PointsToAlgorithm>::Type& S)
     {
         bool change = false;
 
-        typedef typename ProgramStructure<Language,
-                    typename AlgorithmProperties<PointsToAlgorithm>::Type>::Type
-                Program;
+        typedef typename ProgramStructure<Language>::Type Program;
         for (typename Program::const_iterator i = P.begin(); i != P.end(); ++i) {
             Rules<Language,PointsToAlgorithm> rules;
             getRulesOfCommand(*i,rules);
@@ -40,13 +34,10 @@ namespace llvm { namespace ptr {
 
     template<typename Language, typename PointsToAlgorithm>
     typename PointsToSets<Language,PointsToAlgorithm>::Type&
-    fixpoint(typename ProgramStructure<Language,
-                    typename AlgorithmProperties<PointsToAlgorithm>::Type>
-                ::Type const& P,
+    fixpoint(typename ProgramStructure<Language>::Type const& P,
              typename PointsToSets<Language,PointsToAlgorithm>::Type& S)
     {
-        while (executeRules<Language,PointsToAlgorithm>(P,S,
-                    typename AlgorithmProperties<PointsToAlgorithm>::Type()))
+        while (executeRules<Language,PointsToAlgorithm>(P,S))
             ;
         return S;
     }

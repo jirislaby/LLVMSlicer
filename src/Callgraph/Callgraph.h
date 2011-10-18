@@ -12,7 +12,6 @@
 #include "llvm/Function.h"
 #include "llvm/ADT/STLExtras.h" /* tie */
 
-#include "../AnalysisProps.h"
 #include "../Languages.h"
 #include "../Languages/LLVM.h"
 

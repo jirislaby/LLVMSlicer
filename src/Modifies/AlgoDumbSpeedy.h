@@ -17,28 +17,14 @@ namespace llvm { namespace mods {
 
 }}
 
-namespace llvm {
-
-    template<>
-    struct AlgorithmProperties<mods::DUMB_SPEEDY>
-    {
-        typedef AnalysisProperties<true,true,false,false,false,false>
-                Type;
-    };
-
-}
-
 namespace llvm { namespace mods {
 
   template<typename Language, typename PointsToSets>
-  void computeModifies(typename ProgramStructure<Language,
-        typename llvm::AlgorithmProperties<DUMB_SPEEDY>::Type >::Type const& P,
+  void computeModifies(typename ProgramStructure<Language>::Type const& P,
         typename llvm::callgraph::Callgraph const& CG,
         PointsToSets const& PS,
         typename Modifies<Language,DUMB_SPEEDY>::Type& MOD, DUMB_SPEEDY) {
-    typedef typename ProgramStructure<Language,
-                typename llvm::AlgorithmProperties<DUMB_SPEEDY>::Type>::Type
-            Program;
+    typedef typename ProgramStructure<Language>::Type Program;
 
     for (typename Program::const_iterator f = P.begin(); f != P.end(); ++f)
       for (typename Program::mapped_type::const_iterator c = f->second.begin();

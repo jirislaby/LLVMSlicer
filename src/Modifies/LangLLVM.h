@@ -21,14 +21,8 @@ namespace llvm { namespace mods {
               Type;
   };
 
-  template<bool IsMayAnalysis, bool IsInterproc>
-  struct LLVMProgramStructure : public FunctionWrites<LLVM,
-        llvm::AnalysisProperties<IsMayAnalysis,IsInterproc,
-                                    false,false,false,false> > {
-    typedef llvm::AnalysisProperties<IsMayAnalysis,IsInterproc,
-                               false,false,false,false>
-            AnalysisProperties;
-    typedef FunctionWrites<LLVM,AnalysisProperties> Base;
+  struct LLVMProgramStructure : public FunctionWrites<LLVM> {
+    typedef FunctionWrites<LLVM> Base;
 
     LLVMProgramStructure(Module &M);
 
@@ -40,19 +34,16 @@ namespace llvm { namespace mods {
     { return llvm::isConstantValue(V); }
   };
 
-  template<bool IsMayAnalysis, bool IsInterproc>
-  struct ProgramStructure<LLVM,
-      llvm::AnalysisProperties<IsMayAnalysis,IsInterproc,false,false,false,
-                                  false> > {
-      typedef LLVMProgramStructure<IsMayAnalysis,IsInterproc> Type;
+  template<>
+  struct ProgramStructure<LLVM> {
+      typedef LLVMProgramStructure Type;
   };
 
 }}
 
 namespace llvm { namespace mods {
 
-  template<bool IsMayAnalysis, bool IsInterproc>
-  LLVMProgramStructure<IsMayAnalysis,IsInterproc>::LLVMProgramStructure(
+  LLVMProgramStructure::LLVMProgramStructure(
           Module &M)
       : Base() {
     for (llvm::Module::iterator f = M.begin(); f != M.end(); ++f)

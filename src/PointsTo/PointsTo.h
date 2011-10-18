@@ -35,7 +35,7 @@ namespace llvm { namespace ptr {
                   (P,S,typename PointsToSetsType::PointsToAlgorithm());
   }
 
-  template<typename Language, typename AnalysisProperties>
+  template<typename Language>
   struct ProgramStructure;
 
   template<typename RawProgram, typename ProgramStructureType>

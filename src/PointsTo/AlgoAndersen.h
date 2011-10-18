@@ -4,7 +4,6 @@
 #ifndef POINTSTO_ALGOANDERSEN_H
 #define POINTSTO_ALGOANDERSEN_H
 
-#include "../AnalysisProps.h"
 #include "PointsTo.h"
 #include "Fixpoint.h"
 
@@ -16,21 +15,11 @@ namespace llvm { namespace ptr {
 
 }}
 
-namespace llvm {
-
-  template<>
-  struct AlgorithmProperties<ptr::ANDERSEN> {
-    typedef AnalysisProperties<true,true,false,false,false,false> Type;
-  };
-
-}
-
 namespace llvm { namespace ptr {
 
   template<typename Language>
   typename PointsToSets<Language,ANDERSEN>::Type&
-  computePointsToSets(typename ProgramStructure<Language,
-                          AlgorithmProperties<ANDERSEN>::Type>::Type const& P,
+  computePointsToSets(typename ProgramStructure<Language>::Type const& P,
                       typename PointsToSets<Language,ANDERSEN>::Type& S,
                       ANDERSEN) {
       return fixpoint<Language,ANDERSEN>(P,S);

@@ -695,14 +695,13 @@ bool Slicer::runOnFunction(Function &F, const PointsToSets &PS,
 
 bool Slicer::runOnModule(Module &M) {
   ptr::PointsToSets<LLVM,ptr::ANDERSEN>::Type PS;
-  ptr::ProgramStructure<LLVM,AlgorithmProperties<ptr::ANDERSEN>::Type>::Type P(M);
+  ptr::ProgramStructure<LLVM>::Type P(M);
   computePointsToSets(P,PS);
 
   callgraph::Callgraph CG(M, PS);
 
   mods::Modifies<LLVM, mods::DUMB_SPEEDY>::Type MOD;
-  mods::ProgramStructure<LLVM, AlgorithmProperties<mods::DUMB_SPEEDY>::Type>::Type
-      P1(M);
+  mods::ProgramStructure<LLVM>::Type P1(M);
   computeModifies(P1, CG, PS, MOD);
 
   bool modified = false;

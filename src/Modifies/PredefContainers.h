@@ -144,10 +144,9 @@ namespace llvm { namespace mods {
 
 namespace llvm { namespace mods {
 
-  template<typename LanguageType, typename AnalysisPropertiesType>
+  template<typename LanguageType>
   struct FunctionWrites {
       typedef LanguageType Language;
-      typedef AnalysisPropertiesType AnalysisProperties;
       typedef typename ProgramFunction<Language>::Type Function;
       typedef WriteCommand<Language> Command;
       typedef std::vector<Command> Commands;
@@ -175,10 +174,10 @@ namespace llvm { namespace mods {
       Container C;
   };
 
-  template<typename Language, typename PointsToAlgorithm>
-  typename FunctionWrites<Language,PointsToAlgorithm>::Commands const&
+  template<typename Language>
+  typename FunctionWrites<Language>::Commands const&
   getFunctionCommands(typename ProgramFunction<Language>::Type const& f,
-                      FunctionWrites<Language,PointsToAlgorithm> const& FW) {
+                      FunctionWrites<Language> const& FW) {
       return FW.find(f)->second;
   }
 #if 0

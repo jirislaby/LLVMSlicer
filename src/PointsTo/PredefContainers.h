@@ -150,12 +150,10 @@ namespace llvm { namespace ptr {
 
 namespace llvm { namespace ptr {
 
-    template<typename LanguageType, typename AnalysisPropertiesType,
-             typename CommandType>
+    template<typename LanguageType, typename CommandType>
     struct ProgramStructureAsVector
     {
         typedef LanguageType Language;
-        typedef AnalysisPropertiesType AnalysisProperties;
         typedef CommandType Command;
         typedef std::vector<Command> Container;
         typedef typename Container::value_type value_type;
