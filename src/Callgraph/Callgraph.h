@@ -9,6 +9,7 @@
 #include <iterator>
 #include <utility>
 
+#include "llvm/Function.h"
 #include "llvm/ADT/STLExtras.h" /* tie */
 
 #include "../AnalysisProps.h"
@@ -16,14 +17,11 @@
 
 namespace llvm { namespace callgraph {
 
-    template<typename Language>
-    struct ProgramFunction;
-
     template<typename LanguageType>
     struct BasicCallgraph {
         typedef LanguageType Language;
-        typedef typename ProgramFunction<Language>::Type Function;
-        typedef std::multimap<Function,Function> Container;
+        typedef std::multimap<const llvm::Function *, const llvm::Function *>
+		Container;
         typedef typename Container::key_type key_type;
         typedef typename Container::mapped_type mapped_type;
         typedef typename Container::value_type value_type;

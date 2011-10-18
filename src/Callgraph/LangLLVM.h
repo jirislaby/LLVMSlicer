@@ -11,13 +11,6 @@
 
 namespace llvm { namespace callgraph {
 
-    template<>
-    struct ProgramFunction<LLVM>
-    {
-        typedef llvm::Function const*
-                Type;
-    };
-
     struct LLVMPCallgraph : public BasicCallgraph<LLVM>
     {
         typedef BasicCallgraph<LLVM> Base;
