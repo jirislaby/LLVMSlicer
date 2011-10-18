@@ -4,7 +4,6 @@
 #ifndef CALLGRAPH_LANGLLVM_H
 #define CALLGRAPH_LANGLLVM_H
 
-#include <boost/tr1/memory.hpp>
 #include <vector>
 
 #include "Callgraph.h"
@@ -22,7 +21,6 @@ namespace llvm { namespace callgraph {
     struct LLVMPCallgraph : public BasicCallgraph<LLVM>
     {
         typedef BasicCallgraph<LLVM> Base;
-        typedef std::tr1::shared_ptr<llvm::Module> ModulePtr;
 
         template<typename PointsToSets>
         LLVMPCallgraph(Module &M, PointsToSets const& PS);

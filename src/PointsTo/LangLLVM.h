@@ -4,7 +4,6 @@
 #ifndef POINTSTO_LANGLLVM_H
 #define POINTSTO_LANGLLVM_H
 
-#include <boost/tr1/memory.hpp>
 #include <map>
 #include <iterator>
 

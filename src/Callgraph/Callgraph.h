@@ -4,11 +4,12 @@
 #ifndef CALLGRAPH_CALLGRAPH_H
 #define CALLGRAPH_CALLGRAPH_H
 
-#include <boost/tr1/tuple.hpp>
 #include <map>
 #include <algorithm>
 #include <iterator>
 #include <utility>
+
+#include "llvm/ADT/STLExtras.h" /* tie */
 
 #include "../AnalysisProps.h"
 #include "../Languages.h"
@@ -91,7 +92,7 @@ namespace llvm { namespace callgraph { namespace detail {
 
       for (typename Set::const_iterator it = S.begin(); it != S.end(); ++it) {
         typename Dict::const_iterator b,e;
-        std::tr1::tie(b,e) = D.equal_range(it->second);
+        llvm::tie(b,e) = D.equal_range(it->second);
         for ( ; b != e; ++b)
           S.insert(typename Set::value_type(it->first,b->second));
       }

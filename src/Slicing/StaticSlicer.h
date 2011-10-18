@@ -6,10 +6,8 @@
 #include <vector>
 #include <iterator>
 #include <algorithm>
-#include <iostream>
 
-#include <boost/tr1/memory.hpp>
-#include <boost/tuple/tuple.hpp>
+#include "llvm/ADT/STLExtras.h" /* tie */
 
 #include "FunctionStaticSlicer.h"
 #include "../PointsTo/PointsTo.h"
@@ -19,17 +17,17 @@ namespace llvm { namespace slicing {
 
     class StaticSlicer {
     public:
-        typedef std::tr1::shared_ptr<llvm::Module> ModulePtr;
-        typedef std::tr1::shared_ptr<FunctionStaticSlicer> SlicerPtr;
-        typedef std::map<llvm::Function const*,SlicerPtr> Slicers;
+        typedef std::map<llvm::Function const*, FunctionStaticSlicer *> Slicers;
         typedef std::multimap<llvm::Function const*,llvm::CallInst const*>
                 FuncsToCalls;
         typedef std::multimap<llvm::CallInst const*,llvm::Function const*>
                 CallsToFuncs;
 
         template<typename PointsToSets, typename ModifiesSets>
-        StaticSlicer(ModulePtr const M, PointsToSets const& PS,
+        StaticSlicer(const Module &M, PointsToSets const& PS,
                      ModifiesSets const& MOD);
+
+	~StaticSlicer();
 
         template<typename FwdValueIterator>
         void computeSlice(llvm::Instruction* const I, FwdValueIterator b,
@@ -39,8 +37,6 @@ namespace llvm { namespace slicing {
         { computeSlice(I,&V,&V+1); }
 
         void sliceModule();
-
-        void dump(std::ostream& ostr) const;
 
     private:
         template<typename PointsToSets>
@@ -52,7 +48,7 @@ namespace llvm { namespace slicing {
         template<typename OutIterator>
         void emitToExits(llvm::Function const* const f, OutIterator out);
 
-        ModulePtr module;
+        const Module &module;
         Slicers slicers;
         FuncsToCalls funcsToCalls;
         CallsToFuncs callsToFuncs;
@@ -111,24 +107,30 @@ namespace llvm { namespace slicing { namespace detail {
 namespace llvm { namespace slicing {
 
     template<typename PointsToSets, typename ModifiesSets>
-    StaticSlicer::StaticSlicer(ModulePtr const M, PointsToSets const& PS,
+    StaticSlicer::StaticSlicer(const Module &M, PointsToSets const& PS,
                                ModifiesSets const& MOD)
         : module(M)
         , slicers()
         , funcsToCalls()
         , callsToFuncs()
     {
-        for (llvm::Module::iterator f = module->begin();f != module->end(); ++f)
-            slicers.insert(Slicers::value_type(&*f,SlicerPtr(
-                           new FunctionStaticSlicer(&*f,PS,MOD))));
+        for (llvm::Module::iterator f = module.begin();f != module.end(); ++f)
+            slicers.insert(Slicers::value_type(&*f,
+                           new FunctionStaticSlicer(&*f,PS,MOD)));
         buildDicts(PS);
+    }
+
+    StaticSlicer::~StaticSlicer() {
+      for (Slicers::const_iterator I = slicers.begin(), E = slicers.end();
+	   I != E; ++I)
+	delete I->second;
     }
 
     template<typename PointsToSets>
     void StaticSlicer::buildDicts(PointsToSets const& PS)
     {
         typedef llvm::Module::iterator FunctionsIter;
-        for (FunctionsIter f = module->begin(); f != module->end(); ++f)
+        for (FunctionsIter f = module.begin(); f != module.end(); ++f)
             if (!f->isDeclaration() && !memoryManStuff(f))
                 for (llvm::inst_iterator i = llvm::inst_begin(*f);
                         i != llvm::inst_end(*f); i++)
@@ -166,7 +168,7 @@ namespace llvm { namespace slicing {
         ValSet::const_iterator const relEnd =
             slicers[f]->relevant_end(getFunctionEntry(f));
         FuncsToCalls::const_iterator c,e;
-        boost::tie(c,e) = funcsToCalls.equal_range(f);
+        llvm::tie(c,e) = funcsToCalls.equal_range(f);
         for ( ; c != e; ++c)
         {
             llvm::Function const* const g = getFunctionOfInstruction(c->second);
@@ -192,7 +194,7 @@ namespace llvm { namespace slicing {
             ValSet::const_iterator const relEnd =
                 slicers[f]->relevant_end(getSuccInBlock(*c));
             CallsToFuncs::const_iterator g,e;
-            boost::tie(g,e) = callsToFuncs.equal_range(*c);
+            llvm::tie(g,e) = callsToFuncs.equal_range(*c);
             for ( ; g != e; ++g)
             {
                 typedef std::vector<llvm::ReturnInst const*> ExitsVec;
