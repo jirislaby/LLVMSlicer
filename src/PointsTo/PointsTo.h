@@ -35,9 +35,6 @@ namespace llvm { namespace ptr {
                   (P,S,typename PointsToSetsType::PointsToAlgorithm());
   }
 
-  template<typename Language>
-  struct ProgramStructure;
-
   template<typename RawProgram, typename ProgramStructureType>
   void loadProgramStructure(RawProgram const& RP, ProgramStructureType& P)
   {

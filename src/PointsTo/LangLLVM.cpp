@@ -5,8 +5,7 @@
 
 namespace llvm { namespace ptr {
 
-    LLVMProgramStructure::LLVMProgramStructure(Module &M)
-        : Base()
+    ProgramStructure::ProgramStructure(Module &M)
     {
 
         typedef llvm::Module::const_global_iterator GlobalsIter;

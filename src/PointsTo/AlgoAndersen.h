@@ -19,7 +19,7 @@ namespace llvm { namespace ptr {
 
   template<typename Language>
   typename PointsToSets<Language,ANDERSEN>::Type&
-  computePointsToSets(typename ProgramStructure<Language>::Type const& P,
+  computePointsToSets(ProgramStructure const& P,
                       typename PointsToSets<Language,ANDERSEN>::Type& S,
                       ANDERSEN) {
       return fixpoint<Language,ANDERSEN>(P,S);

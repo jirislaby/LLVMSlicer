@@ -111,24 +111,6 @@ namespace llvm { namespace ptr { namespace detail {
 }}}
 
 
-namespace llvm { namespace ptr {
-
-    struct LLVMProgramStructure : public
-        ProgramStructureAsVector<LLVM, RuleCode>
-    {
-        typedef ProgramStructureAsVector<LLVM,RuleCode> Base;
-
-        LLVMProgramStructure(Module &M);
-    };
-
-    template<>
-    struct ProgramStructure<LLVM>
-    {
-        typedef LLVMProgramStructure Type;
-    };
-
-}}
-
 namespace llvm { namespace ptr { namespace detail {
 
     template<typename OutIterator>
@@ -185,10 +167,5 @@ namespace llvm { namespace ptr { namespace detail {
     }
 
 }}}
-
-namespace llvm { namespace ptr {
-
-
-}}
 
 #endif

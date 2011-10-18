@@ -8,6 +8,8 @@
 #include <set>
 #include <vector>
 
+#include "RuleExpressions.h"
+
 namespace llvm { namespace ptr {
 
   template<typename LanguageType, typename PointsToAlgorithmType>
@@ -150,20 +152,17 @@ namespace llvm { namespace ptr {
 
 namespace llvm { namespace ptr {
 
-    template<typename LanguageType, typename CommandType>
-    struct ProgramStructureAsVector
+    struct ProgramStructure
     {
-        typedef LanguageType Language;
-        typedef CommandType Command;
+        typedef RuleCode Command;
         typedef std::vector<Command> Container;
         typedef typename Container::value_type value_type;
         typedef typename Container::iterator iterator;
         typedef typename Container::const_iterator const_iterator;
 
-        virtual ~ProgramStructureAsVector() {}
+	ProgramStructure(Module &M);
 
-        void insert(const_iterator const it, value_type const& val)
-        { return C.insert(it,val); }
+        void insert(iterator it, value_type const& val) { C.insert(it,val); }
         void push_back(value_type const& val) { return C.push_back(val); }
         const_iterator begin() const { return C.begin(); }
         iterator begin() { return C.begin(); }
