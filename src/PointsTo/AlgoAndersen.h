@@ -43,8 +43,8 @@ namespace llvm { namespace ptr {
   template<typename Language>
     typename RuleFunction<Language,ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
-                        VARIABLE<typename MemoryLocation<Language>::Type>,
-                        VARIABLE<typename MemoryLocation<Language>::Type>
+                        VARIABLE<const llvm::Value *>,
+                        VARIABLE<const llvm::Value *>
                         > const& E,
                     ANDERSEN)
     {
@@ -52,8 +52,8 @@ namespace llvm { namespace ptr {
         {
             static bool function(typename PointsToSets<Language,ANDERSEN>
                                     ::Type& S,
-                                 typename MemoryLocation<Language>::Type lval,
-                                 typename MemoryLocation<Language>::Type rval
+                                 const llvm::Value *lval,
+                                 const llvm::Value *rval
                                  )
             {
                 typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
@@ -75,9 +75,9 @@ namespace llvm { namespace ptr {
   template<typename Language>
     typename RuleFunction<Language,ANDERSEN>::Type getRuleFunction(
            ASSIGNMENT<
-                        VARIABLE<typename MemoryLocation<Language>::Type>,
+                        VARIABLE<const llvm::Value *>,
                         REFERENCE<
-                            VARIABLE<typename MemoryLocation<Language>::Type> >
+                            VARIABLE<const llvm::Value *> >
                         > const& E,
                     ANDERSEN)
     {
@@ -85,8 +85,8 @@ namespace llvm { namespace ptr {
         {
             static bool function(typename PointsToSets<Language,ANDERSEN>
                                     ::Type& S,
-                                 typename MemoryLocation<Language>::Type lval,
-                                 typename MemoryLocation<Language>::Type rval
+                                 const llvm::Value *lval,
+                                 const llvm::Value *rval
                                  )
             {
                 typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
@@ -107,8 +107,8 @@ namespace llvm { namespace ptr {
   template<typename Language>
     typename RuleFunction<Language,ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
-                        VARIABLE<typename MemoryLocation<Language>::Type>,
-                        DEREFERENCE< VARIABLE<typename MemoryLocation<Language>::Type> >
+                        VARIABLE<const llvm::Value *>,
+                        DEREFERENCE< VARIABLE<const llvm::Value *> >
                         > const& E,
                     ANDERSEN)
     {
@@ -116,8 +116,8 @@ namespace llvm { namespace ptr {
         {
             static bool function(typename PointsToSets<Language,ANDERSEN>
                                     ::Type& S,
-                                 typename MemoryLocation<Language>::Type lval,
-                                 typename MemoryLocation<Language>::Type rval
+                                 const llvm::Value *lval,
+                                 const llvm::Value *rval
                                  )
             {
                 typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
@@ -142,8 +142,8 @@ namespace llvm { namespace ptr {
   template<typename Language>
     typename RuleFunction<Language,ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
-                        DEREFERENCE< VARIABLE<typename MemoryLocation<Language>::Type> >,
-                        VARIABLE<typename MemoryLocation<Language>::Type>
+                        DEREFERENCE< VARIABLE<const llvm::Value *> >,
+                        VARIABLE<const llvm::Value *>
                         > const& E,
                     ANDERSEN)
     {
@@ -151,8 +151,8 @@ namespace llvm { namespace ptr {
         {
             static bool function(typename PointsToSets<Language,ANDERSEN>
                                     ::Type& S,
-                                 typename MemoryLocation<Language>::Type lval,
-                                 typename MemoryLocation<Language>::Type rval
+                                 const llvm::Value *lval,
+                                 const llvm::Value *rval
                                  )
             {
                 typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
@@ -181,9 +181,9 @@ namespace llvm { namespace ptr {
     typename RuleFunction<Language,ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         DEREFERENCE<
-                            VARIABLE<typename MemoryLocation<Language>::Type> >,
+                            VARIABLE<const llvm::Value *> >,
                         REFERENCE<
-                            VARIABLE<typename MemoryLocation<Language>::Type> >
+                            VARIABLE<const llvm::Value *> >
                         > const& E,
                     ANDERSEN)
     {
@@ -191,8 +191,8 @@ namespace llvm { namespace ptr {
         {
             static bool function(typename PointsToSets<Language,ANDERSEN>
                                     ::Type& S,
-                                 typename MemoryLocation<Language>::Type lval,
-                                 typename MemoryLocation<Language>::Type rval
+                                 const llvm::Value *lval,
+                                 const llvm::Value *rval
                                  )
             {
                 typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
@@ -220,16 +220,16 @@ namespace llvm { namespace ptr {
     typename RuleFunction<Language,ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         DEREFERENCE<
-                            VARIABLE<typename MemoryLocation<Language>::Type> >,
+                            VARIABLE<const llvm::Value *> >,
                         DEREFERENCE<
-                            VARIABLE<typename MemoryLocation<Language>::Type> >
+                            VARIABLE<const llvm::Value *> >
                         > const& E,
                     ANDERSEN) {
         struct local {
             static bool function(typename PointsToSets<Language,ANDERSEN>
                                     ::Type& S,
-                                 typename MemoryLocation<Language>::Type lval,
-                                 typename MemoryLocation<Language>::Type rval
+                                 const llvm::Value *lval,
+                                 const llvm::Value *rval
                                  )
             {
                 typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
@@ -254,8 +254,8 @@ namespace llvm { namespace ptr {
     template<typename Language>
     typename RuleFunction<Language,ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
-                        VARIABLE<typename MemoryLocation<Language>::Type>,
-                        ALLOC<typename MemoryLocation<Language>::Type>
+                        VARIABLE<const llvm::Value *>,
+                        ALLOC<const llvm::Value *>
                         > const& E,
                     ANDERSEN)
     {
@@ -263,8 +263,8 @@ namespace llvm { namespace ptr {
         {
             static bool function(typename PointsToSets<Language,ANDERSEN>
                                     ::Type& S,
-                                 typename MemoryLocation<Language>::Type lval,
-                                 typename MemoryLocation<Language>::Type rval
+                                 const llvm::Value *lval,
+                                 const llvm::Value *rval
                                  )
             {
                 typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
@@ -285,8 +285,8 @@ namespace llvm { namespace ptr {
     template<typename Language>
     typename RuleFunction<Language,ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
-                        VARIABLE<typename MemoryLocation<Language>::Type>,
-                        NULLPTR<typename MemoryLocation<Language>::Type>
+                        VARIABLE<const llvm::Value *>,
+                        NULLPTR<const llvm::Value *>
                         > const& E,
                     ANDERSEN)
     {
@@ -294,8 +294,8 @@ namespace llvm { namespace ptr {
         {
             static bool function(typename PointsToSets<Language,ANDERSEN>
                                     ::Type& S,
-                                 typename MemoryLocation<Language>::Type lval,
-                                 typename MemoryLocation<Language>::Type rval
+                                 const llvm::Value *lval,
+                                 const llvm::Value *rval
                                  )
             {
                 typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
@@ -317,8 +317,8 @@ namespace llvm { namespace ptr {
     typename RuleFunction<Language,ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         DEREFERENCE<
-                            VARIABLE<typename MemoryLocation<Language>::Type> >,
-                        NULLPTR<typename MemoryLocation<Language>::Type>
+                            VARIABLE<const llvm::Value *> >,
+                        NULLPTR<const llvm::Value *>
                         > const& E,
                     ANDERSEN)
     {
@@ -326,8 +326,8 @@ namespace llvm { namespace ptr {
         {
             static bool function(typename PointsToSets<Language,ANDERSEN>
                                     ::Type& S,
-                                 typename MemoryLocation<Language>::Type lval,
-                                 typename MemoryLocation<Language>::Type rval
+                                 const llvm::Value *lval,
+                                 const llvm::Value *rval
                                  )
             {
                 typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet

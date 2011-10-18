@@ -5,8 +5,6 @@
 #define POINTSTO_RULEEXPRESSIONS_H
 
 namespace llvm { namespace ptr {
-    template<typename Language>
-    struct MemoryLocation;
     template<typename Language, typename PointsToAlgorithm>
     struct Rules;
 }}
@@ -273,15 +271,15 @@ namespace llvm { namespace ptr {
     };
 
     template<typename Language, typename ExprSort>
-    RuleCode<typename MemoryLocation<Language>::Type>
+    RuleCode<const llvm::Value *>
     ruleCode(RuleExpression<ExprSort> const& E)
     {
-        return RuleCode<typename MemoryLocation<Language>::Type>(E.getSort());
+        return RuleCode<const llvm::Value *>(E.getSort());
     }
 
     template<typename Language, typename PointsToAlgorithm>
     void getRulesOfCommand(
-        RuleCode<typename MemoryLocation<Language>::Type> const& RC,
+        RuleCode<const llvm::Value *> const& RC,
         Rules<Language,PointsToAlgorithm>& R)
     {
         switch (RC.getType())

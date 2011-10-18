@@ -114,23 +114,17 @@ namespace llvm { namespace ptr { namespace detail {
 
 namespace llvm { namespace ptr {
 
-    template<>
-    struct MemoryLocation<LLVM>
-    {
-        typedef llvm::Value const* Type;
-    };
-
     template<bool IsMayAnalysis, bool IsInterproc>
     struct LLVMProgramStructure : public
         ProgramStructureAsVector<LLVM,
             llvm::AnalysisProperties<IsMayAnalysis,IsInterproc,
                                         false,false,false,false>,
-            RuleCode<MemoryLocation<LLVM>::Type> >
+            RuleCode<const llvm::Value *> >
     {
         typedef llvm::AnalysisProperties<IsMayAnalysis,IsInterproc,
                                             false,false,false,false>
                 AnalysisProperties;
-        typedef RuleCode<MemoryLocation<LLVM>::Type> RuleCode_t;
+        typedef RuleCode<const llvm::Value *> RuleCode_t;
         typedef ProgramStructureAsVector<LLVM,AnalysisProperties,RuleCode_t> Base;
 
         LLVMProgramStructure(Module &M);

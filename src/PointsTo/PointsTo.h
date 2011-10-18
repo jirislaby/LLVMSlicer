@@ -15,9 +15,6 @@
 
 namespace llvm { namespace ptr {
 
-  template<typename Language>
-  struct MemoryLocation;
-
   template<typename Language, typename PointsToAlgorithm>
   struct PointsToSets {
     typedef PointsToSetsAsMap<Language,PointsToAlgorithm> Type;
