@@ -61,6 +61,23 @@ public:
     return getInsInfo(I)->RC_end();
   }
 
+  template<typename FwdValueIterator>
+  bool addCriterion(const llvm::Instruction *ins, FwdValueIterator b,
+		    FwdValueIterator const e, bool initial = false) {
+    InsInfo *ii = getInsInfo(ins);
+    bool change = false;
+    for (; b != e; ++b)
+      if (ii->addRC(*b))
+	change = true;
+    if (initial)
+      ii->deslice();
+    return change;
+  }
+
+  bool addCriterion(const llvm::Instruction *ins, const llvm::Value *var) {
+    return addCriterion(ins, &var, &var + 1);
+  }
+
   void addInitialCriterion(const llvm::Instruction *ins,
 			   const llvm::Value *cond = 0) {
     InsInfo *ii = getInsInfo(ins);
