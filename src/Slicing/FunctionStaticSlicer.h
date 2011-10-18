@@ -1,19 +1,28 @@
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+
 #ifndef SLICING_FUNCTIONSTATICSLICER_H
 #define SLICING_FUNCTIONSTATICSLICER_H
 
 #include <map>
 
-namespace llvm {
+#include "llvm/Value.h"
+#include "llvm/ADT/SetVector.h"
+#include "llvm/Support/InstIterator.h"
 
-typedef llvm::SmallSetVector<const Value *, 10> ValSet;
+#include "PostDominanceFrontier.h"
+
+namespace llvm { namespace slicing {
+
+typedef llvm::SmallSetVector<const llvm::Value *, 10> ValSet;
 
 class InsInfo {
 public:
   template<typename PointsToSets, typename ModifiesSets>
-  InsInfo(const Instruction *i, PointsToSets const& PS,
+  InsInfo(const llvm::Instruction *i, PointsToSets const& PS,
                    ModifiesSets const& MOD);
 
-  bool addRC(const Value *var) { return RC.insert(var); }
+  bool addRC(const llvm::Value *var) { return RC.insert(var); }
   void deslice() { sliced = false; }
 
   ValSet::const_iterator RC_begin() const { return RC.begin(); }
@@ -26,25 +35,27 @@ public:
   bool isSliced() const { return sliced; }
 
 private:
-  const Instruction *ins;
+  const llvm::Instruction *ins;
   ValSet RC, DEF, REF;
   bool sliced;
 };
 
 class FunctionStaticSlicer {
 public:
-  typedef std::map<const Instruction *, InsInfo *> InsInfoMap;
+  typedef std::map<const llvm::Instruction *, InsInfo *> InsInfoMap;
 
   template<typename PointsToSets, typename ModifiesSets>
-  FunctionStaticSlicer(Function &F, PostDominatorTree &PDT, PostDominanceFrontier &PDF,
-               PointsToSets &PT, ModifiesSets &mods) : fun(F), PDT(PDT),
-               PDF(PDF) {
-    for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I)
+  FunctionStaticSlicer(llvm::Function &F, llvm::PostDominatorTree &PDT,
+	       llvm::PostDominanceFrontier &PDF, PointsToSets &PT,
+	       ModifiesSets &mods) : fun(F), PDT(PDT), PDF(PDF) {
+    for (llvm::inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F);
+	 I != E; ++I)
       insInfoMap.insert(InsInfoMap::value_type(&*I, new InsInfo(&*I, PT, mods)));
   }
   ~FunctionStaticSlicer();
 
-  void addInitialCriterion(const Instruction *ins, const Value *cond = 0) {
+  void addInitialCriterion(const llvm::Instruction *ins,
+			   const llvm::Value *cond = 0) {
     InsInfo *ii = getInsInfo(ins);
     if (cond)
       ii->addRC(cond);
@@ -54,30 +65,30 @@ public:
   bool slice();
 
 private:
-  Function &fun;
-  PostDominatorTree &PDT;
-  PostDominanceFrontier &PDF;
+  llvm::Function &fun;
+  llvm::PostDominatorTree &PDT;
+  llvm::PostDominanceFrontier &PDF;
   InsInfoMap insInfoMap;
 
-  void crawlBasicBlock(const BasicBlock *bb);
-  bool computeRCi(const Instruction *i, const Instruction *j);
-  bool computeRCi(const Instruction *i);
+  void crawlBasicBlock(const llvm::BasicBlock *bb);
+  bool computeRCi(const llvm::Instruction *i, const llvm::Instruction *j);
+  bool computeRCi(const llvm::Instruction *i);
   void computeRC();
 
-  void computeSCi(const Instruction *i, const Instruction *j);
+  void computeSCi(const llvm::Instruction *i, const llvm::Instruction *j);
   void computeSC();
 
   bool computeBC();
-  bool updateRCSC(PostDominanceFrontier::DomSetType::const_iterator start,
-                  PostDominanceFrontier::DomSetType::const_iterator end);
+  bool updateRCSC(llvm::PostDominanceFrontier::DomSetType::const_iterator start,
+                  llvm::PostDominanceFrontier::DomSetType::const_iterator end);
 
   void dump();
 
-  InsInfo *getInsInfo(const Instruction *i) const {
+  InsInfo *getInsInfo(const llvm::Instruction *i) const {
     return insInfoMap.find(i)->second;
   }
 };
 
-}
+}}
 
 #endif

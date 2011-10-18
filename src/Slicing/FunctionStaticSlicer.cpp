@@ -19,8 +19,6 @@
 #include "llvm/Instructions.h"
 #include "llvm/Module.h"
 #include "llvm/Pass.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/Support/CFG.h"
@@ -43,6 +41,7 @@
 #include "FunctionStaticSlicer.h"
 
 using namespace llvm;
+using namespace llvm::slicing;
 
 template<typename PointsToSets, typename ModifiesSets>
 InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
