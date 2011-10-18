@@ -181,10 +181,9 @@ namespace llvm { namespace ptr {
         RCT_DEALLOC,
     };
 
-    template<typename MemLoc>
     struct RuleCode
     {
-        typedef MemLoc MemoryLocation;
+        typedef const llvm::Value *MemoryLocation;
 
         RuleCode()
             : type(RCT_UNKNOWN)
@@ -270,16 +269,15 @@ namespace llvm { namespace ptr {
         MemoryLocation rvalue;
     };
 
-    template<typename Language, typename ExprSort>
-    RuleCode<const llvm::Value *>
-    ruleCode(RuleExpression<ExprSort> const& E)
+    template<typename ExprSort>
+    RuleCode ruleCode(RuleExpression<ExprSort> const& E)
     {
-        return RuleCode<const llvm::Value *>(E.getSort());
+        return RuleCode(E.getSort());
     }
 
     template<typename Language, typename PointsToAlgorithm>
     void getRulesOfCommand(
-        RuleCode<const llvm::Value *> const& RC,
+        RuleCode const& RC,
         Rules<Language,PointsToAlgorithm>& R)
     {
         switch (RC.getType())

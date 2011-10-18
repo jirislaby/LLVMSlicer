@@ -24,7 +24,7 @@ namespace llvm { namespace ptr { namespace detail {
             CallsMap;
 
     void buildCallMaps(llvm::Module const& M, FunctionsMap& F, CallsMap& C);
-    RuleCode<llvm::Value const*> argPassRuleCode(llvm::Value const* const l,
+    RuleCode argPassRuleCode(llvm::Value const* const l,
                                                  llvm::Value const* const r);
 
 
@@ -38,9 +38,9 @@ namespace llvm { namespace ptr { namespace detail {
             {
                 llvm::Value const* const op = I->getOperand(0);
                 if (hasExtraReference(op))
-                    *out++ = ruleCode<LLVM>(ruleVar(V) = ruleVar(op));
+                    *out++ = ruleCode(ruleVar(V) = ruleVar(op));
                 else
-                    *out++ = ruleCode<LLVM>(ruleVar(V) = *ruleVar(op));
+                    *out++ = ruleCode(ruleVar(V) = *ruleVar(op));
             }
             else if (I->getOpcode() == llvm::Instruction::Store)
             {
@@ -48,56 +48,56 @@ namespace llvm { namespace ptr { namespace detail {
                 llvm::Value const* const r = I->getOperand(0);
                 if (!hasExtraReference(l))
                     if (hasExtraReference(r))
-                        *out++ = ruleCode<LLVM>(*ruleVar(l) = &ruleVar(r));
+                        *out++ = ruleCode(*ruleVar(l) = &ruleVar(r));
                     else
                     {
                         if (llvm::isa<llvm::ConstantPointerNull const>(r))
-                            *out++ = ruleCode<LLVM>(*ruleVar(l) = ruleNull(r));
+                            *out++ = ruleCode(*ruleVar(l) = ruleNull(r));
                         else
-                            *out++ = ruleCode<LLVM>(*ruleVar(l) = ruleVar(r));
+                            *out++ = ruleCode(*ruleVar(l) = ruleVar(r));
                     }
                 else
                     if (hasExtraReference(r))
-                        *out++ = ruleCode<LLVM>(ruleVar(l) = &ruleVar(r));
+                        *out++ = ruleCode(ruleVar(l) = &ruleVar(r));
                     else
                     {
                         if (llvm::isa<llvm::ConstantPointerNull const>(r))
-                            *out++ = ruleCode<LLVM>(ruleVar(l) = ruleNull(r));
+                            *out++ = ruleCode(ruleVar(l) = ruleNull(r));
                         else
-                            *out++ = ruleCode<LLVM>(ruleVar(l) = ruleVar(r));
+                            *out++ = ruleCode(ruleVar(l) = ruleVar(r));
                     }
             }
             else if (I->getOpcode() == llvm::Instruction::BitCast)
             {
                 llvm::Value const* const op = I->getOperand(0);
                 if (hasExtraReference(op))
-                    *out++ = ruleCode<LLVM>(ruleVar(V) = &ruleVar(op));
+                    *out++ = ruleCode(ruleVar(V) = &ruleVar(op));
                 else
-                    *out++ = ruleCode<LLVM>(ruleVar(V) = ruleVar(op));
+                    *out++ = ruleCode(ruleVar(V) = ruleVar(op));
             }
             else if (llvm::GetElementPtrInst const* const gep =
                         llvm::dyn_cast<llvm::GetElementPtrInst>(I))
             {
                 llvm::Value const* const op = gep->getPointerOperand();
                 if (hasExtraReference(op))
-                    *out++ = ruleCode<LLVM>(ruleVar(V) = &ruleVar(op));
+                    *out++ = ruleCode(ruleVar(V) = &ruleVar(op));
                 else
-                    *out++ = ruleCode<LLVM>(ruleVar(V) = ruleVar(op));
+                    *out++ = ruleCode(ruleVar(V) = ruleVar(op));
             }
             else if (llvm::CallInst const* const C =
                             llvm::dyn_cast<llvm::CallInst>(I))
             {
                 if (isMemoryAllocation(C->getCalledValue()))
-                    *out++ = ruleCode<LLVM>(ruleVar(V) = ruleAllocSite(V));
+                    *out++ = ruleCode(ruleVar(V) = ruleAllocSite(V));
                 else if (isMemoryDeallocation(C->getCalledValue()))
                     errs() << "KOKO\n";
-//                    *out++ = ruleCode<LLVM>(ruleDeallocSite(V));
+//                    *out++ = ruleCode(ruleDeallocSite(V));
                 else if (isMemoryCopy(C->getCalledValue()) ||
                             isMemoryMove(C->getCalledValue()))
                 {
                     llvm::Value const* const l = I->getOperand(0);
                     llvm::Value const* const r = I->getOperand(1);
-                    *out++ = ruleCode<LLVM>(*ruleVar(l) = *ruleVar(r));
+                    *out++ = ruleCode(*ruleVar(l) = *ruleVar(r));
                 }
             }
         }
@@ -105,7 +105,7 @@ namespace llvm { namespace ptr { namespace detail {
                         llvm::dyn_cast<llvm::GlobalVariable>(V))
         {
             llvm::Value const* const op = G->getOperand(0);
-            *out++ = ruleCode<LLVM>(ruleVar(V) = &ruleVar(op));
+            *out++ = ruleCode(ruleVar(V) = &ruleVar(op));
         }
     }
 
@@ -119,13 +119,12 @@ namespace llvm { namespace ptr {
         ProgramStructureAsVector<LLVM,
             llvm::AnalysisProperties<IsMayAnalysis,IsInterproc,
                                         false,false,false,false>,
-            RuleCode<const llvm::Value *> >
+            RuleCode >
     {
         typedef llvm::AnalysisProperties<IsMayAnalysis,IsInterproc,
                                             false,false,false,false>
                 AnalysisProperties;
-        typedef RuleCode<const llvm::Value *> RuleCode_t;
-        typedef ProgramStructureAsVector<LLVM,AnalysisProperties,RuleCode_t> Base;
+        typedef ProgramStructureAsVector<LLVM,AnalysisProperties,RuleCode> Base;
 
         LLVMProgramStructure(Module &M);
     };
@@ -151,7 +150,7 @@ namespace llvm { namespace ptr { namespace detail {
         if (llvm::isMemoryAllocation(f))
         {
             llvm::Value const* const V = c;
-            *out++ = ruleCode<LLVM>(ruleVar(V) = ruleAllocSite(V));
+            *out++ = ruleCode(ruleVar(V) = ruleAllocSite(V));
         }
         else
         {

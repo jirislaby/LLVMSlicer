@@ -37,21 +37,21 @@ namespace llvm { namespace ptr { namespace detail {
         }
     }
 
-    RuleCode<llvm::Value const*> argPassRuleCode(llvm::Value const* const l,
-                                                 llvm::Value const* const r)
+    RuleCode argPassRuleCode(llvm::Value const* const l,
+                             llvm::Value const* const r)
     {
         if (llvm::isa<llvm::ConstantPointerNull const>(r))
-            return ruleCode<LLVM>(ruleVar(l) = ruleNull(r));
+            return ruleCode(ruleVar(l) = ruleNull(r));
         if (hasExtraReference(l))
             if (hasExtraReference(r))
-                return ruleCode<LLVM>(ruleVar(l) = ruleVar(r));
+                return ruleCode(ruleVar(l) = ruleVar(r));
             else
-                return ruleCode<LLVM>(ruleVar(l) = *ruleVar(r));
+                return ruleCode(ruleVar(l) = *ruleVar(r));
         else
             if (hasExtraReference(r))
-                return ruleCode<LLVM>(ruleVar(l) = &ruleVar(r));
+                return ruleCode(ruleVar(l) = &ruleVar(r));
             else
-                return ruleCode<LLVM>(ruleVar(l) = ruleVar(r));
+                return ruleCode(ruleVar(l) = ruleVar(r));
     }
 
 }}}
