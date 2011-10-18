@@ -14,12 +14,11 @@
 
 #include "../AnalysisProps.h"
 #include "../Languages.h"
+#include "../Languages/LLVM.h"
 
 namespace llvm { namespace callgraph {
 
-    template<typename LanguageType>
-    struct BasicCallgraph {
-        typedef LanguageType Language;
+    struct Callgraph {
         typedef std::multimap<const llvm::Function *, const llvm::Function *>
 		Container;
         typedef typename Container::key_type key_type;
@@ -29,7 +28,8 @@ namespace llvm { namespace callgraph {
         typedef typename Container::const_iterator const_iterator;
         typedef std::pair<const_iterator,const_iterator> range_iterator;
 
-        virtual ~BasicCallgraph() {}
+        template<typename PointsToSets>
+        Callgraph(Module &M, PointsToSets const& PS);
 
         iterator insertDirectCall(value_type const& val)
         { return directCallsMap.insert(val); }
@@ -62,12 +62,6 @@ namespace llvm { namespace callgraph {
         Container callsMap;
         Container calleesMap;
     };
-
-    template<typename Language>
-    struct Callgraph {
-        typedef BasicCallgraph<Language> Type;
-    };
-
 }}
 
 namespace llvm { namespace callgraph { namespace detail {
@@ -106,43 +100,38 @@ namespace llvm { namespace callgraph { namespace detail {
 
 namespace llvm { namespace callgraph {
 
-    template<typename Language>
-    typename Callgraph<Language>::Type::range_iterator
+    typename Callgraph::range_iterator
     getDirectCalls(
-        typename Callgraph<Language>::Type::key_type const& key,
-        typename Callgraph<Language>::Type const& CG) {
+        typename Callgraph::key_type const& key,
+        Callgraph const& CG) {
         return CG.directCalls(key);
     }
 
-    template<typename Language>
-    typename Callgraph<Language>::Type::range_iterator
+    typename Callgraph::range_iterator
     getDirectCallees(
-        typename Callgraph<Language>::Type::key_type const& key,
-        typename Callgraph<Language>::Type const& CG)
+        typename Callgraph::key_type const& key,
+        Callgraph const& CG)
     {
         return CG.directCallees(key);
     }
 
-    template<typename Language>
-    typename Callgraph<Language>::Type::range_iterator
+    typename Callgraph::range_iterator
     getCalls(
-        typename Callgraph<Language>::Type::key_type const& key,
-        typename Callgraph<Language>::Type const& CG)
+        typename Callgraph::key_type const& key,
+        Callgraph const& CG)
     {
         return CG.calls(key);
     }
 
-    template<typename Language>
-    typename Callgraph<Language>::Type::range_iterator
+    typename Callgraph::range_iterator
     getCallees(
-        typename Callgraph<Language>::Type::key_type const& key,
-        typename Callgraph<Language>::Type const& CG)
+        typename Callgraph::key_type const& key,
+        Callgraph const& CG)
     {
         return CG.callees(key);
     }
 
-    template<typename Language>
-    void BasicCallgraph<Language>::computeRemainingDictionaries()
+    void Callgraph::computeRemainingDictionaries()
     {
         detail::computeTransitiveClosure(directCallsMap,callsMap);
         for (const_iterator it = begin(); it != end(); ++it)
@@ -150,6 +139,40 @@ namespace llvm { namespace callgraph {
         for (const_iterator it = callsMap.begin(); it != callsMap.end(); ++it)
             calleesMap.insert(value_type(it->second,it->first));
     }
+
+    template<typename PointsToSets>
+    Callgraph::Callgraph(Module &M, PointsToSets const& PS)
+    {
+        typedef llvm::Module::iterator FunctionsIter;
+        for (FunctionsIter f = M.begin(); f != M.end(); ++f)
+            if (!f->isDeclaration() && !memoryManStuff(f))
+                for (llvm::inst_iterator i = llvm::inst_begin(*f);
+                        i != llvm::inst_end(*f); i++)
+                    if (llvm::CallInst const* c =
+                            llvm::dyn_cast<llvm::CallInst const>(&*i))
+                    {
+                        std::vector<llvm::Value const*> G;
+                        if (c->getCalledFunction() != 0)
+                            G.push_back(c->getCalledFunction());
+                        else
+                        {
+                            typename PointsToSets::PointsToSet const& S =
+                                getPointsToSet(c->getCalledValue(),PS);
+                            std::copy(S.begin(),S.end(),std::back_inserter(G));
+                        }
+                        for (std::vector<llvm::Value const*>::const_iterator g =
+                                G.begin(); g != G.end(); ++g)
+                        {
+                            llvm::Function const* const h =
+                                llvm::dyn_cast<llvm::Function>(*g);
+                            if (!memoryManStuff(h) && !h->isDeclaration())
+                                insertDirectCall(value_type(f,h));
+                        }
+                    }
+
+        computeRemainingDictionaries();
+    }
+
 #if 0
     template<typename Language>
     std::ostream& dump(std::ostream& ostr, BasicCallgraph<Language> const& CG)
