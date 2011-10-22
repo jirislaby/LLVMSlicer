@@ -11,7 +11,7 @@ namespace llvm { namespace mods {
 
     template<typename Language, typename Algorithm>
     struct Modifies {
-        typedef ModifiesAsMap<Language,Algorithm> Type;
+        typedef ModifiesAsMap<Algorithm> Type;
     };
 
     template<typename ProgramStructureType, typename Callgraph,
@@ -19,8 +19,7 @@ namespace llvm { namespace mods {
     void computeModifies(ProgramStructureType const& P, Callgraph const& CG,
                          PointsToSets const& PS, ModifiesType& M)
     {
-        computeModifies<typename ModifiesType::Language>
-            (P,CG,PS,M,typename ModifiesType::Algorithm());
+        computeModifies<LLVM>(P, CG, PS, M, typename ModifiesType::Algorithm());
     }
 
 }}

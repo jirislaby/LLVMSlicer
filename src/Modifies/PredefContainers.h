@@ -16,9 +16,8 @@
 
 namespace llvm { namespace mods {
 
-    template<typename LanguageType, typename AlgorithmType>
+    template<typename AlgorithmType>
     struct ModifiesAsMap {
-        typedef LanguageType Language;
         typedef AlgorithmType Algorithm;
         typedef std::set<const llvm::Value *> ModSet;
         typedef std::map<const llvm::Function *, ModSet> Container;
@@ -45,13 +44,13 @@ namespace llvm { namespace mods {
         Container C;
     };
 
-    template<typename Language, typename Algorithm>
-    typename ModifiesAsMap<Language,Algorithm>::ModSet const&
+    template<typename Algorithm>
+    typename ModifiesAsMap<Algorithm>::ModSet const&
     getModSet(const llvm::Function *const& f,
-              ModifiesAsMap<Language,Algorithm> const& S)
+              ModifiesAsMap<Algorithm> const& S)
     {
-        static typename ModifiesAsMap<Language,Algorithm>::ModSet const empty;
-        typename ModifiesAsMap<Language,Algorithm>::const_iterator const it =
+        static typename ModifiesAsMap<Algorithm>::ModSet const empty;
+        typename ModifiesAsMap<Algorithm>::const_iterator const it =
             S.find(f);
         return (it == S.end()) ? empty : it->second;
     }
