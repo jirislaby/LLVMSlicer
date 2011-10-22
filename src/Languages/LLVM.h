@@ -18,8 +18,6 @@
 #include <llvm/Support/InstIterator.h>
 #include <llvm/Support/raw_os_ostream.h>
 
-#include "../Languages.h"
-
 namespace llvm {
 
     bool hasExtraReference(llvm::Value const* const V);
