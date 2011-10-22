@@ -8,16 +8,16 @@
 
 namespace llvm { namespace ptr {
 
-    template<typename Language, typename PointsToAlgorithm>
+    template<typename PointsToAlgorithm>
     bool executeRules(ProgramStructure const& P,
         typename PointsToSets<PointsToAlgorithm>::Type& S)
     {
         bool change = false;
 
         for (ProgramStructure::const_iterator i = P.begin(); i != P.end(); ++i) {
-            Rules<Language,PointsToAlgorithm> rules;
+            Rules<PointsToAlgorithm> rules;
             getRulesOfCommand(*i,rules);
-            typedef typename Rules<Language,PointsToAlgorithm>::const_iterator
+            typedef typename Rules<PointsToAlgorithm>::const_iterator
                     RulesIterConst;
             for (RulesIterConst j = rules.begin(); j != rules.end(); ++j) {
                 bool const modification = (*j)(S);
@@ -35,7 +35,7 @@ namespace llvm { namespace ptr {
     fixpoint(ProgramStructure const& P,
              typename PointsToSets<PointsToAlgorithm>::Type& S)
     {
-        while (executeRules<Language,PointsToAlgorithm>(P,S))
+        while (executeRules<PointsToAlgorithm>(P,S))
             ;
         return S;
     }

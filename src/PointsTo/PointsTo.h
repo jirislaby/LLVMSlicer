@@ -60,7 +60,7 @@ namespace llvm { namespace ptr {
                   &RuleFunction<PointsToAlgorithm>::identity);
   }
 
-  template<typename Language, typename PointsToAlgorithm>
+  template<typename PointsToAlgorithm>
   class Rules {
   public:
       typedef std::vector<

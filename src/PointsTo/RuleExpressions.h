@@ -5,7 +5,7 @@
 #define POINTSTO_RULEEXPRESSIONS_H
 
 namespace llvm { namespace ptr {
-    template<typename Language, typename PointsToAlgorithm>
+    template<typename PointsToAlgorithm>
     struct Rules;
 }}
 
@@ -275,10 +275,9 @@ namespace llvm { namespace ptr {
         return RuleCode(E.getSort());
     }
 
-    template<typename Language, typename PointsToAlgorithm>
-    void getRulesOfCommand(
-        RuleCode const& RC,
-        Rules<Language,PointsToAlgorithm>& R)
+    template<typename PointsToAlgorithm>
+    void getRulesOfCommand(RuleCode const& RC,
+        Rules<PointsToAlgorithm>& R)
     {
         switch (RC.getType())
         {
