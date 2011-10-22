@@ -21,7 +21,6 @@
 namespace llvm {
 
     bool hasExtraReference(llvm::Value const* const V);
-    bool isConstantValue(llvm::Value const* const V);
     bool isPointerValue(llvm::Value const* const V);
     bool isPointerToPointerValue(llvm::Value const* const V);
     bool isPointerManipulation(llvm::Instruction const* const I);
@@ -35,7 +34,7 @@ namespace llvm {
     bool isMemorySet(llvm::Value const* const V);
     bool memoryManStuff(llvm::Value const* const V);
     bool callToMemoryManStuff(llvm::CallInst const* const C);
-    llvm::Instruction const* getFunctionEntry(llvm::Function const* const F);
+    llvm::Instruction const *getFunctionEntry(const llvm::Function *F);
     template<typename OutIterator>
     void getFunctionCalls(llvm::Function const* const F, OutIterator out);
     template<typename OutIterator>
@@ -44,17 +43,10 @@ namespace llvm {
     void getFunctionExits(llvm::Function const* const F, OutIterator out);
     template<typename OutIterator>
     void getFunctionExits(llvm::Function const* const F, OutIterator out);
-    llvm::Function const*getFunctionOfInstruction(llvm::Instruction const*const);
-    llvm::Function* getFunctionOfInstruction(llvm::Instruction* const);
     bool isLocalToFunction(llvm::Value const* const V,
                            llvm::Function const* const F);
     bool callToVoidFunction(llvm::CallInst const* const C);
     llvm::Instruction const* getSuccInBlock(llvm::Instruction const* const);
-
-/*    std::string toString(llvm::Value const* const);
-    std::ostream& dump(std::ostream& ostr, llvm::Value const* const);
-    std::ostream& dump(std::ostream& ostr, llvm::Function const* const);*/
-
 }
 
 namespace llvm {

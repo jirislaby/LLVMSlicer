@@ -19,7 +19,7 @@ namespace llvm { namespace slicing { namespace detail {
         {
             llvm::Value const* const P = &*p;
             llvm::Value const* const A = C->getArgOperand(a);
-            if (!isConstantValue(A))
+            if (!llvm::isa<llvm::Constant>(A))
                 toArgs[P] = A;
         }
     }

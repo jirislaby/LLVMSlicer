@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <iterator>
 
+#include "llvm/Constant.h"
+
 #include "Modifies.h"
 #include "../Callgraph/Callgraph.h"
 #include "../PointsTo/PointsTo.h"
@@ -36,7 +38,7 @@ namespace llvm { namespace mods {
               llvm::ptr::getPointsToSet(c->getVar(),PS);
           for (typename PointsToSets::PointsToSet::const_iterator p = S.begin();
                p != S.end(); ++p)
-            if (!P.isLocalToFunction(*p,f->first) && !P.isConstantValue(*p))
+            if (!P.isLocalToFunction(*p,f->first) && !llvm::isa<llvm::Constant>(*p))
               MOD[f->first].insert(*p);
         }
 

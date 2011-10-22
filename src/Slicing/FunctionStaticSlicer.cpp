@@ -67,7 +67,7 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
 
     const Value *r = SI->getValueOperand();
     REF.insert(l);
-    if (!hasExtraReference(r) && !isConstantValue(r))
+    if (!hasExtraReference(r) && !llvm::isa<llvm::Constant>(r))
       REF.insert(r);
   } else if (const GetElementPtrInst *gep =
              dyn_cast<const GetElementPtrInst>(i)) {
@@ -123,9 +123,9 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
   } else if (const BinaryOperator *BO = dyn_cast<const BinaryOperator>(i)) {
     DEF.insert(i);
 
-    if (!isConstantValue(BO->getOperand(0)))
+    if (!llvm::isa<llvm::Constant>(BO->getOperand(0)))
       REF.insert(BO->getOperand(0));
-    if (!isConstantValue(BO->getOperand(1)))
+    if (!llvm::isa<llvm::Constant>(BO->getOperand(1)))
       REF.insert(BO->getOperand(1));
   } else if (const CastInst *CI = dyn_cast<const CastInst>(i)) {
     DEF.insert(i);
@@ -139,9 +139,9 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
   } else if (const CmpInst *CI = dyn_cast<const CmpInst>(i)) {
     DEF.insert(i);
 
-    if (!isConstantValue(CI->getOperand(0)))
+    if (!llvm::isa<llvm::Constant>(CI->getOperand(0)))
       REF.insert(CI->getOperand(0));
-    if (!isConstantValue(CI->getOperand(1)))
+    if (!llvm::isa<llvm::Constant>(CI->getOperand(1)))
       REF.insert(CI->getOperand(1));
   } else if (const BranchInst *BI = dyn_cast<const BranchInst>(i)) {
     if (BI->isConditional())
@@ -150,7 +150,7 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
     DEF.insert(i);
 
     for (unsigned k = 0; k < phi->getNumIncomingValues(); ++k)
-      if (!isConstantValue(phi->getIncomingValue(k)))
+      if (!llvm::isa<llvm::Constant>(phi->getIncomingValue(k)))
 	      REF.insert(phi->getIncomingValue(k));
   } else if (const SwitchInst *SI = dyn_cast<const SwitchInst>(i)) {
   } else if (const SelectInst *SI = dyn_cast<const SelectInst>(i)) {
@@ -158,11 +158,11 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
 
     DEF.insert(i);
 
-    if (!isConstantValue(SI->getCondition()))
+    if (!llvm::isa<llvm::Constant>(SI->getCondition()))
       REF.insert(SI->getCondition());
-    if (!isConstantValue(SI->getTrueValue()))
+    if (!llvm::isa<llvm::Constant>(SI->getTrueValue()))
       REF.insert(SI->getTrueValue());
-    if (!isConstantValue(SI->getFalseValue()))
+    if (!llvm::isa<llvm::Constant>(SI->getFalseValue()))
       REF.insert(SI->getFalseValue());
   } else {
     errs() << "ERROR: Unsupported instruction reached\n";

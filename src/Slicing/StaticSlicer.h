@@ -171,8 +171,8 @@ namespace llvm { namespace slicing {
         llvm::tie(c,e) = funcsToCalls.equal_range(f);
         for ( ; c != e; ++c)
         {
-            llvm::Function const* const g = getFunctionOfInstruction(c->second);
-            std::set<llvm::Value const*> R;
+            const llvm::Function *g = c->second->getParent()->getParent();
+            std::set<const llvm::Value *> R;
             detail::getRelevantVarsAtCall(c->second,f,relBgn,relEnd,/*PS,*/
                                           std::inserter(R,R.end()));
             if (slicers[g]->addCriterion(c->second,R.begin(),R.end()))
@@ -216,7 +216,7 @@ namespace llvm { namespace slicing {
     void StaticSlicer::computeSlice(llvm::Instruction* const I,
                                     FwdValueIterator b,FwdValueIterator const e)
     {
-        llvm::Function const* const startFn = getFunctionOfInstruction(I);
+        llvm::Function const* const startFn = I->getParent()->getParent();
         slicers[startFn]->addCriterion(I,b,e,true);
 
         typedef std::set<llvm::Function const*> WorkSet;

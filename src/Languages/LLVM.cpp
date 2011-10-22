@@ -23,11 +23,6 @@ namespace llvm {
         //return V->isDereferenceablePointer();
     }
 
-    bool isConstantValue(llvm::Value const* const V)
-    {
-        return llvm::isa<llvm::Constant const>(V);
-    }
-
     bool isPointerValue(llvm::Value const* const V)
     {
         if (!V->getType()->isPointerTy())
@@ -169,18 +164,7 @@ namespace llvm {
 
     llvm::Instruction const* getFunctionEntry(llvm::Function const* const F)
     {
-        return &*F->getEntryBlock().begin();
-    }
-
-    llvm::Function const*
-    getFunctionOfInstruction(llvm::Instruction const* const I)
-    {
-        return I->getParent()->getParent();
-    }
-
-    llvm::Function* getFunctionOfInstruction(llvm::Instruction* const I)
-    {
-        return I->getParent()->getParent();
+        return &F->getEntryBlock().front();
     }
 
     bool isLocalToFunction(llvm::Value const* const V,
@@ -188,7 +172,7 @@ namespace llvm {
     {
         if (llvm::Instruction const* I =
                 llvm::dyn_cast<llvm::Instruction const>(V))
-            return getFunctionOfInstruction(I) == F;
+            return I->getParent()->getParent() == F;
         return false;
     }
 
@@ -202,58 +186,4 @@ namespace llvm {
         llvm::BasicBlock::const_iterator it(I);
         return ++it == I->getParent()->end() ? 0 : &*it;
     }
-#if 0
-    std::string toString(llvm::Value const* const V)
-    {
-        std::stringstream sstr;
-        dump(sstr,V);
-        return sstr.str();
-    }
-
-    std::ostream& dump(std::ostream& ostr, llvm::Value const* const V)
-    {
-        MONTY_TMPROF_BLOCK_LVL1();
-
-        if (llvm::Function const* const F =
-                llvm::dyn_cast<llvm::Function const>(V))
-            return dump(ostr,F);
-        //else if (llvm::CallInst const* const C =
-        //        llvm::dyn_cast<llvm::CallInst const>(V))
-        //    return dump(ostr,C->getCalledValue()());
-
-        if (llvm::Instruction const* const I =
-                llvm::dyn_cast<llvm::Instruction const>(V))
-            ostr << I->getParent()->getParent()->getNameStr() << "::";
-        else if (llvm::Argument const* const A =
-                    llvm::dyn_cast<llvm::Argument const>(V))
-            ostr << A->getParent()->getNameStr() << "::";
-        if (V->hasName())
-        {
-            ostr << V->getNameStr();
-        }
-        else
-        {
-            llvm::raw_os_ostream ros(ostr);
-            ros << '{';
-            V->print(ros);
-            if (!llvm::isa<llvm::ConstantPointerNull const>(V))
-                ros << "  ";
-            ros << '}';
-            ros.flush();
-        }
-        return ostr;
-    }
-
-    std::ostream& dump(std::ostream& ostr, llvm::Function const* const f)
-    {
-        MONTY_TMPROF_BLOCK_LVL1();
-
-        llvm::raw_os_ostream ros(ostr);
-        ros << "function ";
-        f->getType()->print(ros);
-        ros << ' ' << f->getNameStr();
-        ros.flush();
-        return ostr;
-    }
-#endif
 }

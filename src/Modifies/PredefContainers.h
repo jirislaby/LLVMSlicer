@@ -156,9 +156,6 @@ namespace llvm { namespace mods {
 	return llvm::isLocalToFunction(V,F);
       }
 
-      bool isConstantValue(const llvm::Value *const& V) const {
-	return llvm::isConstantValue(V);
-      }
       Commands const &getFunctionCommands(const llvm::Function *const& f,
 				  ProgramStructure const& PS) {
 	  return PS.find(f)->second;
