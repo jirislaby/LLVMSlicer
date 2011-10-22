@@ -1,6 +1,10 @@
 // This file is distributed under the University of Illinois Open Source
 // License. See LICENSE.TXT for details.
 
+#include "llvm/Constant.h"
+#include "llvm/Instructions.h"
+#include "llvm/Value.h"
+
 #include "LLVM.h"
 
 namespace llvm {
@@ -21,8 +25,7 @@ namespace llvm {
 
     bool isConstantValue(llvm::Value const* const V)
     {
-        return /*llvm::isa<llvm::ConstantPointerNull const>(V) || WTF? */
-               llvm::isa<llvm::Constant const>(V);
+        return llvm::isa<llvm::Constant const>(V);
     }
 
     bool isPointerValue(llvm::Value const* const V)
