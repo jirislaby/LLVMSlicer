@@ -52,8 +52,7 @@ namespace llvm { namespace callgraph {
         const_iterator end_closure() const { return callsMap.end(); }
         Container const& getContainer() const { return directCallsMap; }
         Container& getContainer() { return directCallsMap; }
-    protected:
-        void computeRemainingDictionaries();
+
     private:
         Container directCallsMap;
         Container directCalleesMap;
@@ -98,49 +97,32 @@ namespace llvm { namespace callgraph { namespace detail {
 
 namespace llvm { namespace callgraph {
 
-    typename Callgraph::range_iterator
-    getDirectCalls(
-        typename Callgraph::key_type const& key,
-        Callgraph const& CG) {
+    static inline typename Callgraph::range_iterator
+    getDirectCalls(typename Callgraph::key_type const& key,
+		    Callgraph const& CG) {
         return CG.directCalls(key);
     }
 
-    typename Callgraph::range_iterator
-    getDirectCallees(
-        typename Callgraph::key_type const& key,
-        Callgraph const& CG)
-    {
+    static inline typename Callgraph::range_iterator
+    getDirectCallees(typename Callgraph::key_type const& key,
+		    Callgraph const& CG) {
         return CG.directCallees(key);
     }
 
-    typename Callgraph::range_iterator
-    getCalls(
-        typename Callgraph::key_type const& key,
-        Callgraph const& CG)
-    {
+    static inline typename Callgraph::range_iterator
+    getCalls(typename Callgraph::key_type const& key,
+		    Callgraph const& CG) {
         return CG.calls(key);
     }
 
-    typename Callgraph::range_iterator
-    getCallees(
-        typename Callgraph::key_type const& key,
-        Callgraph const& CG)
-    {
+    static inline typename Callgraph::range_iterator
+    getCallees(typename Callgraph::key_type const& key,
+		    Callgraph const& CG) {
         return CG.callees(key);
     }
 
-    void Callgraph::computeRemainingDictionaries()
-    {
-        detail::computeTransitiveClosure(directCallsMap,callsMap);
-        for (const_iterator it = begin(); it != end(); ++it)
-            directCalleesMap.insert(value_type(it->second,it->first));
-        for (const_iterator it = callsMap.begin(); it != callsMap.end(); ++it)
-            calleesMap.insert(value_type(it->second,it->first));
-    }
-
     template<typename PointsToSets>
-    Callgraph::Callgraph(Module &M, PointsToSets const& PS)
-    {
+    Callgraph::Callgraph(Module &M, PointsToSets const& PS) {
         typedef llvm::Module::iterator FunctionsIter;
         for (FunctionsIter f = M.begin(); f != M.end(); ++f)
             if (!f->isDeclaration() && !memoryManStuff(f))
@@ -168,7 +150,11 @@ namespace llvm { namespace callgraph {
                         }
                     }
 
-        computeRemainingDictionaries();
+      detail::computeTransitiveClosure(directCallsMap, callsMap);
+      for (const_iterator it = begin(); it != end(); ++it)
+	directCalleesMap.insert(value_type(it->second,it->first));
+      for (const_iterator it = callsMap.begin(); it != callsMap.end(); ++it)
+	calleesMap.insert(value_type(it->second,it->first));
     }
 
 #if 0
