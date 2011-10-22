@@ -28,10 +28,12 @@ namespace llvm { namespace slicing { namespace detail {
 
 namespace llvm { namespace slicing {
 
-    void StaticSlicer::sliceModule()
+    bool StaticSlicer::sliceModule()
     {
-        for (Slicers::iterator s = slicers.begin(); s != slicers.end(); ++s)
-            s->second->slice();
+      bool modified = false;
+      for (Slicers::iterator s = slicers.begin(); s != slicers.end(); ++s)
+	modified |= s->second->slice();
+      return modified;
     }
 #if 0
     void StaticSlicer::dump(std::ostream& ostr) const

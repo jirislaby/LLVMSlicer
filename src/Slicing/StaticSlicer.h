@@ -36,7 +36,7 @@ namespace llvm { namespace slicing {
         void computeSlice(llvm::Instruction* const I, llvm::Value* const V)
         { computeSlice(I,&V,&V+1); }
 
-        void sliceModule();
+        bool sliceModule();
 
     private:
         template<typename PointsToSets>
