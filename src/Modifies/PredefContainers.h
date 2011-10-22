@@ -11,8 +11,6 @@
 
 namespace llvm { namespace mods {
     template<typename Language>
-    struct ProgramFunction;
-    template<typename Language>
     struct ProgramVariable;
 }}
 
@@ -23,8 +21,7 @@ namespace llvm { namespace mods {
         typedef LanguageType Language;
         typedef AlgorithmType Algorithm;
         typedef std::set<typename ProgramVariable<Language>::Type> ModSet;
-        typedef std::map<typename ProgramFunction<Language>::Type,ModSet>
-                Container;
+        typedef std::map<const llvm::Function *, ModSet> Container;
         typedef typename Container::key_type key_type;
         typedef typename Container::mapped_type mapped_type;
         typedef typename Container::value_type value_type;
@@ -50,7 +47,7 @@ namespace llvm { namespace mods {
 
     template<typename Language, typename Algorithm>
     typename ModifiesAsMap<Language,Algorithm>::ModSet const&
-    getModSet(typename ProgramFunction<Language>::Type const& f,
+    getModSet(const llvm::Function *const& f,
               ModifiesAsMap<Language,Algorithm> const& S)
     {
         static typename ModifiesAsMap<Language,Algorithm>::ModSet const empty;
@@ -147,10 +144,9 @@ namespace llvm { namespace mods {
   template<typename LanguageType>
   struct FunctionWrites {
       typedef LanguageType Language;
-      typedef typename ProgramFunction<Language>::Type Function;
       typedef WriteCommand<Language> Command;
       typedef std::vector<Command> Commands;
-      typedef std::map<Function,Commands> Container;
+      typedef std::map<const llvm::Function *,Commands> Container;
       typedef typename Container::key_type key_type;
       typedef typename Container::mapped_type mapped_type;
       typedef typename Container::value_type value_type;
@@ -176,7 +172,7 @@ namespace llvm { namespace mods {
 
   template<typename Language>
   typename FunctionWrites<Language>::Commands const&
-  getFunctionCommands(typename ProgramFunction<Language>::Type const& f,
+  getFunctionCommands(const llvm::Function *const& f,
                       FunctionWrites<Language> const& FW) {
       return FW.find(f)->second;
   }

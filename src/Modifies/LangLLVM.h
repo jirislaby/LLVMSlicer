@@ -10,11 +10,6 @@
 namespace llvm { namespace mods {
 
   template<>
-  struct ProgramFunction<LLVM> {
-      typedef llvm::Function const *Type;
-  };
-
-  template<>
   struct ProgramVariable<LLVM>
   {
       typedef llvm::Value const*
@@ -27,7 +22,7 @@ namespace llvm { namespace mods {
     LLVMProgramStructure(Module &M);
 
     bool isLocalToFunction(ProgramVariable<LLVM>::Type const& V,
-                        ProgramFunction<LLVM>::Type const& F) const
+                        const llvm::Function *const& F) const
     { return llvm::isLocalToFunction(V,F); }
 
     bool isConstantValue(ProgramVariable<LLVM>::Type const& V) const

@@ -13,9 +13,6 @@ namespace llvm { namespace mods {
     struct ProgramStructure;
 
     template<typename Language>
-    struct ProgramFunction;
-
-    template<typename Language>
     struct ProgramVariable;
 
     template<typename Language, typename Algorithm>
