@@ -10,7 +10,7 @@ namespace llvm { namespace ptr {
 
     template<typename Language, typename PointsToAlgorithm>
     bool executeRules(ProgramStructure const& P,
-        typename PointsToSets<Language,PointsToAlgorithm>::Type& S)
+        typename PointsToSets<PointsToAlgorithm>::Type& S)
     {
         bool change = false;
 
@@ -31,9 +31,9 @@ namespace llvm { namespace ptr {
 
 
     template<typename Language, typename PointsToAlgorithm>
-    typename PointsToSets<Language,PointsToAlgorithm>::Type&
+    typename PointsToSets<PointsToAlgorithm>::Type&
     fixpoint(ProgramStructure const& P,
-             typename PointsToSets<Language,PointsToAlgorithm>::Type& S)
+             typename PointsToSets<PointsToAlgorithm>::Type& S)
     {
         while (executeRules<Language,PointsToAlgorithm>(P,S))
             ;

@@ -12,10 +12,9 @@
 
 namespace llvm { namespace ptr {
 
-  template<typename LanguageType, typename PointsToAlgorithmType>
+  template<typename PointsToAlgorithmType>
   class PointsToSetsAsMap {
   public:
-    typedef LanguageType Language;
     typedef PointsToAlgorithmType PointsToAlgorithm;
     typedef const llvm::Value *MemoryLocation;
     typedef std::set<MemoryLocation> PointsToSet;
@@ -44,10 +43,10 @@ namespace llvm { namespace ptr {
     Container C;
   };
 
-  template<typename Language, typename PointsToAlgorithm>
-  typename PointsToSetsAsMap<Language,PointsToAlgorithm>::PointsToSet const&
+  template<typename PointsToAlgorithm>
+  typename PointsToSetsAsMap<PointsToAlgorithm>::PointsToSet const&
   getPointsToSet(const llvm::Value *const& memLoc,
-      PointsToSetsAsMap<Language,PointsToAlgorithm> const& S)
+      PointsToSetsAsMap<PointsToAlgorithm> const& S)
   {
       //static typename PointsToSets<Language,PointsToAlgorithm>
       //    ::Type::PointsToSet const emptySet;

@@ -18,9 +18,9 @@ namespace llvm { namespace ptr {
 namespace llvm { namespace ptr {
 
   template<typename Language>
-  typename PointsToSets<Language,ANDERSEN>::Type&
+  typename PointsToSets<ANDERSEN>::Type&
   computePointsToSets(ProgramStructure const& P,
-                      typename PointsToSets<Language,ANDERSEN>::Type& S,
+                      typename PointsToSets<ANDERSEN>::Type& S,
                       ANDERSEN) {
       return fixpoint<Language,ANDERSEN>(P,S);
   }
@@ -39,13 +39,13 @@ namespace llvm { namespace ptr {
     {
         struct local
         {
-            static bool function(typename PointsToSets<Language,ANDERSEN>
+            static bool function(typename PointsToSets<ANDERSEN>
                                     ::Type& S,
                                  const llvm::Value *lval,
                                  const llvm::Value *rval
                                  )
             {
-                typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
+                typedef typename PointsToSets<ANDERSEN>::Type::PointsToSet
                         PointsToSet;
                 PointsToSet& L = S[lval];
                 PointsToSet const& R = S[rval];
@@ -72,13 +72,12 @@ namespace llvm { namespace ptr {
     {
         struct local
         {
-            static bool function(typename PointsToSets<Language,ANDERSEN>
-                                    ::Type& S,
+            static bool function(typename PointsToSets<ANDERSEN>::Type& S,
                                  const llvm::Value *lval,
                                  const llvm::Value *rval
                                  )
             {
-                typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
+                typedef typename PointsToSets<ANDERSEN>::Type::PointsToSet
                         PointsToSet;
                 PointsToSet& L = S[lval];
                 std::size_t const old_size = L.size();
@@ -103,13 +102,12 @@ namespace llvm { namespace ptr {
     {
         struct local
         {
-            static bool function(typename PointsToSets<Language,ANDERSEN>
-                                    ::Type& S,
+            static bool function(typename PointsToSets<ANDERSEN>::Type& S,
                                  const llvm::Value *lval,
                                  const llvm::Value *rval
                                  )
             {
-                typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
+                typedef typename PointsToSets<ANDERSEN>::Type::PointsToSet
                         PointsToSet;
                 PointsToSet& L = S[lval];
                 PointsToSet& R = S[rval];
@@ -138,13 +136,13 @@ namespace llvm { namespace ptr {
     {
         struct local
         {
-            static bool function(typename PointsToSets<Language,ANDERSEN>
+            static bool function(typename PointsToSets<ANDERSEN>
                                     ::Type& S,
                                  const llvm::Value *lval,
                                  const llvm::Value *rval
                                  )
             {
-                typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
+                typedef typename PointsToSets<ANDERSEN>::Type::PointsToSet
                         PointsToSet;
                 PointsToSet& L = S[lval];
                 PointsToSet& R = S[rval];
@@ -178,13 +176,13 @@ namespace llvm { namespace ptr {
     {
         struct local
         {
-            static bool function(typename PointsToSets<Language,ANDERSEN>
+            static bool function(typename PointsToSets<ANDERSEN>
                                     ::Type& S,
                                  const llvm::Value *lval,
                                  const llvm::Value *rval
                                  )
             {
-                typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
+                typedef typename PointsToSets<ANDERSEN>::Type::PointsToSet
                         PointsToSet;
                 PointsToSet& L = S[lval];
                 bool change = false;
@@ -215,13 +213,12 @@ namespace llvm { namespace ptr {
                         > const& E,
                     ANDERSEN) {
         struct local {
-            static bool function(typename PointsToSets<Language,ANDERSEN>
-                                    ::Type& S,
+            static bool function(typename PointsToSets<ANDERSEN>::Type& S,
                                  const llvm::Value *lval,
                                  const llvm::Value *rval
                                  )
             {
-                typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
+                typedef typename PointsToSets<ANDERSEN>::Type::PointsToSet
                         PointsToSet;
                 PointsToSet& L = S[lval];
                 bool change = false;
@@ -250,13 +247,12 @@ namespace llvm { namespace ptr {
     {
         struct local
         {
-            static bool function(typename PointsToSets<Language,ANDERSEN>
-                                    ::Type& S,
+            static bool function(typename PointsToSets<ANDERSEN>::Type& S,
                                  const llvm::Value *lval,
                                  const llvm::Value *rval
                                  )
             {
-                typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
+                typedef typename PointsToSets<ANDERSEN>::Type::PointsToSet
                         PointsToSet;
                 PointsToSet& L = S[lval];
                 std::size_t const old_size = L.size();
@@ -281,13 +277,12 @@ namespace llvm { namespace ptr {
     {
         struct local
         {
-            static bool function(typename PointsToSets<Language,ANDERSEN>
-                                    ::Type& S,
+            static bool function(typename PointsToSets<ANDERSEN>::Type& S,
                                  const llvm::Value *lval,
                                  const llvm::Value *rval
                                  )
             {
-                typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
+                typedef typename PointsToSets<ANDERSEN>::Type::PointsToSet
                         PointsToSet;
                 PointsToSet& L = S[lval];
                 std::size_t const old_size = L.size();
@@ -313,13 +308,12 @@ namespace llvm { namespace ptr {
     {
         struct local
         {
-            static bool function(typename PointsToSets<Language,ANDERSEN>
-                                    ::Type& S,
+            static bool function(typename PointsToSets<ANDERSEN>::Type& S,
                                  const llvm::Value *lval,
                                  const llvm::Value *rval
                                  )
             {
-                typedef typename PointsToSets<Language,ANDERSEN>::Type::PointsToSet
+                typedef typename PointsToSets<ANDERSEN>::Type::PointsToSet
                         PointsToSet;
                 PointsToSet& L = S[lval];
                 bool change = false;

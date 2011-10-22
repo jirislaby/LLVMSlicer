@@ -15,9 +15,9 @@
 
 namespace llvm { namespace ptr {
 
-  template<typename Language, typename PointsToAlgorithm>
+  template<typename PointsToAlgorithm>
   struct PointsToSets {
-    typedef PointsToSetsAsMap<Language,PointsToAlgorithm> Type;
+    typedef PointsToSetsAsMap<PointsToAlgorithm> Type;
   };
 
   template<typename MemoryLocationType, typename PointsToSetsType>
@@ -31,7 +31,7 @@ namespace llvm { namespace ptr {
   PointsToSetsType&
   computePointsToSets(ProgramStructureType const& P,PointsToSetsType& S)
   {
-      return computePointsToSets<typename PointsToSetsType::Language>
+      return computePointsToSets<LLVM>
                   (P,S,typename PointsToSetsType::PointsToAlgorithm());
   }
 
@@ -44,12 +44,11 @@ namespace llvm { namespace ptr {
 
   template<typename Language, typename PointsToAlgorithm>
   struct RuleFunction {
-      typedef std::tr1::function<bool(typename PointsToSets<Language,
-                                          PointsToAlgorithm>::Type&)>
+      typedef std::tr1::function<bool(typename PointsToSets<PointsToAlgorithm>::Type&)>
               Type;
 
       static inline bool
-      identity(typename PointsToSets<Language,PointsToAlgorithm>::Type)
+      identity(typename PointsToSets<PointsToAlgorithm>::Type)
       { return false; }
   };
 
