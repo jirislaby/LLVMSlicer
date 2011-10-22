@@ -696,7 +696,7 @@ bool Slicer::runOnFunction(Function &F, const PointsToSets &PS,
 bool Slicer::runOnModule(Module &M) {
   ptr::PointsToSets<ptr::ANDERSEN>::Type PS;
   ptr::ProgramStructure P(M);
-  computePointsToSets(P,PS);
+  computePointsToSets(P, PS);
 
   callgraph::Callgraph CG(M, PS);
 

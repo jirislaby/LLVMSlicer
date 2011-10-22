@@ -17,19 +17,17 @@ namespace llvm { namespace ptr {
 
 namespace llvm { namespace ptr {
 
-  template<typename Language>
-  typename PointsToSets<ANDERSEN>::Type&
-  computePointsToSets(ProgramStructure const& P,
+static inline typename PointsToSets<ANDERSEN>::Type&
+computePointsToSets(ProgramStructure const& P,
                       typename PointsToSets<ANDERSEN>::Type& S,
                       ANDERSEN) {
-      return fixpoint<ANDERSEN>(P,S);
-  }
+	return fixpoint<ANDERSEN>(P,S);
+}
 
 }}
 
 namespace llvm { namespace ptr {
 
-  template<typename Language>
     typename RuleFunction<ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         VARIABLE<const llvm::Value *>,
@@ -61,7 +59,6 @@ namespace llvm { namespace ptr {
                     E.getArgument2().getArgument());
     }
 
-  template<typename Language>
     typename RuleFunction<ANDERSEN>::Type getRuleFunction(
            ASSIGNMENT<
                         VARIABLE<const llvm::Value *>,
@@ -92,7 +89,6 @@ namespace llvm { namespace ptr {
                     E.getArgument2().getArgument().getArgument());
     }
 
-  template<typename Language>
     typename RuleFunction<ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         VARIABLE<const llvm::Value *>,
@@ -126,7 +122,6 @@ namespace llvm { namespace ptr {
                     E.getArgument2().getArgument().getArgument());
     }
 
-  template<typename Language>
     typename RuleFunction<ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         DEREFERENCE< VARIABLE<const llvm::Value *> >,
@@ -164,7 +159,6 @@ namespace llvm { namespace ptr {
                     E.getArgument2().getArgument());
     }
 
-    template<typename Language>
     typename RuleFunction<ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         DEREFERENCE<
@@ -203,7 +197,6 @@ namespace llvm { namespace ptr {
                     E.getArgument2().getArgument().getArgument());
     }
 
-    template<typename Language>
     typename RuleFunction<ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         DEREFERENCE<
@@ -223,7 +216,7 @@ namespace llvm { namespace ptr {
                 PointsToSet& L = S[lval];
                 bool change = false;
                 for (typename PointsToSet::const_iterator i = L.begin(); i!=L.end(); ++i)
-                    if (getRuleFunction<Language>(
+                    if (getRuleFunction(
                             (ruleVar(*i) = *ruleVar(rval)).getSort(),ANDERSEN())
                             (S))
                         change = true;
@@ -237,7 +230,6 @@ namespace llvm { namespace ptr {
                     E.getArgument2().getArgument().getArgument());
     }
 
-    template<typename Language>
     typename RuleFunction<ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         VARIABLE<const llvm::Value *>,
@@ -267,7 +259,6 @@ namespace llvm { namespace ptr {
                     E.getArgument2().getArgument());
     }
 
-    template<typename Language>
     typename RuleFunction<ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         VARIABLE<const llvm::Value *>,
@@ -297,7 +288,6 @@ namespace llvm { namespace ptr {
                     E.getArgument2().getArgument());
     }
 
-    template<typename Language>
     typename RuleFunction<ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         DEREFERENCE<

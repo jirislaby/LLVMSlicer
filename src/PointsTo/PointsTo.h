@@ -31,8 +31,8 @@ namespace llvm { namespace ptr {
   PointsToSetsType&
   computePointsToSets(ProgramStructureType const& P,PointsToSetsType& S)
   {
-      return computePointsToSets<LLVM>
-                  (P,S,typename PointsToSetsType::PointsToAlgorithm());
+      return computePointsToSets(P, S,
+		      typename PointsToSetsType::PointsToAlgorithm());
   }
 
   template<typename RawProgram, typename ProgramStructureType>
