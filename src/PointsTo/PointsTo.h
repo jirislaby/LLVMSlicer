@@ -23,8 +23,7 @@ namespace llvm { namespace ptr {
   template<typename MemoryLocationType, typename PointsToSetsType>
   typename PointsToSetsType::PointsToSet const&
   getPointsToSet(MemoryLocationType memLoc, PointsToSetsType const& S) {
-    return getPointsToSet<typename PointsToSetsType::Language>
-        (memLoc, S, typename PointsToSetsType::PointsToAlgorithm());
+    return getPointsToSet(memLoc, S, typename PointsToSetsType::PointsToAlgorithm());
   }
 
   template<typename ProgramStructureType, typename PointsToSetsType>
