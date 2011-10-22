@@ -7,9 +7,9 @@
 
 #include "RuleExpressions.h"
 
-using namespace llvm::ptr;
+namespace llvm { namespace ptr { namespace detail {
 
-void llvm::ptr::detail::buildCallMaps(llvm::Module const& M, FunctionsMap& F,
+void buildCallMaps(llvm::Module const& M, FunctionsMap& F,
 		CallsMap& C) {
     typedef llvm::Module::const_iterator FunctionsIter;
     for (FunctionsIter f = M.begin(); f != M.end(); ++f)
@@ -57,3 +57,5 @@ RuleCode argPassRuleCode(llvm::Value const* const l,
 	else
 	    return ruleCode(ruleVar(l) = ruleVar(r));
 }
+
+}}}
