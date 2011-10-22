@@ -4,12 +4,11 @@
 #ifndef MODIFIES_MODIFIES_H
 #define MODIFIES_MODIFIES_H
 
-#include "../Languages.h"
 #include "PredefContainers.h"
 
 namespace llvm { namespace mods {
 
-    template<typename Language, typename Algorithm>
+    template<typename Algorithm>
     struct Modifies {
         typedef ModifiesAsMap<Algorithm> Type;
     };
@@ -19,7 +18,7 @@ namespace llvm { namespace mods {
     void computeModifies(ProgramStructureType const& P, Callgraph const& CG,
                          PointsToSets const& PS, ModifiesType& M)
     {
-        computeModifies<LLVM>(P, CG, PS, M, typename ModifiesType::Algorithm());
+        computeModifies(P, CG, PS, M, typename ModifiesType::Algorithm());
     }
 
 }}

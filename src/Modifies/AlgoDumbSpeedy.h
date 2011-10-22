@@ -19,11 +19,11 @@ namespace llvm { namespace mods {
 
 namespace llvm { namespace mods {
 
-  template<typename Language, typename PointsToSets>
+  template<typename PointsToSets>
   void computeModifies(ProgramStructure const& P,
         typename llvm::callgraph::Callgraph const& CG,
         PointsToSets const& PS,
-        typename Modifies<Language,DUMB_SPEEDY>::Type& MOD, DUMB_SPEEDY) {
+        typename Modifies<DUMB_SPEEDY>::Type& MOD, DUMB_SPEEDY) {
 
     for (typename ProgramStructure::const_iterator f = P.begin(); f != P.end(); ++f)
       for (typename ProgramStructure::mapped_type::const_iterator c = f->second.begin();
@@ -43,9 +43,9 @@ namespace llvm { namespace mods {
     typedef typename llvm::callgraph::Callgraph Callgraph;
     for (typename Callgraph::const_iterator i = CG.begin_closure();
           i != CG.end_closure(); ++i) {
-      typename Modifies<Language,DUMB_SPEEDY>::Type::mapped_type const&
+      typename Modifies<DUMB_SPEEDY>::Type::mapped_type const&
           src = MOD[i->second];
-      typedef typename Modifies<Language,DUMB_SPEEDY>::Type::mapped_type dst_t;
+      typedef typename Modifies<DUMB_SPEEDY>::Type::mapped_type dst_t;
       dst_t &dst = MOD[i->first];
 
       std::copy(src.begin(), src.end(), std::inserter(dst, dst.end()));
