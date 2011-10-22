@@ -30,7 +30,7 @@ namespace llvm { namespace ptr {
 
 
 
-    template<typename Language, typename PointsToAlgorithm>
+    template<typename PointsToAlgorithm>
     typename PointsToSets<PointsToAlgorithm>::Type&
     fixpoint(ProgramStructure const& P,
              typename PointsToSets<PointsToAlgorithm>::Type& S)

@@ -22,7 +22,7 @@ namespace llvm { namespace ptr {
   computePointsToSets(ProgramStructure const& P,
                       typename PointsToSets<ANDERSEN>::Type& S,
                       ANDERSEN) {
-      return fixpoint<Language,ANDERSEN>(P,S);
+      return fixpoint<ANDERSEN>(P,S);
   }
 
 }}
