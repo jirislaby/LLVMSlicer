@@ -30,7 +30,7 @@ namespace llvm { namespace ptr {
 namespace llvm { namespace ptr {
 
   template<typename Language>
-    typename RuleFunction<Language,ANDERSEN>::Type
+    typename RuleFunction<ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         VARIABLE<const llvm::Value *>,
                         VARIABLE<const llvm::Value *>
@@ -62,7 +62,7 @@ namespace llvm { namespace ptr {
     }
 
   template<typename Language>
-    typename RuleFunction<Language,ANDERSEN>::Type getRuleFunction(
+    typename RuleFunction<ANDERSEN>::Type getRuleFunction(
            ASSIGNMENT<
                         VARIABLE<const llvm::Value *>,
                         REFERENCE<
@@ -93,7 +93,7 @@ namespace llvm { namespace ptr {
     }
 
   template<typename Language>
-    typename RuleFunction<Language,ANDERSEN>::Type
+    typename RuleFunction<ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         VARIABLE<const llvm::Value *>,
                         DEREFERENCE< VARIABLE<const llvm::Value *> >
@@ -127,7 +127,7 @@ namespace llvm { namespace ptr {
     }
 
   template<typename Language>
-    typename RuleFunction<Language,ANDERSEN>::Type
+    typename RuleFunction<ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         DEREFERENCE< VARIABLE<const llvm::Value *> >,
                         VARIABLE<const llvm::Value *>
@@ -165,7 +165,7 @@ namespace llvm { namespace ptr {
     }
 
     template<typename Language>
-    typename RuleFunction<Language,ANDERSEN>::Type
+    typename RuleFunction<ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         DEREFERENCE<
                             VARIABLE<const llvm::Value *> >,
@@ -204,7 +204,7 @@ namespace llvm { namespace ptr {
     }
 
     template<typename Language>
-    typename RuleFunction<Language,ANDERSEN>::Type
+    typename RuleFunction<ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         DEREFERENCE<
                             VARIABLE<const llvm::Value *> >,
@@ -238,7 +238,7 @@ namespace llvm { namespace ptr {
     }
 
     template<typename Language>
-    typename RuleFunction<Language,ANDERSEN>::Type
+    typename RuleFunction<ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         VARIABLE<const llvm::Value *>,
                         ALLOC<const llvm::Value *>
@@ -268,7 +268,7 @@ namespace llvm { namespace ptr {
     }
 
     template<typename Language>
-    typename RuleFunction<Language,ANDERSEN>::Type
+    typename RuleFunction<ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         VARIABLE<const llvm::Value *>,
                         NULLPTR<const llvm::Value *>
@@ -298,7 +298,7 @@ namespace llvm { namespace ptr {
     }
 
     template<typename Language>
-    typename RuleFunction<Language,ANDERSEN>::Type
+    typename RuleFunction<ANDERSEN>::Type
     getRuleFunction(ASSIGNMENT<
                         DEREFERENCE<
                             VARIABLE<const llvm::Value *> >,

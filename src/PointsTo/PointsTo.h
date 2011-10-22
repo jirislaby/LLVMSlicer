@@ -42,7 +42,7 @@ namespace llvm { namespace ptr {
               typename ProgramStructureType::AnalysisProperties());
   }
 
-  template<typename Language, typename PointsToAlgorithm>
+  template<typename PointsToAlgorithm>
   struct RuleFunction {
       typedef std::tr1::function<bool(typename PointsToSets<PointsToAlgorithm>::Type&)>
               Type;
@@ -52,26 +52,26 @@ namespace llvm { namespace ptr {
       { return false; }
   };
 
-  template<typename Language, typename ExprSort, typename PointsToAlgorithm>
-  typename RuleFunction<Language,PointsToAlgorithm>::Type
+  template<typename ExprSort, typename PointsToAlgorithm>
+  typename RuleFunction<PointsToAlgorithm>::Type
   getRuleFunction(ExprSort const& E, PointsToAlgorithm)
   {
-      return typename RuleFunction<Language,PointsToAlgorithm>::Type(
-                  &RuleFunction<Language,PointsToAlgorithm>::identity);
+      return typename RuleFunction<PointsToAlgorithm>::Type(
+                  &RuleFunction<PointsToAlgorithm>::identity);
   }
 
   template<typename Language, typename PointsToAlgorithm>
   class Rules {
   public:
       typedef std::vector<
-                  typename RuleFunction<Language,PointsToAlgorithm>::Type >
+                  typename RuleFunction<PointsToAlgorithm>::Type >
               RuleFunctions;
       typedef typename RuleFunctions::const_iterator const_iterator;
 
       template<typename Sort>
       void insert(RuleExpression<Sort> const& E)
       {
-          rules.push_back( getRuleFunction<Language>(E.getSort(),
+          rules.push_back( getRuleFunction(E.getSort(),
                                                      PointsToAlgorithm()) );
       }
 
