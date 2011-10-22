@@ -9,10 +9,8 @@
 #include <vector>
 #include <utility>
 
-namespace llvm { namespace mods {
-    template<typename Language>
-    struct ProgramVariable;
-}}
+#include "llvm/Function.h"
+#include "llvm/Value.h"
 
 namespace llvm { namespace mods {
 
@@ -20,7 +18,7 @@ namespace llvm { namespace mods {
     struct ModifiesAsMap {
         typedef LanguageType Language;
         typedef AlgorithmType Algorithm;
-        typedef std::set<typename ProgramVariable<Language>::Type> ModSet;
+        typedef std::set<const llvm::Value *> ModSet;
         typedef std::map<const llvm::Function *, ModSet> Container;
         typedef typename Container::key_type key_type;
         typedef typename Container::mapped_type mapped_type;
@@ -94,7 +92,7 @@ namespace llvm { namespace mods {
     template<typename Language>
     struct WriteCommand
     {
-        typedef typename ProgramVariable<Language>::Type Variable;
+        typedef const llvm::Value *Variable;
 
         WriteCommand()
             : type(CMD_UNKNOWN)

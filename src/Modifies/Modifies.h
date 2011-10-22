@@ -12,9 +12,6 @@ namespace llvm { namespace mods {
     template<typename Language>
     struct ProgramStructure;
 
-    template<typename Language>
-    struct ProgramVariable;
-
     template<typename Language, typename Algorithm>
     struct Modifies {
         typedef ModifiesAsMap<Language,Algorithm> Type;
