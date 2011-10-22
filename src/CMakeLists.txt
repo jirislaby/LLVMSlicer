@@ -6,6 +6,7 @@ add_llvm_loadable_module(LLVMSlicer
 	Slicing/StaticSlicer.cpp
 	Languages/LLVM.cpp
 	Modifies/PredefContainers.cpp
+	PointsTo/AlgoAndersen.cpp
 	PointsTo/PredefContainers.cpp
 	PointsTo/RuleExpressions.cpp
 )
