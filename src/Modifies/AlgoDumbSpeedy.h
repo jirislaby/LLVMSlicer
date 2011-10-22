@@ -20,14 +20,13 @@ namespace llvm { namespace mods {
 namespace llvm { namespace mods {
 
   template<typename Language, typename PointsToSets>
-  void computeModifies(typename ProgramStructure<Language>::Type const& P,
+  void computeModifies(ProgramStructure const& P,
         typename llvm::callgraph::Callgraph const& CG,
         PointsToSets const& PS,
         typename Modifies<Language,DUMB_SPEEDY>::Type& MOD, DUMB_SPEEDY) {
-    typedef typename ProgramStructure<Language>::Type Program;
 
-    for (typename Program::const_iterator f = P.begin(); f != P.end(); ++f)
-      for (typename Program::mapped_type::const_iterator c = f->second.begin();
+    for (typename ProgramStructure::const_iterator f = P.begin(); f != P.end(); ++f)
+      for (typename ProgramStructure::mapped_type::const_iterator c = f->second.begin();
            c != f->second.end(); ++c)
         if (c->getType() == CMD_VAR) {
           if (!P.isLocalToFunction(c->getVar(),f->first))
@@ -55,7 +54,7 @@ namespace llvm { namespace mods {
       using std::tr1::placeholders::_1;
       using std::tr1::cref;
       dst.erase(std::remove_if(dst.begin(), dst.end(),
-                bind(&Program::isLocalToFunction, cref(P), _1, i->first)),
+                bind(&ProgramStructure::isLocalToFunction, cref(P), _1, i->first)),
                 dst.end());
 #endif
       for (typename dst_t::iterator I = dst.begin(), E = dst.end(); I != E; ) {

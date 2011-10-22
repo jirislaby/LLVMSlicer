@@ -30,7 +30,6 @@
 
 #include "PostDominanceFrontier.h"
 #include "../Callgraph/Callgraph.h"
-#include "../Modifies/LangLLVM.h"
 #include "../Modifies/Modifies.h"
 #include "../Modifies/AlgoDumbSpeedy.h"
 #include "../PointsTo/AlgoAndersen.h"
@@ -700,7 +699,7 @@ bool Slicer::runOnModule(Module &M) {
   callgraph::Callgraph CG(M, PS);
 
   mods::Modifies<LLVM, mods::DUMB_SPEEDY>::Type MOD;
-  mods::ProgramStructure<LLVM>::Type P1(M);
+  mods::ProgramStructure P1(M);
   computeModifies(P1, CG, PS, MOD);
 
   bool modified = false;

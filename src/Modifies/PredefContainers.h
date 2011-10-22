@@ -12,6 +12,8 @@
 #include "llvm/Function.h"
 #include "llvm/Value.h"
 
+#include "../Languages/LLVM.h"
+
 namespace llvm { namespace mods {
 
     template<typename LanguageType, typename AlgorithmType>
@@ -89,9 +91,7 @@ namespace llvm { namespace mods {
         CMD_DREF_VAR
     };
 
-    template<typename Language>
-    struct WriteCommand
-    {
+    struct WriteCommand {
         typedef const llvm::Value *Variable;
 
         WriteCommand()
@@ -139,10 +139,8 @@ namespace llvm { namespace mods {
 
 namespace llvm { namespace mods {
 
-  template<typename LanguageType>
-  struct FunctionWrites {
-      typedef LanguageType Language;
-      typedef WriteCommand<Language> Command;
+  struct ProgramStructure {
+      typedef WriteCommand Command;
       typedef std::vector<Command> Commands;
       typedef std::map<const llvm::Function *,Commands> Container;
       typedef typename Container::key_type key_type;
@@ -152,7 +150,20 @@ namespace llvm { namespace mods {
       typedef typename Container::const_iterator const_iterator;
       typedef std::pair<iterator, bool> insert_retval;
 
-      virtual ~FunctionWrites() {}
+      ProgramStructure(Module &M);
+
+      bool isLocalToFunction(const llvm::Value *const& V,
+			  const llvm::Function *const& F) const {
+	return llvm::isLocalToFunction(V,F);
+      }
+
+      bool isConstantValue(const llvm::Value *const& V) const {
+	return llvm::isConstantValue(V);
+      }
+      Commands const &getFunctionCommands(const llvm::Function *const& f,
+				  ProgramStructure const& PS) {
+	  return PS.find(f)->second;
+      }
 
       insert_retval insert(value_type const& val) { return C.insert(val); }
       mapped_type& operator[](key_type const& key) { return C[key]; }
@@ -168,12 +179,6 @@ namespace llvm { namespace mods {
       Container C;
   };
 
-  template<typename Language>
-  typename FunctionWrites<Language>::Commands const&
-  getFunctionCommands(const llvm::Function *const& f,
-                      FunctionWrites<Language> const& FW) {
-      return FW.find(f)->second;
-  }
 #if 0
   template<typename Language, typename AnalysisProperties,
            typename OutuptStream>
