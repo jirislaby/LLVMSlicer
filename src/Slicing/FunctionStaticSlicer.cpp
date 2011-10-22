@@ -171,11 +171,11 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
 }
 
 namespace {
-  class Slicer : public ModulePass {
+  class FunctionSlicer : public ModulePass {
     public:
       static char ID;
 
-      Slicer() : ModulePass(ID) {}
+      FunctionSlicer() : ModulePass(ID) {}
 
       virtual bool runOnModule(Module &M);
 
@@ -191,8 +191,8 @@ namespace {
   };
 }
 
-static RegisterPass<Slicer> X("slice", "Slices the code");
-char Slicer::ID;
+static RegisterPass<FunctionSlicer> X("slice", "Slices the code");
+char FunctionSlicer::ID;
 
 FunctionStaticSlicer::~FunctionStaticSlicer() {
   for (InsInfoMap::const_iterator I = insInfoMap.begin(), E = insInfoMap.end();
@@ -536,7 +536,7 @@ bool FunctionStaticSlicer::slice() {
   return removed;
 }
 
-void Slicer::findInitialCriterion(Function &F, FunctionStaticSlicer &ss) {
+void FunctionSlicer::findInitialCriterion(Function &F, FunctionStaticSlicer &ss) {
 #ifdef DEBUG_INITCRIT
   errs() << __func__ << " ============ BEGIN\n";
 #endif
@@ -664,7 +664,7 @@ static void prepareFun(Function &F) {
 }
 
 template<typename PointsToSets, typename ModifiesSets>
-bool Slicer::runOnFunction(Function &F, const PointsToSets &PS,
+bool FunctionSlicer::runOnFunction(Function &F, const PointsToSets &PS,
                            const ModifiesSets &MOD) {
 /*  errs() << "AT: " << F.getName() << '\n';
   if (!F.getName().equals("tty_init"))
@@ -691,7 +691,7 @@ bool Slicer::runOnFunction(Function &F, const PointsToSets &PS,
   return sliced;
 }
 
-bool Slicer::runOnModule(Module &M) {
+bool FunctionSlicer::runOnModule(Module &M) {
   ptr::PointsToSets<ptr::ANDERSEN>::Type PS;
   ptr::ProgramStructure P(M);
   computePointsToSets(P, PS);
