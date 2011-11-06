@@ -66,7 +66,8 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
     }
 
     const Value *r = SI->getValueOperand();
-    REF.insert(l);
+    if (!r->getType()->isIntegerTy())
+      REF.insert(l);
     if (!hasExtraReference(r) && !llvm::isa<llvm::Constant>(r))
       REF.insert(r);
   } else if (const GetElementPtrInst *gep =
