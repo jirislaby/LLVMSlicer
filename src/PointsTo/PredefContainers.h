@@ -154,9 +154,9 @@ namespace llvm { namespace ptr {
     {
         typedef RuleCode Command;
         typedef std::vector<Command> Container;
-        typedef typename Container::value_type value_type;
-        typedef typename Container::iterator iterator;
-        typedef typename Container::const_iterator const_iterator;
+        typedef Container::value_type value_type;
+        typedef Container::iterator iterator;
+        typedef Container::const_iterator const_iterator;
 
 	ProgramStructure(Module &M);
 

@@ -15,19 +15,19 @@ namespace llvm { namespace ptr {
 
 namespace llvm { namespace ptr {
 
-  typename PointsToSets<ANDERSEN>::Type&
+  PointsToSets<ANDERSEN>::Type&
   computePointsToSets(ProgramStructure const& P,
-			typename PointsToSets<ANDERSEN>::Type& S,
+			PointsToSets<ANDERSEN>::Type& S,
 			ANDERSEN);
 
-  typename RuleFunction<ANDERSEN>::Type
+  RuleFunction<ANDERSEN>::Type
   getRuleFunction(ASSIGNMENT<
 		      VARIABLE<const llvm::Value *>,
 		      VARIABLE<const llvm::Value *>
 		      > const& E,
 		  ANDERSEN);
 
-  typename RuleFunction<ANDERSEN>::Type getRuleFunction(
+  RuleFunction<ANDERSEN>::Type getRuleFunction(
 	 ASSIGNMENT<
 		      VARIABLE<const llvm::Value *>,
 		      REFERENCE<
@@ -35,21 +35,21 @@ namespace llvm { namespace ptr {
 		      > const& E,
 		  ANDERSEN);
 
-  typename RuleFunction<ANDERSEN>::Type
+  RuleFunction<ANDERSEN>::Type
   getRuleFunction(ASSIGNMENT<
 		      VARIABLE<const llvm::Value *>,
 		      DEREFERENCE< VARIABLE<const llvm::Value *> >
 		      > const& E,
 		  ANDERSEN);
 
-  typename RuleFunction<ANDERSEN>::Type
+  RuleFunction<ANDERSEN>::Type
   getRuleFunction(ASSIGNMENT<
 		      DEREFERENCE< VARIABLE<const llvm::Value *> >,
 		      VARIABLE<const llvm::Value *>
 		      > const& E,
 		  ANDERSEN);
 
-  typename RuleFunction<ANDERSEN>::Type
+  RuleFunction<ANDERSEN>::Type
   getRuleFunction(ASSIGNMENT<
 		      DEREFERENCE<
 			  VARIABLE<const llvm::Value *> >,
@@ -58,7 +58,7 @@ namespace llvm { namespace ptr {
 		      > const& E,
 		  ANDERSEN);
 
-  typename RuleFunction<ANDERSEN>::Type
+  RuleFunction<ANDERSEN>::Type
   getRuleFunction(ASSIGNMENT<
 		      DEREFERENCE<
 			  VARIABLE<const llvm::Value *> >,
@@ -67,21 +67,21 @@ namespace llvm { namespace ptr {
 		      > const& E,
 		  ANDERSEN);
 
-  typename RuleFunction<ANDERSEN>::Type
+  RuleFunction<ANDERSEN>::Type
   getRuleFunction(ASSIGNMENT<
 		      VARIABLE<const llvm::Value *>,
 		      ALLOC<const llvm::Value *>
 		      > const& E,
 		  ANDERSEN);
 
-  typename RuleFunction<ANDERSEN>::Type
+  RuleFunction<ANDERSEN>::Type
   getRuleFunction(ASSIGNMENT<
 		      VARIABLE<const llvm::Value *>,
 		      NULLPTR<const llvm::Value *>
 		      > const& E,
 		  ANDERSEN);
 
-  typename RuleFunction<ANDERSEN>::Type
+  RuleFunction<ANDERSEN>::Type
   getRuleFunction(ASSIGNMENT<
 		      DEREFERENCE<
 			  VARIABLE<const llvm::Value *> >,

@@ -19,11 +19,11 @@ namespace llvm { namespace callgraph {
     struct Callgraph {
         typedef std::multimap<const llvm::Function *, const llvm::Function *>
 		Container;
-        typedef typename Container::key_type key_type;
-        typedef typename Container::mapped_type mapped_type;
-        typedef typename Container::value_type value_type;
-        typedef typename Container::iterator iterator;
-        typedef typename Container::const_iterator const_iterator;
+        typedef Container::key_type key_type;
+        typedef Container::mapped_type mapped_type;
+        typedef Container::value_type value_type;
+        typedef Container::iterator iterator;
+        typedef Container::const_iterator const_iterator;
         typedef std::pair<const_iterator,const_iterator> range_iterator;
 
         template<typename PointsToSets>
@@ -97,27 +97,23 @@ namespace llvm { namespace callgraph { namespace detail {
 
 namespace llvm { namespace callgraph {
 
-    static inline typename Callgraph::range_iterator
-    getDirectCalls(typename Callgraph::key_type const& key,
-		    Callgraph const& CG) {
+    static inline Callgraph::range_iterator
+    getDirectCalls(Callgraph::key_type const& key, Callgraph const& CG) {
         return CG.directCalls(key);
     }
 
-    static inline typename Callgraph::range_iterator
-    getDirectCallees(typename Callgraph::key_type const& key,
-		    Callgraph const& CG) {
+    static inline Callgraph::range_iterator
+    getDirectCallees(Callgraph::key_type const& key, Callgraph const& CG) {
         return CG.directCallees(key);
     }
 
-    static inline typename Callgraph::range_iterator
-    getCalls(typename Callgraph::key_type const& key,
-		    Callgraph const& CG) {
+    static inline Callgraph::range_iterator
+    getCalls(Callgraph::key_type const& key, Callgraph const& CG) {
         return CG.calls(key);
     }
 
-    static inline typename Callgraph::range_iterator
-    getCallees(typename Callgraph::key_type const& key,
-		    Callgraph const& CG) {
+    static inline Callgraph::range_iterator
+    getCallees(Callgraph::key_type const& key, Callgraph const& CG) {
         return CG.callees(key);
     }
 

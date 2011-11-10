@@ -142,11 +142,11 @@ namespace llvm { namespace mods {
       typedef WriteCommand Command;
       typedef std::vector<Command> Commands;
       typedef std::map<const llvm::Function *,Commands> Container;
-      typedef typename Container::key_type key_type;
-      typedef typename Container::mapped_type mapped_type;
-      typedef typename Container::value_type value_type;
-      typedef typename Container::iterator iterator;
-      typedef typename Container::const_iterator const_iterator;
+      typedef Container::key_type key_type;
+      typedef Container::mapped_type mapped_type;
+      typedef Container::value_type value_type;
+      typedef Container::iterator iterator;
+      typedef Container::const_iterator const_iterator;
       typedef std::pair<iterator, bool> insert_retval;
 
       ProgramStructure(Module &M);
