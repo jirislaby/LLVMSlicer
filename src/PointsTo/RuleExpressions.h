@@ -15,7 +15,7 @@
 
 namespace llvm { namespace ptr {
     template<typename PointsToAlgorithm>
-    struct Rules;
+    class Rules;
 }}
 
 namespace llvm { namespace ptr {
