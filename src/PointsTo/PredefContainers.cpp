@@ -21,8 +21,7 @@ ProgramStructure::ProgramStructure(Module &M) {
     detail::buildCallMaps(M,FM,CM);
 
     typedef llvm::Module::const_iterator FunctionsIter;
-    for (FunctionsIter f = M.begin(); f != M.end(); ++f)
-    {
+    for (FunctionsIter f = M.begin(); f != M.end(); ++f) {
 	typedef llvm::Function::const_iterator BasicBlocksIter;
 	for (BasicBlocksIter b = f->begin(); b != f->end(); ++b)
 	{
@@ -32,14 +31,14 @@ ProgramStructure::ProgramStructure(Module &M) {
 		    detail::toRuleCode(&*i,
 				std::back_inserter(this->getContainer()));
 		else if (llvm::CallInst const* const c =
-			    llvm::dyn_cast<llvm::CallInst>(&*i))
-		    detail::collectCallRuleCodes(c,
-			FM.lower_bound(llvm::getCalleePrototype(c)),
-			FM.upper_bound(llvm::getCalleePrototype(c)),
-			std::back_inserter(this->getContainer()));
-		else if (llvm::ReturnInst const* const r =
-			    llvm::dyn_cast<llvm::ReturnInst>(&*i))
-		{
+			    llvm::dyn_cast<llvm::CallInst>(&*i)) {
+		    if (!isInlineAssembly(c))
+			detail::collectCallRuleCodes(c,
+			    FM.lower_bound(llvm::getCalleePrototype(c)),
+			    FM.upper_bound(llvm::getCalleePrototype(c)),
+			    std::back_inserter(this->getContainer()));
+		} else if (llvm::ReturnInst const* const r =
+			    llvm::dyn_cast<llvm::ReturnInst>(&*i)) {
 		    llvm::FunctionType const* const t =
 			r->getParent()->getParent()->getFunctionType();
 		    detail::collectReturnRuleCodes(r,CM.lower_bound(t),

@@ -24,7 +24,7 @@ void buildCallMaps(llvm::Module const& M, FunctionsMap& F,
 		if (llvm::CallInst const* const c =
 			llvm::dyn_cast<llvm::CallInst>(&*i))
 		{
-		    if (!callToMemoryManStuff(c))
+		    if (!isInlineAssembly(c) && !callToMemoryManStuff(c))
 			C.insert(std::make_pair(getCalleePrototype(c),c));
 		}
 		else if (i->getOpcode() == llvm::Instruction::Store)

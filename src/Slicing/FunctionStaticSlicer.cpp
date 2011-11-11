@@ -78,8 +78,11 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
   } else if (CallInst const* const C = dyn_cast<const CallInst>(i)) {
     const Value *cv = C->getCalledValue();
 
+    if (isInlineAssembly(C)) {
+      errs() << "ERROR: Inline assembler detected\n";
+    } else {
 #if 0 /* bullshit, we do not have malloc/free and other crap */
-    if (isMemoryAllocation(cv)) {
+    } else if (isMemoryAllocation(cv)) {
       DEF.insert(i);
     } else if (isMemoryDeallocation(cv)) {
     } else if (isMemoryCopy(cv) || isMemoryMove(cv)) {
@@ -119,7 +122,7 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
 
       if (!callToVoidFunction(C))
           DEF.insert(C);
-//    }
+    }
   } else if (const ReturnInst * RI = dyn_cast<const ReturnInst>(i)) {
   } else if (const BinaryOperator *BO = dyn_cast<const BinaryOperator>(i)) {
     DEF.insert(i);
@@ -151,20 +154,31 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
     DEF.insert(i);
 
     for (unsigned k = 0; k < phi->getNumIncomingValues(); ++k)
-      if (!llvm::isa<llvm::Constant>(phi->getIncomingValue(k)))
-	      REF.insert(phi->getIncomingValue(k));
+      if (!isa<Constant>(phi->getIncomingValue(k)))
+	REF.insert(phi->getIncomingValue(k));
   } else if (const SwitchInst *SI = dyn_cast<const SwitchInst>(i)) {
   } else if (const SelectInst *SI = dyn_cast<const SelectInst>(i)) {
       // TODO: THE FOLLOWING CODE HAS NOT BEEN TESTED YET
 
     DEF.insert(i);
 
-    if (!llvm::isa<llvm::Constant>(SI->getCondition()))
+    if (!isa<Constant>(SI->getCondition()))
       REF.insert(SI->getCondition());
-    if (!llvm::isa<llvm::Constant>(SI->getTrueValue()))
+    if (!isa<Constant>(SI->getTrueValue()))
       REF.insert(SI->getTrueValue());
-    if (!llvm::isa<llvm::Constant>(SI->getFalseValue()))
+    if (!isa<Constant>(SI->getFalseValue()))
       REF.insert(SI->getFalseValue());
+  } else if (const UnreachableInst *sel = dyn_cast<const UnreachableInst>(i)) {
+  } else if (const ExtractValueInst *EV = dyn_cast<const ExtractValueInst>(i)) {
+      DEF.insert(i);
+      REF.insert(EV->getAggregateOperand());
+  } else if (const InsertValueInst *IV = dyn_cast<const InsertValueInst>(i)) {
+//      TODO THE FOLLOWING CODE HAS NOT BEEN TESTED YET
+
+      DEF.insert(IV->getAggregateOperand());
+      const Value *r = IV->getInsertedValueOperand();
+      if (!isa<Constant>(r))
+	REF.insert(r);
   } else {
     errs() << "ERROR: Unsupported instruction reached\n";
     i->print(errs());

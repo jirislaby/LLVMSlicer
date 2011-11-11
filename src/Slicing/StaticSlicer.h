@@ -30,12 +30,19 @@ namespace llvm { namespace slicing {
 
         ~StaticSlicer();
 
-        template<typename FwdValueIterator>
-        void computeSlice(llvm::Instruction* const I, FwdValueIterator b,
-                          FwdValueIterator const e);
+	template<typename FwdInstrIterator, typename FwdValueIterator>
+	void computeSlice(FwdInstrIterator ib, const FwdInstrIterator ie,
+			  FwdValueIterator vb, const FwdValueIterator ve);
 
-        void computeSlice(llvm::Instruction* const I, llvm::Value* const V)
-        { computeSlice(I,&V,&V+1); }
+        template<typename FwdValueIterator>
+	void computeSlice(const llvm::Instruction *I, FwdValueIterator b,
+			  const FwdValueIterator e) {
+	    computeSlice(&I, &I + 1, b, e);
+	}
+
+        void computeSlice(llvm::Instruction* const I, const llvm::Value *V) {
+	    computeSlice(I, &V, &V + 1);
+	}
 
         bool sliceModule();
 
@@ -76,8 +83,8 @@ namespace llvm { namespace slicing { namespace detail {
                                llvm::Function const* const F,
                                RelevantsIterator b, RelevantsIterator const e,
                                //PointsToSets const& PS,
-                               OutIterator out)
-    {
+                               OutIterator out) {
+	assert(!isInlineAssembly(C) || "Inline assembly is not supported!");
         ParamsToArgs toArgs;
         fillParamsToArgs(C,F,toArgs);
         for ( ; b != e; ++b)
@@ -95,7 +102,8 @@ namespace llvm { namespace slicing { namespace detail {
                                llvm::ReturnInst const* const R,
                                RelevantsIterator b, RelevantsIterator const e,
                                OutIterator out) {
-        if (callToVoidFunction(C))
+	assert(!isInlineAssembly(C) || "Inline assembly is not supported!");
+	if (callToVoidFunction(C))
         {
             std::copy(b,e,out);
             return;
@@ -117,7 +125,7 @@ namespace llvm { namespace slicing {
                                ModifiesSets const& MOD) : module(M), slicers(),
                                funcsToCalls(), callsToFuncs() {
         for (llvm::Module::iterator f = M.begin(); f != M.end(); ++f)
-          if (!f->isDeclaration())
+          if (!f->isDeclaration() && !memoryManStuff(f))
             runFSS(MP, *f, PS, MOD);
         buildDicts(PS);
     }
@@ -148,6 +156,10 @@ namespace llvm { namespace slicing {
                     if (llvm::CallInst const* c =
                             llvm::dyn_cast<llvm::CallInst const>(&*i))
                     {
+			if (isInlineAssembly(c)) {
+			    errs() << "ERROR: Inline assembler detected\n";
+			    continue;
+			}
                         std::vector<llvm::Value const*> G;
                         if (c->getCalledFunction() != 0)
                             G.push_back(c->getCalledFunction());
@@ -223,18 +235,19 @@ namespace llvm { namespace slicing {
         }
     }
 
-    template<typename FwdValueIterator>
-    void StaticSlicer::computeSlice(llvm::Instruction* const I,
-                                    FwdValueIterator b,FwdValueIterator const e)
-    {
-        llvm::Function const* const startFn = I->getParent()->getParent();
-        slicers[startFn]->addCriterion(I,b,e,true);
-
+    template<typename FwdInstrIterator, typename FwdValueIterator>
+    void StaticSlicer::computeSlice(FwdInstrIterator ib,
+				    const FwdInstrIterator ie,
+                                    FwdValueIterator vb,
+				    const FwdValueIterator ve) {
         typedef std::set<llvm::Function const*> WorkSet;
         WorkSet Q;
-        Q.insert(startFn);
-        do
-        {
+	for ( ; ib != ie; ++ib) {
+	    llvm::Function const* const startFn = (*ib)->getParent()->getParent();
+	    slicers[startFn]->addCriterion(*ib,vb,ve,true);
+	    Q.insert(startFn);
+	}
+	while (!Q.empty()) {
             for (WorkSet::const_iterator f = Q.begin(); f != Q.end(); ++f)
                 slicers[*f]->calculateStaticSlice();
 
@@ -247,7 +260,6 @@ namespace llvm { namespace slicing {
             using std::swap;
             swap(tmp,Q);
         }
-        while (!Q.empty());
     }
 
 }}

@@ -158,7 +158,7 @@ namespace llvm { namespace ptr {
         typedef Container::iterator iterator;
         typedef Container::const_iterator const_iterator;
 
-	ProgramStructure(Module &M);
+	explicit ProgramStructure(Module &M);
 
         void insert(iterator it, value_type const& val) { C.insert(it,val); }
         void push_back(value_type const& val) { return C.push_back(val); }

@@ -511,9 +511,9 @@ namespace llvm { namespace ptr { namespace detail {
                     *out++ = ruleCode(ruleVar(V) = ruleVar(op));
             }
             else if (llvm::CallInst const* const C =
-                            llvm::dyn_cast<llvm::CallInst>(I))
-            {
-                if (isMemoryAllocation(C->getCalledValue()))
+                            llvm::dyn_cast<llvm::CallInst>(I)) {
+		if (isInlineAssembly(C)) {
+		} if (isMemoryAllocation(C->getCalledValue()))
                     *out++ = ruleCode(ruleVar(V) = ruleAllocSite(V));
                 else if (isMemoryDeallocation(C->getCalledValue()))
                     errs() << "KOKO\n";
@@ -526,6 +526,31 @@ namespace llvm { namespace ptr { namespace detail {
                     *out++ = ruleCode(*ruleVar(l) = *ruleVar(r));
                 }
             }
+            else if (llvm::ExtractValueInst const* const EV =
+                            llvm::dyn_cast<llvm::ExtractValueInst>(I)) {
+		// TODO: Instruction 'ExtractValueIns' has not been tested yet!
+
+                llvm::Value const* const op = EV->getAggregateOperand();
+                assert(!hasExtraReference(op) || "Agregate operand must "
+                             "be a value and not a pointer.");
+                *out++ = ruleCode(ruleVar(V) = ruleVar(op));
+            } else if (llvm::InsertValueInst const* const IV =
+                            llvm::dyn_cast<llvm::InsertValueInst>(I)) {
+		// TODO: Instruction 'InsertValueInst' has not been tested yet!
+
+                const Value *l = IV->getAggregateOperand();
+                assert(!hasExtraReference(l) || "Agregate operand must "
+                             "be a value and not a pointer.");
+                const Value *r = IV->getInsertedValueOperand();
+                if (hasExtraReference(r))
+                    *out++ = ruleCode(ruleVar(l) = &ruleVar(r));
+                else {
+                    if (isa<const ConstantPointerNull>(r))
+                        *out++ = ruleCode(ruleVar(l) = ruleNull(r));
+                    else
+                        *out++ = ruleCode(ruleVar(l) = ruleVar(r));
+                }
+            }
         }
         else if (llvm::GlobalVariable const * const G =
                         llvm::dyn_cast<llvm::GlobalVariable>(V))
@@ -536,8 +561,8 @@ namespace llvm { namespace ptr { namespace detail {
     }
     template<typename OutIterator>
     void collectCallRuleCodes(llvm::CallInst const* const c,
-                              llvm::Function const* f, OutIterator out)
-    {
+                              llvm::Function const* f, OutIterator out) {
+	assert(!isInlineAssembly(c) || "Inline assembly is not supported!");
         if (memoryManStuff(f) && !llvm::isMemoryAllocation(f))
             return;
         if (llvm::isMemoryAllocation(f))

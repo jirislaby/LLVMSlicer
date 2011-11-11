@@ -2,6 +2,7 @@
 // License. See LICENSE.TXT for details.
 
 #include "llvm/Constant.h"
+#include "llvm/InlineAsm.h"
 #include "llvm/Instructions.h"
 #include "llvm/Value.h"
 
@@ -68,7 +69,13 @@ namespace llvm {
                         llvm::dyn_cast<llvm::CallInst>(I))
         {
             return memoryManStuff(C->getCalledValue());
-        }
+        } else if (const ExtractValueInst *EV =
+		dyn_cast<const ExtractValueInst>(I)) {
+	    return isPointerValue(EV);
+	} else if (const InsertValueInst *IV =
+		dyn_cast<const InsertValueInst>(I)) {
+	    return isPointerValue(IV->getInsertedValueOperand());
+	}
         return false;
     }
 
@@ -94,8 +101,9 @@ namespace llvm {
                     );
     }
 
-    llvm::FunctionType const* getCalleePrototype(llvm::CallInst const* const C)
-    {
+    llvm::FunctionType const* getCalleePrototype(const CallInst *C) {
+	assert(!isInlineAssembly(C) || "Inline assembly is not supported!");
+
         if (llvm::Function const* const fn =
                 llvm::dyn_cast<llvm::Function const>(C->getCalledValue()))
             return fn->getFunctionType();
@@ -157,6 +165,19 @@ namespace llvm {
                isMemoryCopy(V) || isMemoryMove(V) || isMemorySet(V);
     }
 
+    bool isInlineAssembly(const Value *V) {
+	if (const CallInst *c = dyn_cast<const CallInst>(V))
+	    return c->isInlineAsm();
+	return false;
+    }
+
+    bool isInlineAssemblyWithSideEffect(const Value *V) {
+	if (const CallInst *c = dyn_cast<const CallInst>(V))
+	    if (const InlineAsm *a = dyn_cast<const InlineAsm>(c->getCalledValue()))
+		return a->hasSideEffects();
+	return false;
+    }
+
     bool callToMemoryManStuff(llvm::CallInst const* const C)
     {
         return memoryManStuff(C->getCalledValue());
@@ -178,6 +199,8 @@ namespace llvm {
 
     bool callToVoidFunction(llvm::CallInst const* const C)
     {
+	if (isInlineAssembly(C))
+	    return false;
         return C->getType()->getTypeID() == llvm::Type::VoidTyID;
     }
 

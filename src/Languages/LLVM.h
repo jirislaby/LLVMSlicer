@@ -33,6 +33,8 @@ namespace llvm {
     bool isMemoryMove(llvm::Value const* const V);
     bool isMemorySet(llvm::Value const* const V);
     bool memoryManStuff(llvm::Value const* const V);
+    bool isInlineAssembly(const llvm::Value *V);
+    bool isInlineAssemblyWithSideEffect(const llvm::Value *V);
     bool callToMemoryManStuff(llvm::CallInst const* const C);
     llvm::Instruction const *getFunctionEntry(const llvm::Function *F);
     template<typename OutIterator>
@@ -58,7 +60,8 @@ namespace llvm {
                 i != llvm::inst_end(F); i++)
             if (llvm::CallInst const* c =
                     llvm::dyn_cast<llvm::CallInst const>(&*i))
-                *out++ = c;
+		if (!isInlineAssembly(c))
+		    *out++ = c;
     }
 
     template<typename OutIterator>

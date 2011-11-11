@@ -125,8 +125,9 @@ namespace llvm { namespace callgraph {
                 for (llvm::inst_iterator i = llvm::inst_begin(*f);
                         i != llvm::inst_end(*f); i++)
                     if (llvm::CallInst const* c =
-                            llvm::dyn_cast<llvm::CallInst const>(&*i))
-                    {
+                            llvm::dyn_cast<llvm::CallInst const>(&*i)) {
+			if (isInlineAssembly(c))
+			    continue;
                         std::vector<llvm::Value const*> G;
                         if (c->getCalledFunction() != 0)
                             G.push_back(c->getCalledFunction());
