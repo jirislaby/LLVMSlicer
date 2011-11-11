@@ -123,7 +123,7 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
       if (!callToVoidFunction(C))
           DEF.insert(C);
     }
-  } else if (const ReturnInst * RI = dyn_cast<const ReturnInst>(i)) {
+  } else if (isa<const ReturnInst>(i)) {
   } else if (const BinaryOperator *BO = dyn_cast<const BinaryOperator>(i)) {
     DEF.insert(i);
 
@@ -137,9 +137,9 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
     if (!hasExtraReference(CI->getOperand(0)))
       REF.insert(CI->getOperand(0));
   } else if (const AllocaInst *AI = dyn_cast<const AllocaInst>(i)) {
-      DEF.insert(i);
+      DEF.insert(AI);
 
-      REF.insert(i);
+      REF.insert(AI);
   } else if (const CmpInst *CI = dyn_cast<const CmpInst>(i)) {
     DEF.insert(i);
 
@@ -156,7 +156,7 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
     for (unsigned k = 0; k < phi->getNumIncomingValues(); ++k)
       if (!isa<Constant>(phi->getIncomingValue(k)))
 	REF.insert(phi->getIncomingValue(k));
-  } else if (const SwitchInst *SI = dyn_cast<const SwitchInst>(i)) {
+  } else if (isa<const SwitchInst>(i)) {
   } else if (const SelectInst *SI = dyn_cast<const SelectInst>(i)) {
       // TODO: THE FOLLOWING CODE HAS NOT BEEN TESTED YET
 
@@ -168,7 +168,7 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
       REF.insert(SI->getTrueValue());
     if (!isa<Constant>(SI->getFalseValue()))
       REF.insert(SI->getFalseValue());
-  } else if (const UnreachableInst *sel = dyn_cast<const UnreachableInst>(i)) {
+  } else if (isa<const UnreachableInst>(i)) {
   } else if (const ExtractValueInst *EV = dyn_cast<const ExtractValueInst>(i)) {
       DEF.insert(i);
       REF.insert(EV->getAggregateOperand());
@@ -608,7 +608,7 @@ static void writeCFG(std::string suffix, Function &F) {
 static GlobalVariable *getAiVar(Function &F, const CallInst *CI) {
   const ConstantExpr *GEP =
     dyn_cast<const ConstantExpr>(CI->getOperand(0));
-  assert(GEP && GEP->getOpcode() == Instruction::GetElementPtrInst);
+  assert(GEP && GEP->getOpcode() == Instruction::GetElementPtr);
   const GlobalVariable *strVar =
     dyn_cast<const GlobalVariable>(GEP->getOperand(0));
   assert(strVar && strVar->hasInitializer());
