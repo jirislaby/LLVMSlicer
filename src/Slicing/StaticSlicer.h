@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "llvm/ADT/STLExtras.h" /* tie */
+#include "llvm/Analysis/PostDominators.h"
 
 #include "FunctionStaticSlicer.h"
 #include "../PointsTo/PointsTo.h"
@@ -24,10 +25,10 @@ namespace llvm { namespace slicing {
                 CallsToFuncs;
 
         template<typename PointsToSets, typename ModifiesSets>
-        StaticSlicer(const Module &M, PointsToSets const& PS,
-                     ModifiesSets const& MOD);
+        StaticSlicer(ModulePass *MP, Module &M, const PointsToSets &PS,
+                     const ModifiesSets &MOD);
 
-	~StaticSlicer();
+        ~StaticSlicer();
 
         template<typename FwdValueIterator>
         void computeSlice(llvm::Instruction* const I, FwdValueIterator b,
@@ -48,7 +49,11 @@ namespace llvm { namespace slicing {
         template<typename OutIterator>
         void emitToExits(llvm::Function const* const f, OutIterator out);
 
-        const Module &module;
+        template<typename PointsToSets, typename ModifiesSets>
+        void runFSS(ModulePass *MP, Function &F, const PointsToSets &PS,
+                    const ModifiesSets &MOD);
+
+        Module &module;
         Slicers slicers;
         FuncsToCalls funcsToCalls;
         CallsToFuncs callsToFuncs;
@@ -107,24 +112,30 @@ namespace llvm { namespace slicing { namespace detail {
 namespace llvm { namespace slicing {
 
     template<typename PointsToSets, typename ModifiesSets>
-    StaticSlicer::StaticSlicer(const Module &M, PointsToSets const& PS,
-                               ModifiesSets const& MOD)
-        : module(M)
-        , slicers()
-        , funcsToCalls()
-        , callsToFuncs()
-    {
-        for (llvm::Module::iterator f = module.begin();f != module.end(); ++f)
-            slicers.insert(Slicers::value_type(&*f,
-                           new FunctionStaticSlicer(&*f,PS,MOD)));
+    StaticSlicer::StaticSlicer(ModulePass *MP, Module &M,
+                               PointsToSets const& PS,
+                               ModifiesSets const& MOD) : module(M), slicers(),
+                               funcsToCalls(), callsToFuncs() {
+        for (llvm::Module::iterator f = M.begin(); f != M.end(); ++f)
+          if (!f->isDeclaration())
+            runFSS(MP, *f, PS, MOD);
         buildDicts(PS);
     }
 
     StaticSlicer::~StaticSlicer() {
       for (Slicers::const_iterator I = slicers.begin(), E = slicers.end();
-	   I != E; ++I)
-	delete I->second;
+           I != E; ++I)
+        delete I->second;
     }
+
+  template<typename PointsToSets, typename ModifiesSets>
+  void StaticSlicer::runFSS(ModulePass *MP, Function &F,
+                            const PointsToSets &PS, const ModifiesSets &MOD) {
+    PostDominanceFrontier &PDF = MP->getAnalysis<PostDominanceFrontier>(F);
+    PostDominatorTree &PDT = MP->getAnalysis<PostDominatorTree>(F);
+    FunctionStaticSlicer *FSS = new FunctionStaticSlicer(F, PDT, PDF, PS, MOD);
+    slicers.insert(Slicers::value_type(&F, FSS));
+  }
 
     template<typename PointsToSets>
     void StaticSlicer::buildDicts(PointsToSets const& PS)

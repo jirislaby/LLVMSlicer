@@ -3,8 +3,14 @@
 
 #include "llvm/Instructions.h"
 #include "llvm/Function.h"
+#include "llvm/Pass.h"
 #include "llvm/Value.h"
 
+#include "../Callgraph/Callgraph.h"
+#include "../Modifies/Modifies.h"
+#include "../Modifies/AlgoDumbSpeedy.h"
+#include "../PointsTo/AlgoAndersen.h"
+#include "../PointsTo/PointsTo.h"
 #include "StaticSlicer.h"
 
 namespace llvm { namespace slicing { namespace detail {
@@ -52,3 +58,49 @@ namespace llvm { namespace slicing {
     }
 #endif
 }}
+
+using namespace llvm;
+
+namespace {
+  class Slicer : public ModulePass {
+    public:
+      static char ID;
+
+      Slicer() : ModulePass(ID) {}
+
+      virtual bool runOnModule(Module &M);
+
+      void getAnalysisUsage(AnalysisUsage &AU) const {
+        AU.addRequired<PostDominatorTree>();
+        AU.addRequired<PostDominanceFrontier>();
+      }
+/*    private:
+      template<typename PointsToSets, typename ModifiesSets>
+      bool runOnFunction(Function &F, const PointsToSets &PS,
+                         const ModifiesSets &MOD);
+      void findInitialCriterion(Function &F, FunctionStaticSlicer &ss);*/
+  };
+}
+
+static RegisterPass<Slicer> X("slice-inter", "Slices the code interprocedurally");
+char Slicer::ID;
+
+bool Slicer::runOnModule(Module &M) {
+  ptr::PointsToSets<ptr::ANDERSEN>::Type PS;
+  {
+    ptr::ProgramStructure P(M);
+    computePointsToSets(P, PS);
+  }
+
+  callgraph::Callgraph CG(M, PS);
+
+  mods::Modifies<mods::DUMB_SPEEDY>::Type MOD;
+  {
+    mods::ProgramStructure P1(M);
+    computeModifies(P1, CG, PS, MOD);
+  }
+
+  slicing::StaticSlicer SS(this, M, PS, MOD);
+//  SS.computeSlice(I,V);
+  return SS.sliceModule();
+}
