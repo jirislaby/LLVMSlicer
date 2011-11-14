@@ -140,6 +140,7 @@ namespace llvm { namespace slicing {
   void StaticSlicer::runFSS(ModulePass *MP, Function &F,
                             const PointsToSets &PS, const ModifiesSets &MOD) {
     FunctionStaticSlicer *FSS = new FunctionStaticSlicer(F, MP, PS, MOD);
+    llvm::slicing::findInitialCriterion(F, *FSS);
     slicers.insert(Slicers::value_type(&F, FSS));
   }
 

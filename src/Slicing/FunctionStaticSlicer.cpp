@@ -202,7 +202,6 @@ namespace {
       template<typename PointsToSets, typename ModifiesSets>
       bool runOnFunction(Function &F, const PointsToSets &PS,
                          const ModifiesSets &MOD);
-      void findInitialCriterion(Function &F, FunctionStaticSlicer &ss);
   };
 }
 
@@ -554,7 +553,8 @@ bool FunctionStaticSlicer::slice() {
   return removed;
 }
 
-void FunctionSlicer::findInitialCriterion(Function &F, FunctionStaticSlicer &ss) {
+void llvm::slicing::findInitialCriterion(Function &F,
+                                         FunctionStaticSlicer &ss) {
 #ifdef DEBUG_INITCRIT
   errs() << __func__ << " ============ BEGIN\n";
 #endif
