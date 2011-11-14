@@ -139,9 +139,7 @@ namespace llvm { namespace slicing {
   template<typename PointsToSets, typename ModifiesSets>
   void StaticSlicer::runFSS(ModulePass *MP, Function &F,
                             const PointsToSets &PS, const ModifiesSets &MOD) {
-    PostDominanceFrontier &PDF = MP->getAnalysis<PostDominanceFrontier>(F);
-    PostDominatorTree &PDT = MP->getAnalysis<PostDominatorTree>(F);
-    FunctionStaticSlicer *FSS = new FunctionStaticSlicer(F, PDT, PDF, PS, MOD);
+    FunctionStaticSlicer *FSS = new FunctionStaticSlicer(F, MP, PS, MOD);
     slicers.insert(Slicers::value_type(&F, FSS));
   }
 

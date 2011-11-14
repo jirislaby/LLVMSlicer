@@ -45,9 +45,8 @@ public:
   typedef std::map<const llvm::Instruction *, InsInfo *> InsInfoMap;
 
   template<typename PointsToSets, typename ModifiesSets>
-  FunctionStaticSlicer(llvm::Function &F, llvm::PostDominatorTree &PDT,
-	       llvm::PostDominanceFrontier &PDF, PointsToSets &PT,
-	       ModifiesSets &mods) : fun(F), PDT(PDT), PDF(PDF) {
+  FunctionStaticSlicer(llvm::Function &F, llvm::ModulePass *MP,
+                       PointsToSets &PT, ModifiesSets &mods) : fun(F), MP(MP) {
     for (llvm::inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F);
 	 I != E; ++I)
       insInfoMap.insert(InsInfoMap::value_type(&*I, new InsInfo(&*I, PT, mods)));
@@ -90,8 +89,7 @@ public:
 
 private:
   llvm::Function &fun;
-  llvm::PostDominatorTree &PDT;
-  llvm::PostDominanceFrontier &PDF;
+  llvm::ModulePass *MP;
   InsInfoMap insInfoMap;
 
   void crawlBasicBlock(const llvm::BasicBlock *bb);

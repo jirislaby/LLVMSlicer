@@ -373,6 +373,7 @@ bool FunctionStaticSlicer::computeBC() {
     i->print(errs());
     errs() << " -> bb=" << BB->getNameStr() << '\n';
 #endif
+    PostDominanceFrontier &PDF = MP->getAnalysis<PostDominanceFrontier>(fun);
     PostDominanceFrontier::const_iterator frontier = PDF.find(BB);
     if (frontier == PDF.end())
       continue;
@@ -518,6 +519,7 @@ bool FunctionStaticSlicer::slice() {
 #ifdef DEBUG_SLICE
   errs() << __func__ << " ============ Removing unused branches\n";
 #endif
+  PostDominatorTree &PDT = MP->getAnalysis<PostDominatorTree>(fun);
   for (Function::iterator I = fun.begin(), E = fun.end(); I != E; ++I) {
     BasicBlock &bb = *I;
     if (std::distance(succ_begin(&bb), succ_end(&bb)) <= 1)
@@ -530,6 +532,7 @@ bool FunctionStaticSlicer::slice() {
     if (cond->getValueID() != Value::UndefValueVal)
       continue;
     DomTreeNode *node = PDT.getNode(&bb);
+    assert(node);
     DomTreeNode *idom = node->getIDom();
     assert(idom);
 /*    if (!idom)
@@ -686,12 +689,10 @@ bool FunctionSlicer::runOnFunction(Function &F, const PointsToSets &PS,
     return false;
 //  writeCFG("pre", F);
   F.viewCFG();*/
-  PostDominanceFrontier &PDF = getAnalysis<PostDominanceFrontier>(F);
-  PostDominatorTree &PDT = getAnalysis<PostDominatorTree>(F);
 
   prepareFun(F);
 
-  FunctionStaticSlicer ss(F, PDT, PDF, PS, MOD);
+  FunctionStaticSlicer ss(F, this, PS, MOD);
 
 //  errs() << "XXX " << F.getName() << "\n";
 
