@@ -34,11 +34,14 @@ namespace llvm { namespace slicing { namespace detail {
 
 namespace llvm { namespace slicing {
 
-    bool StaticSlicer::sliceModule()
-    {
+    bool StaticSlicer::sliceModule() {
       bool modified = false;
       for (Slicers::iterator s = slicers.begin(); s != slicers.end(); ++s)
-	modified |= s->second->slice();
+        modified |= s->second->slice();
+      if (modified)
+        for (Module::iterator I = module.begin(), E = module.end(); I != E; ++I)
+          if (!I->isDeclaration())
+            FunctionStaticSlicer::removeUndefBranches(MP, *I);
       return modified;
     }
 #if 0

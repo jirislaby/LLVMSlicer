@@ -57,9 +57,10 @@ namespace llvm { namespace slicing {
         void emitToExits(llvm::Function const* const f, OutIterator out);
 
         template<typename PointsToSets, typename ModifiesSets>
-        void runFSS(ModulePass *MP, Function &F, const PointsToSets &PS,
+        void runFSS(Function &F, const PointsToSets &PS,
                     const ModifiesSets &MOD);
 
+        ModulePass *MP;
         Module &module;
         Slicers slicers;
         FuncsToCalls funcsToCalls;
@@ -122,11 +123,11 @@ namespace llvm { namespace slicing {
     template<typename PointsToSets, typename ModifiesSets>
     StaticSlicer::StaticSlicer(ModulePass *MP, Module &M,
                                PointsToSets const& PS,
-                               ModifiesSets const& MOD) : module(M), slicers(),
-                               funcsToCalls(), callsToFuncs() {
+                               ModifiesSets const& MOD) : MP(MP), module(M),
+                               slicers(), funcsToCalls(), callsToFuncs() {
         for (llvm::Module::iterator f = M.begin(); f != M.end(); ++f)
           if (!f->isDeclaration() && !memoryManStuff(f))
-            runFSS(MP, *f, PS, MOD);
+            runFSS(*f, PS, MOD);
         buildDicts(PS);
     }
 
@@ -137,8 +138,8 @@ namespace llvm { namespace slicing {
     }
 
   template<typename PointsToSets, typename ModifiesSets>
-  void StaticSlicer::runFSS(ModulePass *MP, Function &F,
-                            const PointsToSets &PS, const ModifiesSets &MOD) {
+  void StaticSlicer::runFSS(Function &F, const PointsToSets &PS,
+                            const ModifiesSets &MOD) {
     FunctionStaticSlicer *FSS = new FunctionStaticSlicer(F, MP, PS, MOD);
     llvm::slicing::findInitialCriterion(F, *FSS);
     slicers.insert(Slicers::value_type(&F, FSS));

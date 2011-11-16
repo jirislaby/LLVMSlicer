@@ -86,6 +86,7 @@ public:
   }
   void calculateStaticSlice();
   bool slice();
+  static void removeUndefBranches(ModulePass *MP, Function &F);
 
 private:
   llvm::Function &fun;

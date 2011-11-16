@@ -515,11 +515,21 @@ bool FunctionStaticSlicer::slice() {
       removed = true;
     }
   }
+  return removed;
+}
+
+/**
+ * removeUndefBranches -- remove branches with undef condition
+ *
+ * These are irrelevant to the code, so may be remvoed completely with their
+ * bodies.
+ */
+void FunctionStaticSlicer::removeUndefBranches(ModulePass *MP, Function &F) {
 #ifdef DEBUG_SLICE
   errs() << __func__ << " ============ Removing unused branches\n";
 #endif
-  PostDominatorTree &PDT = MP->getAnalysis<PostDominatorTree>(fun);
-  for (Function::iterator I = fun.begin(), E = fun.end(); I != E; ++I) {
+  PostDominatorTree &PDT = MP->getAnalysis<PostDominatorTree>(F);
+  for (Function::iterator I = F.begin(), E = F.end(); I != E; ++I) {
     BasicBlock &bb = *I;
     if (std::distance(succ_begin(&bb), succ_end(&bb)) <= 1)
       continue;
@@ -550,7 +560,6 @@ bool FunctionStaticSlicer::slice() {
 #ifdef DEBUG_SLICE
   errs() << __func__ << " ============ END\n";
 #endif
-  return removed;
 }
 
 void llvm::slicing::findInitialCriterion(Function &F,
@@ -701,6 +710,9 @@ bool FunctionSlicer::runOnFunction(Function &F, const PointsToSets &PS,
   ss.calculateStaticSlice();
 
   bool sliced = ss.slice();
+
+  if (sliced)
+    FunctionStaticSlicer::removeUndefBranches(this, F);
 
 //  F.viewCFG();
   //writeCFG("post", F);
