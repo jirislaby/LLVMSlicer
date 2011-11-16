@@ -30,19 +30,19 @@ namespace llvm { namespace slicing {
 
         ~StaticSlicer();
 
-	template<typename FwdInstrIterator, typename FwdValueIterator>
-	void computeSlice(FwdInstrIterator ib, const FwdInstrIterator ie,
-			  FwdValueIterator vb, const FwdValueIterator ve);
+        template<typename FwdInstrIterator, typename FwdValueIterator>
+        void computeSlice(FwdInstrIterator ib, const FwdInstrIterator ie,
+                          FwdValueIterator vb, const FwdValueIterator ve);
 
         template<typename FwdValueIterator>
-	void computeSlice(const llvm::Instruction *I, FwdValueIterator b,
-			  const FwdValueIterator e) {
-	    computeSlice(&I, &I + 1, b, e);
-	}
+        void computeSlice(const llvm::Instruction *I, FwdValueIterator b,
+                          const FwdValueIterator e) {
+            computeSlice(&I, &I + 1, b, e);
+        }
 
-        void computeSlice(llvm::Instruction* const I, const llvm::Value *V) {
-	    computeSlice(I, &V, &V + 1);
-	}
+        void computeSlice(const llvm::Instruction* I, const llvm::Value *V) {
+            computeSlice(I, &V, &V + 1);
+        }
 
         bool sliceModule();
 
@@ -187,49 +187,44 @@ namespace llvm { namespace slicing {
     template<typename OutIterator>
     void StaticSlicer::emitToCalls(llvm::Function const* const f,
                                    OutIterator out) {
-	ValSet::const_iterator const relBgn =
+        const ValSet::const_iterator relBgn =
             slicers[f]->relevant_begin(getFunctionEntry(f));
-        ValSet::const_iterator const relEnd =
+        const ValSet::const_iterator relEnd =
             slicers[f]->relevant_end(getFunctionEntry(f));
-        FuncsToCalls::const_iterator c,e;
+        FuncsToCalls::const_iterator c, e;
         llvm::tie(c,e) = funcsToCalls.equal_range(f);
-        for ( ; c != e; ++c)
-        {
+        for ( ; c != e; ++c) {
             const llvm::Function *g = c->second->getParent()->getParent();
             std::set<const llvm::Value *> R;
-            detail::getRelevantVarsAtCall(c->second,f,relBgn,relEnd,/*PS,*/
-                                          std::inserter(R,R.end()));
-            if (slicers[g]->addCriterion(c->second,R.begin(),R.end()))
+            detail::getRelevantVarsAtCall(c->second, f, relBgn, relEnd,
+                                          std::inserter(R, R.end()));
+            if (slicers[g]->addCriterion(c->second, R.begin(), R.end()))
                 *out++ = g;
         }
     }
 
     template<typename OutIterator>
     void StaticSlicer::emitToExits(llvm::Function const* const f,
-                                   OutIterator out)
-    {
-        typedef std::vector<llvm::CallInst const*> CallsVec;
+                                   OutIterator out) {
+        typedef std::vector<const llvm::CallInst *> CallsVec;
         CallsVec C;
-        getFunctionCalls(f,std::back_inserter(C));
-        for (CallsVec::const_iterator c = C.begin(); c != C.end(); ++c)
-        {
-            ValSet::const_iterator const relBgn =
+        getFunctionCalls(f, std::back_inserter(C));
+        for (CallsVec::const_iterator c = C.begin(); c != C.end(); ++c) {
+            const ValSet::const_iterator relBgn =
                 slicers[f]->relevant_begin(getSuccInBlock(*c));
-            ValSet::const_iterator const relEnd =
+            const ValSet::const_iterator relEnd =
                 slicers[f]->relevant_end(getSuccInBlock(*c));
-            CallsToFuncs::const_iterator g,e;
-            llvm::tie(g,e) = callsToFuncs.equal_range(*c);
-            for ( ; g != e; ++g)
-            {
-                typedef std::vector<llvm::ReturnInst const*> ExitsVec;
+            CallsToFuncs::const_iterator g, e;
+            llvm::tie(g, e) = callsToFuncs.equal_range(*c);
+            for ( ; g != e; ++g) {
+                typedef std::vector<const llvm::ReturnInst *> ExitsVec;
                 ExitsVec E;
                 getFunctionExits(g->second,std::back_inserter(E));
-                for (ExitsVec::const_iterator e = E.begin(); e != E.end(); ++e)
-                {
-                    std::set<llvm::Value const*> R;
-                    detail::getRelevantVarsAtExit(*c,*e,relBgn,relEnd,
-                                                  std::inserter(R,R.end()));
-                    if (slicers[g->second]->addCriterion(*e,R.begin(),R.end()))
+                for (ExitsVec::const_iterator e = E.begin(); e != E.end(); ++e) {
+                    std::set<const llvm::Value *> R;
+                    detail::getRelevantVarsAtExit(*c, *e, relBgn, relEnd,
+                                                  std::inserter(R, R.end()));
+                    if (slicers[g->second]->addCriterion(*e, R.begin(),R .end()))
                         *out++ = g->second;
                 }
             }
@@ -238,28 +233,26 @@ namespace llvm { namespace slicing {
 
     template<typename FwdInstrIterator, typename FwdValueIterator>
     void StaticSlicer::computeSlice(FwdInstrIterator ib,
-				    const FwdInstrIterator ie,
+                                    const FwdInstrIterator ie,
                                     FwdValueIterator vb,
-				    const FwdValueIterator ve) {
+                                    const FwdValueIterator ve) {
         typedef std::set<llvm::Function const*> WorkSet;
         WorkSet Q;
-	for ( ; ib != ie; ++ib) {
-	    llvm::Function const* const startFn = (*ib)->getParent()->getParent();
-	    slicers[startFn]->addCriterion(*ib,vb,ve,true);
-	    Q.insert(startFn);
-	}
-	while (!Q.empty()) {
+        for ( ; ib != ie; ++ib) {
+            const llvm::Function *startFn = (*ib)->getParent()->getParent();
+            slicers[startFn]->addCriterion(*ib, vb, ve, true);
+            Q.insert(startFn);
+        }
+        while (!Q.empty()) {
             for (WorkSet::const_iterator f = Q.begin(); f != Q.end(); ++f)
                 slicers[*f]->calculateStaticSlice();
 
             WorkSet tmp;
-            for (WorkSet::const_iterator f = Q.begin(); f != Q.end(); ++f)
-            {
-                emitToCalls(*f,std::inserter(tmp,tmp.end()));
-                emitToExits(*f,std::inserter(tmp,tmp.end()));
+            for (WorkSet::const_iterator f = Q.begin(); f != Q.end(); ++f) {
+                emitToCalls(*f, std::inserter(tmp, tmp.end()));
+                emitToExits(*f, std::inserter(tmp, tmp.end()));
             }
-            using std::swap;
-            swap(tmp,Q);
+            std::swap(tmp,Q);
         }
     }
 

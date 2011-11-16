@@ -77,11 +77,6 @@ namespace {
         AU.addRequired<PostDominatorTree>();
         AU.addRequired<PostDominanceFrontier>();
       }
-/*    private:
-      template<typename PointsToSets, typename ModifiesSets>
-      bool runOnFunction(Function &F, const PointsToSets &PS,
-                         const ModifiesSets &MOD);
-      void findInitialCriterion(Function &F, FunctionStaticSlicer &ss);*/
   };
 }
 
@@ -104,6 +99,6 @@ bool Slicer::runOnModule(Module &M) {
   }
 
   slicing::StaticSlicer SS(this, M, PS, MOD);
-//  SS.computeSlice(I,V);
+//  SS.computeSlice(I, V);
   return SS.sliceModule();
 }
