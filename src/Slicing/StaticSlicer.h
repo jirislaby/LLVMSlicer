@@ -156,10 +156,11 @@ namespace llvm { namespace slicing {
                     if (llvm::CallInst const* c =
                             llvm::dyn_cast<llvm::CallInst const>(&*i))
                     {
-			if (isInlineAssembly(c)) {
-			    errs() << "ERROR: Inline assembler detected\n";
-			    continue;
-			}
+                        if (isInlineAssembly(c)) {
+                            errs() << "ERROR: Inline assembler detected in " <<
+                                f->getName() << ", skipping\n";
+                            continue;
+                        }
                         std::vector<llvm::Value const*> G;
                         if (c->getCalledFunction() != 0)
                             G.push_back(c->getCalledFunction());

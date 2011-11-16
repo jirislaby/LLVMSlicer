@@ -79,7 +79,8 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
     const Value *cv = C->getCalledValue();
 
     if (isInlineAssembly(C)) {
-      errs() << "ERROR: Inline assembler detected\n";
+     errs() << "ERROR: Inline assembler detected in " <<
+          i->getParent()->getParent()->getName() << ", ignoring\n";
     } else {
 #if 0 /* bullshit, we do not have malloc/free and other crap */
     } else if (isMemoryAllocation(cv)) {
