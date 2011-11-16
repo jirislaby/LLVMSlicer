@@ -67,14 +67,10 @@ public:
     bool change = false;
     for (; b != e; ++b)
       if (ii->addRC(*b))
-	change = true;
+        change = true;
     if (initial)
       ii->deslice();
     return change;
-  }
-
-  bool addCriterion(const llvm::Instruction *ins, const llvm::Value *var) {
-    return addCriterion(ins, &var, &var + 1);
   }
 
   void addInitialCriterion(const llvm::Instruction *ins,
