@@ -43,42 +43,26 @@ static GlobalVariable *getAiVar(Function &F, const CallInst *CI) {
   GlobalVariable *glob =
     dyn_cast<GlobalVariable>(F.getParent()->getOrInsertGlobal(cstr, intType));
   delete cstr;
+  glob->setInitializer(ConstantInt::get(
+                            TypeBuilder<int, false>::get(F.getContext()), 0));
   return glob;
 }
 
 void Prepare::replaceInsLoad(Function &F, CallInst *CI) {
-  errs() << __func__ << ": ======\n";
-  CI->dump();
   GlobalVariable *glob = getAiVar(F, CI);
-  errs() << "\nVAR=";
-  glob->dump();
-  errs() << " compare to=";
-  CI->getOperand(1)->dump();
-  errs() << "\n";
-  BasicBlock *CIBB = CI->getParent();
-  BasicBlock *contBB = CIBB->splitBasicBlock(BasicBlock::iterator(CI));
-  BasicBlock *assBB = BasicBlock::Create(F.getContext(), "assertBlk", &F);
-  new UnreachableInst(F.getContext(), assBB);
-  CI->eraseFromParent();
-  Value *ai_stateVal = new LoadInst(glob, "", true, 4, CIBB);
-  Value *ai_stateIsEq = new ICmpInst(*CIBB, CmpInst::ICMP_EQ, ai_stateVal,
-                                     CI->getOperand(1));
-  BranchInst::Create(contBB, assBB, ai_stateIsEq, CIBB);
-  F.viewCFG();
+  LoadInst *LI = new LoadInst(glob, 0, true);
+  LI->setDebugLoc(CI->getDebugLoc());
+  ReplaceInstWithInst(CI, LI);
 }
 
 void Prepare::replaceInsStore(Function &F, CallInst *CI) {
-  Type *intType = TypeBuilder<int, false>::get(F.getContext());
-//  errs() << __func__ << ": ======\n";
   GlobalVariable *glob = getAiVar(F, CI);
-  glob->setInitializer(ConstantInt::get(intType, 0));
   StoreInst *SI = new StoreInst(CI->getOperand(1), glob, true);
   SI->setDebugLoc(CI->getDebugLoc());
   ReplaceInstWithInst(CI, SI);
 }
 
 void Prepare::prepareFun(Function &F) {
-//  F.dump();
   const Module *M = F.getParent();
   const Function *__ai_load = M->getFunction("__ai_load");
   const Function *__ai_store = M->getFunction("__ai_store");
