@@ -46,17 +46,7 @@ static GlobalVariable *getAiVar(Function &F, const CallInst *CI) {
   return glob;
 }
 
-void Prepare::replaceInsTrans(Function &F, CallInst *CI) {
-  Type *intType = TypeBuilder<int, false>::get(F.getContext());
-//  errs() << __func__ << ": ======\n";
-  GlobalVariable *glob = getAiVar(F, CI);
-  glob->setInitializer(ConstantInt::get(intType, 0));
-  StoreInst *SI = new StoreInst(CI->getOperand(1), glob, true);
-  SI->setDebugLoc(CI->getDebugLoc());
-  ReplaceInstWithInst(CI, SI);
-}
-
-void Prepare::replaceInsCheck(Function &F, CallInst *CI) {
+void Prepare::replaceInsLoad(Function &F, CallInst *CI) {
   errs() << __func__ << ": ======\n";
   CI->dump();
   GlobalVariable *glob = getAiVar(F, CI);
@@ -77,21 +67,31 @@ void Prepare::replaceInsCheck(Function &F, CallInst *CI) {
   F.viewCFG();
 }
 
+void Prepare::replaceInsStore(Function &F, CallInst *CI) {
+  Type *intType = TypeBuilder<int, false>::get(F.getContext());
+//  errs() << __func__ << ": ======\n";
+  GlobalVariable *glob = getAiVar(F, CI);
+  glob->setInitializer(ConstantInt::get(intType, 0));
+  StoreInst *SI = new StoreInst(CI->getOperand(1), glob, true);
+  SI->setDebugLoc(CI->getDebugLoc());
+  ReplaceInstWithInst(CI, SI);
+}
+
 void Prepare::prepareFun(Function &F) {
 //  F.dump();
   const Module *M = F.getParent();
-  const Function *__ai_trans = M->getFunction("__ai_trans");
-  const Function *__ai_check_eq = M->getFunction("__ai_check_eq");
+  const Function *__ai_load = M->getFunction("__ai_load");
+  const Function *__ai_store = M->getFunction("__ai_store");
   for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E;) {
     Instruction *ins = &*I;
     ++I;
     if (CallInst *CI = dyn_cast<CallInst>(ins)) {
       Function *callee = CI->getCalledFunction();
       if (callee) {
-        if (callee == __ai_trans)
-          replaceInsTrans(F, CI);
-        else if (callee == __ai_check_eq)
-          replaceInsCheck(F, CI);
+        if (callee == __ai_load)
+          replaceInsLoad(F, CI);
+        else if (callee == __ai_store)
+          replaceInsStore(F, CI);
       }
     }
   }

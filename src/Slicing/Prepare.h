@@ -21,8 +21,8 @@ public:
   }
 
 private:
-  static void replaceInsCheck(llvm::Function &F, llvm::CallInst *CI);
-  static void replaceInsTrans(llvm::Function &F, llvm::CallInst *CI);
+  static void replaceInsLoad(llvm::Function &F, llvm::CallInst *CI);
+  static void replaceInsStore(llvm::Function &F, llvm::CallInst *CI);
 };
 
 }}
