@@ -50,9 +50,10 @@ void Prepare::replaceInsTrans(Function &F, CallInst *CI) {
   Type *intType = TypeBuilder<int, false>::get(F.getContext());
 //  errs() << __func__ << ": ======\n";
   GlobalVariable *glob = getAiVar(F, CI);
-//  errs() << "\nid=" << glob->getValueID() << "\n";
   glob->setInitializer(ConstantInt::get(intType, 0));
-  ReplaceInstWithInst(CI, new StoreInst(CI->getOperand(1), glob, true));
+  StoreInst *SI = new StoreInst(CI->getOperand(1), glob, true);
+  SI->setDebugLoc(CI->getDebugLoc());
+  ReplaceInstWithInst(CI, SI);
 }
 
 void Prepare::replaceInsCheck(Function &F, CallInst *CI) {
