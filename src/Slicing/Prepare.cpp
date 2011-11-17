@@ -78,16 +78,18 @@ void Prepare::replaceInsCheck(Function &F, CallInst *CI) {
 
 void Prepare::prepareFun(Function &F) {
 //  F.dump();
+  const Module *M = F.getParent();
+  const Function *__ai_trans = M->getFunction("__ai_trans");
+  const Function *__ai_check_eq = M->getFunction("__ai_check_eq");
   for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E;) {
     Instruction *ins = &*I;
     ++I;
     if (CallInst *CI = dyn_cast<CallInst>(ins)) {
       Function *callee = CI->getCalledFunction();
       if (callee) {
-        StringRef calleeName = callee->getName();
-        if (calleeName.equals("__ai_trans"))
+        if (callee == __ai_trans)
           replaceInsTrans(F, CI);
-        else if (calleeName.equals("__ai_check_eq"))
+        else if (callee == __ai_check_eq)
           replaceInsCheck(F, CI);
       }
     }
