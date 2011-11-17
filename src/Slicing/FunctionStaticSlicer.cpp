@@ -237,8 +237,7 @@ static SuccList getSuccList(const Instruction *i) {
  *   {v| v \in RC(j), v \notin DEF(i)} \cup
  *   {v| v \in REF(i), DEF(i) \cap RC(j) \neq \emptyset}
  */
-bool FunctionStaticSlicer::computeRCi(const Instruction *i, const Instruction *j) {
-  InsInfo *insInfoi = getInsInfo(i), *insInfoj = getInsInfo(j);
+bool FunctionStaticSlicer::computeRCi(InsInfo *insInfoi, InsInfo *insInfoj) {
   bool changed = false;
 
   /* {v| v \in RC(j), v \notin DEF(i)} */
@@ -297,9 +296,10 @@ bool FunctionStaticSlicer::computeRCi(const Instruction *i) {
   errs() << '\n';
 #endif
   SuccList succList = getSuccList(i);
+  InsInfo *insInfoi = getInsInfo(i);
   for (SuccList::const_iterator I = succList.begin(), E = succList.end();
        I != E; I++)
-    changed |= computeRCi(i, *I);
+    changed |= computeRCi(insInfoi, getInsInfo(*I));
 
   return changed;
 }

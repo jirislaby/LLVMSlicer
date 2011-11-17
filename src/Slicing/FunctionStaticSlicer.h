@@ -90,7 +90,7 @@ private:
   InsInfoMap insInfoMap;
 
   void crawlBasicBlock(const llvm::BasicBlock *bb);
-  bool computeRCi(const llvm::Instruction *i, const llvm::Instruction *j);
+  bool computeRCi(InsInfo *insInfoi, InsInfo *insInfoj);
   bool computeRCi(const llvm::Instruction *i);
   void computeRC();
 
