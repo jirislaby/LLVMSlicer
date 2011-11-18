@@ -11,6 +11,7 @@
 #include "../Modifies/AlgoDumbSpeedy.h"
 #include "../PointsTo/AlgoAndersen.h"
 #include "../PointsTo/PointsTo.h"
+#include "Prepare.h"
 #include "StaticSlicer.h"
 
 namespace llvm { namespace slicing { namespace detail {
@@ -97,6 +98,8 @@ bool Slicer::runOnModule(Module &M) {
     mods::ProgramStructure P1(M);
     computeModifies(P1, CG, PS, MOD);
   }
+
+  slicing::Prepare::prepareModule(M);
 
   slicing::StaticSlicer SS(this, M, PS, MOD);
 //  SS.computeSlice(I, V);
