@@ -641,14 +641,18 @@ bool FunctionSlicer::runOnFunction(Function &F, const PointsToSets &PS,
 
 bool FunctionSlicer::runOnModule(Module &M) {
   ptr::PointsToSets<ptr::ANDERSEN>::Type PS;
-  ptr::ProgramStructure P(M);
-  computePointsToSets(P, PS);
+  {
+    ptr::ProgramStructure P(M);
+    computePointsToSets(P, PS);
+  }
 
   callgraph::Callgraph CG(M, PS);
 
   mods::Modifies<mods::DUMB_SPEEDY>::Type MOD;
-  mods::ProgramStructure P1(M);
-  computeModifies(P1, CG, PS, MOD);
+  {
+    mods::ProgramStructure P1(M);
+    computeModifies(P1, CG, PS, MOD);
+  }
 
   bool modified = false;
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
