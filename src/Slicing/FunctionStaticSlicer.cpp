@@ -569,6 +569,10 @@ void llvm::slicing::findInitialCriterion(Function &F,
 #ifdef DEBUG_INITCRIT
   errs() << __func__ << " ============ BEGIN\n";
 #endif
+  const Function *F__assert_fail = F.getParent()->getFunction("__assert_fail");
+  if (!F__assert_fail) /* no cookies in this module */
+    return;
+
   for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
     const Instruction *i = &*I;
 #ifdef DEBUG_INITCRIT
@@ -576,22 +580,9 @@ void llvm::slicing::findInitialCriterion(Function &F,
     i->print(errs());
     errs() << '\n';
 #endif
-    if (const StoreInst *SI = dyn_cast<const StoreInst>(i)) {
-      const Value *LHS = SI->getPointerOperand();
-      if (LHS->hasName() && LHS->getName().startswith("__ai_state")) {
-#ifdef DEBUG_INITCRIT
-        errs() << "    adding\n";
-#endif
-        ss.addInitialCriterion(SI, LHS);
-      }
-    } else if (const UnreachableInst *UI = dyn_cast<const UnreachableInst>(i)) {
-#ifdef DEBUG_INITCRIT
-      errs() << "    unreach at: " << UI->getParent()->getParent()->getName() << '\n';
-#endif
-      ss.addInitialCriterion(UI);
-    } else if (const CallInst *CI = dyn_cast<const CallInst>(i)) {
+    if (const CallInst *CI = dyn_cast<const CallInst>(i)) {
       Function *callie = CI->getCalledFunction();
-      if (callie && callie->getName().equals("__assert_fail")) {
+      if (callie == F__assert_fail) {
 #ifdef DEBUG_INITCRIT
         errs() << "    adding\n";
 #endif
