@@ -22,7 +22,6 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/Support/CFG.h"
-#include "llvm/Support/GraphWriter.h"
 #include "llvm/Support/InstIterator.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/TypeBuilder.h"
@@ -315,7 +314,7 @@ void FunctionStaticSlicer::computeRC() {
     errs() << __func__ << ": ============== Iteration " << it++ << '\n';
 #endif
     for (inst_iterator I = inst_begin(fun), E = inst_end(fun); I != E; I++)
-        changed |= computeRCi(&*I);
+      changed |= computeRCi(&*I);
   } while (changed);
 }
 
@@ -429,11 +428,6 @@ static bool canSlice(const Instruction &i) {
   case Instruction::Br:
   case Instruction::Switch:
     return false;
-/*    const BranchInst *bi = cast<const BranchInst>(i);
-    if (bi->isUnconditional())
-      return false;
-    if (bi->getCondition() != UndefValue::get(bi->getType()))
-      return false;*/
   }
   return true;
 }
@@ -576,11 +570,6 @@ bool llvm::slicing::findInitialCriterion(Function &F,
 
   for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
     const Instruction *i = &*I;
-#ifdef DEBUG_INITCRIT
-    errs() << "  at ";
-    i->print(errs());
-    errs() << '\n';
-#endif
     if (const CallInst *CI = dyn_cast<const CallInst>(i)) {
       Function *callie = CI->getCalledFunction();
       if (callie == F__assert_fail) {
@@ -598,47 +587,21 @@ bool llvm::slicing::findInitialCriterion(Function &F,
   return added;
 }
 
-#if 0
-static void writeCFG(std::string suffix, Function &F) {
-  std::string info;
-  std::string filename = "/tmp/" + F.getNameStr() + "_" + suffix + ".dot";
-  llvm::raw_fd_ostream O(filename.c_str(), info);
-  if (!info.empty()) {
-    errs() << __func__ << ": writing of '" << filename << "' failed with: " <<
-        info << '\n';
-    return;
-  }
-  llvm::WriteGraph(O, (const Function *)&F);
-  errs() << __func__ << ": written " << filename << '\n';
-}
-#endif
-
 template<typename PointsToSets, typename ModifiesSets>
 bool FunctionSlicer::runOnFunction(Function &F, const PointsToSets &PS,
                            const ModifiesSets &MOD) {
-/*  errs() << "AT: " << F.getName() << '\n';
-  if (!F.getName().equals("tty_init"))
-    return false;
-//  writeCFG("pre", F);
-  F.viewCFG();*/
-
   bool modified = Prepare::prepareFun(F);
 
   FunctionStaticSlicer ss(F, this, PS, MOD);
-
-//  errs() << "XXX " << F.getName() << "\n";
 
   findInitialCriterion(F, ss);
 
   ss.calculateStaticSlice();
 
   bool sliced = ss.slice();
-
   if (sliced)
     FunctionStaticSlicer::removeUndefBranches(this, F);
 
-//  F.viewCFG();
-  //writeCFG("post", F);
   return modified || sliced;
 }
 
@@ -660,9 +623,8 @@ bool FunctionSlicer::runOnModule(Module &M) {
   bool modified = false;
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
-    if (F.isDeclaration())
-      continue;
-    modified |= runOnFunction(F, PS, MOD);
+    if (!F.isDeclaration())
+      modified |= runOnFunction(F, PS, MOD);
   }
   return modified;
 }
