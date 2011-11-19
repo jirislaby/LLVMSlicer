@@ -44,37 +44,37 @@ template<typename PointsToSets, typename ModifiesSets>
 InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
                  ModifiesSets const& MOD) : ins(i), sliced(true) {
   if (const LoadInst *LI = dyn_cast<const LoadInst>(i)) {
-    DEF.insert(i);
+    addDEF(i);
 
     const Value *op = elimConstExpr(LI->getPointerOperand());
-    REF.insert(op);
+    addREF(op);
     if (!hasExtraReference(op)) {
       typename PointsToSets::PointsToSet const& S = getPointsToSet(op, PS);
       for (typename PointsToSets::PointsToSet::const_iterator p = S.begin();
            p != S.end(); ++p)
-        REF.insert(*p);
+        addREF(*p);
     }
   } else if (const StoreInst *SI = dyn_cast<const StoreInst>(i)) {
     const Value *l = SI->getPointerOperand();
     if (hasExtraReference(l)) {
-      DEF.insert(l);
+      addDEF(l);
     } else {
       typename PointsToSets::PointsToSet const& S = getPointsToSet(l, PS);
       for (typename PointsToSets::PointsToSet::const_iterator p = S.begin();
            p != S.end(); ++p)
-	      DEF.insert(*p);
+	      addDEF(*p);
     }
 
     const Value *r = elimConstExpr(SI->getValueOperand());
     if (!r->getType()->isIntegerTy())
-      REF.insert(l);
+      addREF(l);
     if (!hasExtraReference(r) && !llvm::isa<llvm::Constant>(r))
-      REF.insert(r);
+      addREF(r);
   } else if (const GetElementPtrInst *gep =
              dyn_cast<const GetElementPtrInst>(i)) {
-    DEF.insert(i);
+    addDEF(i);
 
-    REF.insert(gep->getPointerOperand());
+    addREF(gep->getPointerOperand());
   } else if (CallInst const* const C = dyn_cast<const CallInst>(i)) {
     const Value *cv = C->getCalledValue();
 
@@ -84,22 +84,22 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
     } else {
 #if 0 /* bullshit, we do not have malloc/free and other crap */
     } else if (isMemoryAllocation(cv)) {
-      DEF.insert(i);
+      addDEF(i);
     } else if (isMemoryDeallocation(cv)) {
     } else if (isMemoryCopy(cv) || isMemoryMove(cv)) {
       llvm::Value const* const l = C->getOperand(0);
       PointsToSets::PointsToSet const& L = getPointsToSet(l,PS);
       for (PointsToSets::PointsToSet::const_iterator
         p = L.begin(); p != L.end(); ++p)
-          DEF.insert(*p);
+          addDEF(*p);
 
       llvm::Value const* const r = C->getOperand(1);
-      REF.insert(l);
-      REF.insert(r);
+      addREF(l);
+      addREF(r);
       PointsToSets::PointsToSet const& R = getPointsToSet(r,PS);
       for (PointsToSets::PointsToSet::const_iterator p = R.begin();
           p != R.end(); ++p)
-        REF.insert(*p);
+        addREF(*p);
     } else if (!memoryManStuff(C)) {
 #endif
       typedef std::vector<llvm::Function const*> CalledVec;
@@ -118,66 +118,66 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
         typename ModifiesSets::mapped_type const& M = getModSet(*f, MOD);
         for (typename ModifiesSets::mapped_type::const_iterator v = M.begin();
              v != M.end(); ++v)
-          DEF.insert(*v);
+          addDEF(*v);
       }
 
       if (!callToVoidFunction(C))
-          DEF.insert(C);
+          addDEF(C);
     }
   } else if (isa<const ReturnInst>(i)) {
   } else if (const BinaryOperator *BO = dyn_cast<const BinaryOperator>(i)) {
-    DEF.insert(i);
+    addDEF(i);
 
     if (!llvm::isa<llvm::Constant>(BO->getOperand(0)))
-      REF.insert(BO->getOperand(0));
+      addREF(BO->getOperand(0));
     if (!llvm::isa<llvm::Constant>(BO->getOperand(1)))
-      REF.insert(BO->getOperand(1));
+      addREF(BO->getOperand(1));
   } else if (const CastInst *CI = dyn_cast<const CastInst>(i)) {
-    DEF.insert(i);
+    addDEF(i);
 
     if (!hasExtraReference(CI->getOperand(0)))
-      REF.insert(CI->getOperand(0));
+      addREF(CI->getOperand(0));
   } else if (const AllocaInst *AI = dyn_cast<const AllocaInst>(i)) {
-      DEF.insert(AI);
+      addDEF(AI);
   } else if (const CmpInst *CI = dyn_cast<const CmpInst>(i)) {
-    DEF.insert(i);
+    addDEF(i);
 
     if (!llvm::isa<llvm::Constant>(CI->getOperand(0)))
-      REF.insert(CI->getOperand(0));
+      addREF(CI->getOperand(0));
     if (!llvm::isa<llvm::Constant>(CI->getOperand(1)))
-      REF.insert(CI->getOperand(1));
+      addREF(CI->getOperand(1));
   } else if (const BranchInst *BI = dyn_cast<const BranchInst>(i)) {
     if (BI->isConditional() && !isa<Constant>(BI->getCondition()))
-      REF.insert(BI->getCondition());
+      addREF(BI->getCondition());
   } else if (const PHINode *phi = dyn_cast<const PHINode>(i)) {
-    DEF.insert(i);
+    addDEF(i);
 
     for (unsigned k = 0; k < phi->getNumIncomingValues(); ++k)
       if (!isa<Constant>(phi->getIncomingValue(k)))
-	REF.insert(phi->getIncomingValue(k));
+	addREF(phi->getIncomingValue(k));
   } else if (isa<const SwitchInst>(i)) {
   } else if (const SelectInst *SI = dyn_cast<const SelectInst>(i)) {
       // TODO: THE FOLLOWING CODE HAS NOT BEEN TESTED YET
 
-    DEF.insert(i);
+    addDEF(i);
 
     if (!isa<Constant>(SI->getCondition()))
-      REF.insert(SI->getCondition());
+      addREF(SI->getCondition());
     if (!isa<Constant>(SI->getTrueValue()))
-      REF.insert(SI->getTrueValue());
+      addREF(SI->getTrueValue());
     if (!isa<Constant>(SI->getFalseValue()))
-      REF.insert(SI->getFalseValue());
+      addREF(SI->getFalseValue());
   } else if (isa<const UnreachableInst>(i)) {
   } else if (const ExtractValueInst *EV = dyn_cast<const ExtractValueInst>(i)) {
-      DEF.insert(i);
-      REF.insert(EV->getAggregateOperand());
+      addDEF(i);
+      addREF(EV->getAggregateOperand());
   } else if (const InsertValueInst *IV = dyn_cast<const InsertValueInst>(i)) {
 //      TODO THE FOLLOWING CODE HAS NOT BEEN TESTED YET
 
       const Value *r = IV->getInsertedValueOperand();
-      DEF.insert(IV->getAggregateOperand());
+      addDEF(IV->getAggregateOperand());
       if (!isa<Constant>(r))
-	REF.insert(r);
+	addREF(r);
   } else {
     errs() << "ERROR: Unsupported instruction reached\n";
     i->print(errs());

@@ -23,6 +23,8 @@ public:
                    ModifiesSets const& MOD);
 
   bool addRC(const llvm::Value *var) { return RC.insert(var); }
+  bool addDEF(const llvm::Value *var) { return DEF.insert(var); }
+  bool addREF(const llvm::Value *var) { return REF.insert(var); }
   void deslice() { sliced = false; }
 
   ValSet::const_iterator RC_begin() const { return RC.begin(); }
