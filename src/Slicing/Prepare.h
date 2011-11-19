@@ -14,10 +14,12 @@ namespace llvm { namespace slicing {
 
 class Prepare {
 public:
-  static void prepareFun(llvm::Function &F);
-  static void prepareModule(llvm::Module &M) {
+  static bool prepareFun(llvm::Function &F);
+  static bool prepareModule(llvm::Module &M) {
+    bool mod = false;
     for (llvm::Module::iterator I = M.begin(), E = M.end(); I != E; ++I)
-      prepareFun(*I);
+      mod |= prepareFun(*I);
+    return mod;
   }
 
 private:

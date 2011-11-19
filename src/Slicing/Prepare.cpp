@@ -62,22 +62,27 @@ void Prepare::replaceInsStore(Function &F, CallInst *CI) {
   ReplaceInstWithInst(CI, SI);
 }
 
-void Prepare::prepareFun(Function &F) {
+bool Prepare::prepareFun(Function &F) {
+  bool modified = false;
   const Module *M = F.getParent();
   const Function *__ai_load = M->getFunction("__ai_load");
   const Function *__ai_store = M->getFunction("__ai_store");
+
   for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E;) {
     Instruction *ins = &*I;
     ++I;
     if (CallInst *CI = dyn_cast<CallInst>(ins)) {
       Function *callee = CI->getCalledFunction();
       if (callee) {
-        if (callee == __ai_load)
+        if (callee == __ai_load) {
           replaceInsLoad(F, CI);
-        else if (callee == __ai_store)
+          modified = true;
+        } else if (callee == __ai_store) {
           replaceInsStore(F, CI);
+          modified = true;
+        }
       }
     }
   }
-//  F.dump();
+  return modified;
 }

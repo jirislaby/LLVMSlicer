@@ -622,7 +622,7 @@ bool FunctionSlicer::runOnFunction(Function &F, const PointsToSets &PS,
 //  writeCFG("pre", F);
   F.viewCFG();*/
 
-  Prepare::prepareFun(F);
+  bool modified = Prepare::prepareFun(F);
 
   FunctionStaticSlicer ss(F, this, PS, MOD);
 
@@ -639,7 +639,7 @@ bool FunctionSlicer::runOnFunction(Function &F, const PointsToSets &PS,
 
 //  F.viewCFG();
   //writeCFG("post", F);
-  return sliced;
+  return modified || sliced;
 }
 
 bool FunctionSlicer::runOnModule(Module &M) {
