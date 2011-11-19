@@ -108,7 +108,7 @@ private:
   }
 };
 
-void findInitialCriterion(llvm::Function &F, FunctionStaticSlicer &ss);
+bool findInitialCriterion(llvm::Function &F, FunctionStaticSlicer &ss);
 
 }}
 

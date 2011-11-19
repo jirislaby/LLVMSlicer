@@ -564,14 +564,15 @@ void FunctionStaticSlicer::removeUndefBranches(ModulePass *MP, Function &F) {
 #endif
 }
 
-void llvm::slicing::findInitialCriterion(Function &F,
+bool llvm::slicing::findInitialCriterion(Function &F,
                                          FunctionStaticSlicer &ss) {
+  bool added = false;
 #ifdef DEBUG_INITCRIT
   errs() << __func__ << " ============ BEGIN\n";
 #endif
   const Function *F__assert_fail = F.getParent()->getFunction("__assert_fail");
   if (!F__assert_fail) /* no cookies in this module */
-    return;
+    return false;
 
   for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
     const Instruction *i = &*I;
@@ -587,12 +588,14 @@ void llvm::slicing::findInitialCriterion(Function &F,
         errs() << "    adding\n";
 #endif
         ss.addInitialCriterion(CI);
+        added = true;
       }
     }
   }
 #ifdef DEBUG_INITCRIT
   errs() << __func__ << " ============ END\n";
 #endif
+  return added;
 }
 
 #if 0
