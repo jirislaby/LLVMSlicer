@@ -30,23 +30,12 @@ namespace llvm { namespace slicing {
 
         ~StaticSlicer();
 
-        template<typename FwdInstrIterator, typename FwdValueIterator>
-        void computeSlice(FwdInstrIterator ib, const FwdInstrIterator ie,
-                          FwdValueIterator vb, const FwdValueIterator ve);
-
-        template<typename FwdValueIterator>
-        void computeSlice(const llvm::Instruction *I, FwdValueIterator b,
-                          const FwdValueIterator e) {
-            computeSlice(&I, &I + 1, b, e);
-        }
-
-        void computeSlice(const llvm::Instruction* I, const llvm::Value *V) {
-            computeSlice(I, &V, &V + 1);
-        }
-
+        void computeSlice();
         bool sliceModule();
 
     private:
+        typedef llvm::SmallVector<const llvm::Function *, 20> InitFuns;
+
         template<typename PointsToSets>
         void buildDicts(PointsToSets const& PS);
 
@@ -63,6 +52,7 @@ namespace llvm { namespace slicing {
         ModulePass *MP;
         Module &module;
         Slicers slicers;
+        InitFuns initFuns;
         FuncsToCalls funcsToCalls;
         CallsToFuncs callsToFuncs;
     };
@@ -124,7 +114,8 @@ namespace llvm { namespace slicing {
     StaticSlicer::StaticSlicer(ModulePass *MP, Module &M,
                                PointsToSets const& PS,
                                ModifiesSets const& MOD) : MP(MP), module(M),
-                               slicers(), funcsToCalls(), callsToFuncs() {
+                               slicers(), initFuns(), funcsToCalls(),
+                               callsToFuncs() {
         for (llvm::Module::iterator f = M.begin(); f != M.end(); ++f)
           if (!f->isDeclaration() && !memoryManStuff(f))
             runFSS(*f, PS, MOD);
@@ -141,7 +132,8 @@ namespace llvm { namespace slicing {
   void StaticSlicer::runFSS(Function &F, const PointsToSets &PS,
                             const ModifiesSets &MOD) {
     FunctionStaticSlicer *FSS = new FunctionStaticSlicer(F, MP, PS, MOD);
-    llvm::slicing::findInitialCriterion(F, *FSS);
+    if (llvm::slicing::findInitialCriterion(F, *FSS))
+      initFuns.push_back(&F);
     slicers.insert(Slicers::value_type(&F, FSS));
   }
 
@@ -154,8 +146,7 @@ namespace llvm { namespace slicing {
                 for (llvm::inst_iterator i = llvm::inst_begin(*f);
                         i != llvm::inst_end(*f); i++)
                     if (llvm::CallInst const* c =
-                            llvm::dyn_cast<llvm::CallInst const>(&*i))
-                    {
+                            llvm::dyn_cast<llvm::CallInst const>(&*i)) {
                         if (isInlineAssembly(c)) {
                             errs() << "ERROR: Inline assembler detected in " <<
                                 f->getName() << ", skipping\n";
@@ -228,31 +219,6 @@ namespace llvm { namespace slicing {
                         *out++ = g->second;
                 }
             }
-        }
-    }
-
-    template<typename FwdInstrIterator, typename FwdValueIterator>
-    void StaticSlicer::computeSlice(FwdInstrIterator ib,
-                                    const FwdInstrIterator ie,
-                                    FwdValueIterator vb,
-                                    const FwdValueIterator ve) {
-        typedef std::set<llvm::Function const*> WorkSet;
-        WorkSet Q;
-        for ( ; ib != ie; ++ib) {
-            const llvm::Function *startFn = (*ib)->getParent()->getParent();
-            slicers[startFn]->addCriterion(*ib, vb, ve, true);
-            Q.insert(startFn);
-        }
-        while (!Q.empty()) {
-            for (WorkSet::const_iterator f = Q.begin(); f != Q.end(); ++f)
-                slicers[*f]->calculateStaticSlice();
-
-            WorkSet tmp;
-            for (WorkSet::const_iterator f = Q.begin(); f != Q.end(); ++f) {
-                emitToCalls(*f, std::inserter(tmp, tmp.end()));
-                emitToExits(*f, std::inserter(tmp, tmp.end()));
-            }
-            std::swap(tmp,Q);
         }
     }
 

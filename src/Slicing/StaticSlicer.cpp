@@ -35,6 +35,23 @@ namespace llvm { namespace slicing { namespace detail {
 
 namespace llvm { namespace slicing {
 
+    void StaticSlicer::computeSlice() {
+        typedef llvm::SmallVector<const llvm::Function *, 20> WorkSet;
+        WorkSet Q(initFuns);
+
+        while (!Q.empty()) {
+            for (WorkSet::const_iterator f = Q.begin(); f != Q.end(); ++f)
+                slicers[*f]->calculateStaticSlice();
+
+            WorkSet tmp;
+            for (WorkSet::const_iterator f = Q.begin(); f != Q.end(); ++f) {
+                emitToCalls(*f, std::inserter(tmp, tmp.end()));
+                emitToExits(*f, std::inserter(tmp, tmp.end()));
+            }
+            std::swap(tmp,Q);
+        }
+    }
+
     bool StaticSlicer::sliceModule() {
       bool modified = false;
       for (Slicers::iterator s = slicers.begin(); s != slicers.end(); ++s)
@@ -102,6 +119,6 @@ bool Slicer::runOnModule(Module &M) {
   slicing::Prepare::prepareModule(M);
 
   slicing::StaticSlicer SS(this, M, PS, MOD);
-//  SS.computeSlice(I, V);
+  SS.computeSlice();
   return SS.sliceModule();
 }
