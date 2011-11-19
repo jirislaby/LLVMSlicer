@@ -121,21 +121,23 @@ namespace llvm { namespace callgraph {
     Callgraph::Callgraph(Module &M, PointsToSets const& PS) {
         typedef llvm::Module::iterator FunctionsIter;
         for (FunctionsIter f = M.begin(); f != M.end(); ++f)
-            if (!f->isDeclaration() && !memoryManStuff(f))
+            if (!f->isDeclaration() && !memoryManStuff(&*f))
                 for (llvm::inst_iterator i = llvm::inst_begin(*f);
                         i != llvm::inst_end(*f); i++)
                     if (llvm::CallInst const* c =
                             llvm::dyn_cast<llvm::CallInst const>(&*i)) {
 			if (isInlineAssembly(c))
 			    continue;
-                        std::vector<llvm::Value const*> G;
+                        std::vector<const llvm::Value *> G;
                         if (c->getCalledFunction() != 0)
                             G.push_back(c->getCalledFunction());
-                        else
-                        {
+                        else {
                             typename PointsToSets::PointsToSet const& S =
                                 getPointsToSet(c->getCalledValue(),PS);
-                            std::copy(S.begin(),S.end(),std::back_inserter(G));
+			    for (typename PointsToSets::PointsToSet::const_iterator
+				I = S.begin(), E = S.end(); I != E; ++I)
+			      if (isa<llvm::Function>(*I))
+				G.push_back(*I);
                         }
                         for (std::vector<llvm::Value const*>::const_iterator g =
                                 G.begin(); g != G.end(); ++g)

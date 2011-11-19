@@ -117,7 +117,7 @@ namespace llvm { namespace slicing {
                                slicers(), initFuns(), funcsToCalls(),
                                callsToFuncs() {
         for (llvm::Module::iterator f = M.begin(); f != M.end(); ++f)
-          if (!f->isDeclaration() && !memoryManStuff(f))
+          if (!f->isDeclaration() && !memoryManStuff(&*f))
             runFSS(*f, PS, MOD);
         buildDicts(PS);
     }
@@ -142,7 +142,7 @@ namespace llvm { namespace slicing {
     {
         typedef llvm::Module::iterator FunctionsIter;
         for (FunctionsIter f = module.begin(); f != module.end(); ++f)
-            if (!f->isDeclaration() && !memoryManStuff(f))
+            if (!f->isDeclaration() && !memoryManStuff(&*f))
                 for (llvm::inst_iterator i = llvm::inst_begin(*f);
                         i != llvm::inst_end(*f); i++)
                     if (llvm::CallInst const* c =
@@ -155,11 +155,13 @@ namespace llvm { namespace slicing {
                         std::vector<llvm::Value const*> G;
                         if (c->getCalledFunction() != 0)
                             G.push_back(c->getCalledFunction());
-                        else
-                        {
+                        else {
                             typename PointsToSets::PointsToSet const& S =
                                 getPointsToSet(c->getCalledValue(),PS);
-                            std::copy(S.begin(),S.end(),std::back_inserter(G));
+			    for (typename PointsToSets::PointsToSet::const_iterator
+				I = S.begin(), E = S.end(); I != E; ++I)
+			      if (isa<llvm::Function>(*I))
+				G.push_back(*I);
                         }
                         for (std::vector<llvm::Value const*>::const_iterator g =
                                 G.begin(); g != G.end(); ++g)

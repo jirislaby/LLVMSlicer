@@ -458,7 +458,7 @@ namespace llvm { namespace ptr { namespace detail {
   void toRuleCode(const Value *V, OutIterator out) {
     if (const llvm::Instruction *I = llvm::dyn_cast<llvm::Instruction>(V)) {
       if (const llvm::LoadInst *LI = llvm::dyn_cast<llvm::LoadInst>(I)) {
-        const llvm::Value *op = LI->getPointerOperand();
+        const llvm::Value *op = elimConstExpr(LI->getPointerOperand());
         if (hasExtraReference(op))
           *out++ = ruleCode(ruleVar(V) = ruleVar(op));
         else
@@ -466,7 +466,7 @@ namespace llvm { namespace ptr { namespace detail {
             } else if (const llvm::StoreInst *SI =
                        llvm::dyn_cast<llvm::StoreInst>(I)) {
         const llvm::Value *l = SI->getPointerOperand();
-        const llvm::Value *r = SI->getValueOperand();
+        const llvm::Value *r = elimConstExpr(SI->getValueOperand());
         if (!hasExtraReference(l)) {
           if (hasExtraReference(r))
             *out++ = ruleCode(*ruleVar(l) = &ruleVar(r));
@@ -563,7 +563,8 @@ namespace llvm { namespace ptr { namespace detail {
             llvm::Function::const_arg_iterator fit = f->arg_begin();
             for (std::size_t i = 0; fit != f->arg_end(); ++fit, ++i)
                 if (llvm::isPointerValue(&*fit))
-                    *out++ = detail::argPassRuleCode(&*fit,c->getOperand(i));
+                    *out++ = detail::argPassRuleCode(&*fit,
+				    elimConstExpr(c->getOperand(i)));
         }
     }
 

@@ -46,7 +46,7 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
   if (const LoadInst *LI = dyn_cast<const LoadInst>(i)) {
     DEF.insert(i);
 
-    const Value *op = LI->getPointerOperand();
+    const Value *op = elimConstExpr(LI->getPointerOperand());
     REF.insert(op);
     if (!hasExtraReference(op)) {
       typename PointsToSets::PointsToSet const& S = getPointsToSet(op, PS);
@@ -65,7 +65,7 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
 	      DEF.insert(*p);
     }
 
-    const Value *r = SI->getValueOperand();
+    const Value *r = elimConstExpr(SI->getValueOperand());
     if (!r->getType()->isIntegerTy())
       REF.insert(l);
     if (!hasExtraReference(r) && !llvm::isa<llvm::Constant>(r))
@@ -139,8 +139,6 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
       REF.insert(CI->getOperand(0));
   } else if (const AllocaInst *AI = dyn_cast<const AllocaInst>(i)) {
       DEF.insert(AI);
-
-      REF.insert(AI);
   } else if (const CmpInst *CI = dyn_cast<const CmpInst>(i)) {
     DEF.insert(i);
 
@@ -149,7 +147,7 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
     if (!llvm::isa<llvm::Constant>(CI->getOperand(1)))
       REF.insert(CI->getOperand(1));
   } else if (const BranchInst *BI = dyn_cast<const BranchInst>(i)) {
-    if (BI->isConditional())
+    if (BI->isConditional() && !isa<Constant>(BI->getCondition()))
       REF.insert(BI->getCondition());
   } else if (const PHINode *phi = dyn_cast<const PHINode>(i)) {
     DEF.insert(i);
@@ -176,8 +174,8 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
   } else if (const InsertValueInst *IV = dyn_cast<const InsertValueInst>(i)) {
 //      TODO THE FOLLOWING CODE HAS NOT BEEN TESTED YET
 
-      DEF.insert(IV->getAggregateOperand());
       const Value *r = IV->getInsertedValueOperand();
+      DEF.insert(IV->getAggregateOperand());
       if (!isa<Constant>(r))
 	REF.insert(r);
   } else {

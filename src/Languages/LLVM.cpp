@@ -2,6 +2,7 @@
 // License. See LICENSE.TXT for details.
 
 #include "llvm/Constant.h"
+#include "llvm/Constants.h"
 #include "llvm/InlineAsm.h"
 #include "llvm/Instructions.h"
 #include "llvm/Value.h"
@@ -64,10 +65,10 @@ namespace llvm {
         //            llvm::dyn_cast<llvm::GetElementPtrInst>(I))
         {
             return true;
-        }
-        else if (llvm::CallInst const* const C =
-                        llvm::dyn_cast<llvm::CallInst>(I))
-        {
+        } else if (const llvm::CallInst *C =
+                        llvm::dyn_cast<llvm::CallInst>(I)) {
+	    if (isInlineAssembly(C))
+	      return false;
             return memoryManStuff(C->getCalledValue());
         } else if (const ExtractValueInst *EV =
 		dyn_cast<const ExtractValueInst>(I)) {
@@ -208,5 +209,14 @@ namespace llvm {
     {
         llvm::BasicBlock::const_iterator it(I);
         return ++it == I->getParent()->end() ? 0 : &*it;
+    }
+
+    const Value *elimConstExpr(const Value *V) {
+      if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(V)) {
+        assert((CE->isGEPWithNoNotionalOverIndexing() || CE->isCast()) &&
+          "Only GEP or CAST const expressions are supported for now.");
+        return CE->getOperand(0);
+      }
+      return V;
     }
 }

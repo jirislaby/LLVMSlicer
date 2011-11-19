@@ -49,6 +49,7 @@ namespace llvm {
                            llvm::Function const* const F);
     bool callToVoidFunction(llvm::CallInst const* const C);
     llvm::Instruction const* getSuccInBlock(llvm::Instruction const* const);
+    const llvm::Value *elimConstExpr(const llvm::Value *V);
 }
 
 namespace llvm {
