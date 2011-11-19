@@ -454,111 +454,99 @@ namespace llvm { namespace ptr { namespace detail {
     RuleCode argPassRuleCode(llvm::Value const* const l,
                                                  llvm::Value const* const r);
 
-    template<typename OutIterator>
-    void toRuleCode(llvm::Value const* const V, OutIterator out)
-    {
-        if (llvm::Instruction const* const I =
-                llvm::dyn_cast<llvm::Instruction const>(V))
-        {
-            if (I->getOpcode() == llvm::Instruction::Load)
-            {
-                llvm::Value const* const op = I->getOperand(0);
-                if (hasExtraReference(op))
-                    *out++ = ruleCode(ruleVar(V) = ruleVar(op));
-                else
-                    *out++ = ruleCode(ruleVar(V) = *ruleVar(op));
-            }
-            else if (I->getOpcode() == llvm::Instruction::Store)
-            {
-                llvm::Value const* const l = I->getOperand(1);
-                llvm::Value const* const r = I->getOperand(0);
-                if (!hasExtraReference(l))
-                    if (hasExtraReference(r))
-                        *out++ = ruleCode(*ruleVar(l) = &ruleVar(r));
-                    else
-                    {
-                        if (llvm::isa<llvm::ConstantPointerNull const>(r))
-                            *out++ = ruleCode(*ruleVar(l) = ruleNull(r));
-                        else
-                            *out++ = ruleCode(*ruleVar(l) = ruleVar(r));
-                    }
-                else
-                    if (hasExtraReference(r))
-                        *out++ = ruleCode(ruleVar(l) = &ruleVar(r));
-                    else
-                    {
-                        if (llvm::isa<llvm::ConstantPointerNull const>(r))
-                            *out++ = ruleCode(ruleVar(l) = ruleNull(r));
-                        else
-                            *out++ = ruleCode(ruleVar(l) = ruleVar(r));
-                    }
-            }
-            else if (I->getOpcode() == llvm::Instruction::BitCast)
-            {
-                llvm::Value const* const op = I->getOperand(0);
-                if (hasExtraReference(op))
-                    *out++ = ruleCode(ruleVar(V) = &ruleVar(op));
-                else
-                    *out++ = ruleCode(ruleVar(V) = ruleVar(op));
-            }
-            else if (llvm::GetElementPtrInst const* const gep =
-                        llvm::dyn_cast<llvm::GetElementPtrInst>(I))
-            {
-                llvm::Value const* const op = gep->getPointerOperand();
-                if (hasExtraReference(op))
-                    *out++ = ruleCode(ruleVar(V) = &ruleVar(op));
-                else
-                    *out++ = ruleCode(ruleVar(V) = ruleVar(op));
-            }
-            else if (llvm::CallInst const* const C =
-                            llvm::dyn_cast<llvm::CallInst>(I)) {
-		if (isInlineAssembly(C)) {
-		} if (isMemoryAllocation(C->getCalledValue()))
-                    *out++ = ruleCode(ruleVar(V) = ruleAllocSite(V));
-                else if (isMemoryDeallocation(C->getCalledValue()))
-                    errs() << "KOKO\n";
-//                    *out++ = ruleCode(ruleDeallocSite(V));
-                else if (isMemoryCopy(C->getCalledValue()) ||
-                            isMemoryMove(C->getCalledValue()))
-                {
-                    llvm::Value const* const l = I->getOperand(0);
-                    llvm::Value const* const r = I->getOperand(1);
-                    *out++ = ruleCode(*ruleVar(l) = *ruleVar(r));
-                }
-            }
-            else if (llvm::ExtractValueInst const* const EV =
-                            llvm::dyn_cast<llvm::ExtractValueInst>(I)) {
-		// TODO: Instruction 'ExtractValueIns' has not been tested yet!
-
-                llvm::Value const* const op = EV->getAggregateOperand();
-                assert(!hasExtraReference(op) || "Agregate operand must "
-                             "be a value and not a pointer.");
-                *out++ = ruleCode(ruleVar(V) = ruleVar(op));
-            } else if (llvm::InsertValueInst const* const IV =
-                            llvm::dyn_cast<llvm::InsertValueInst>(I)) {
-		// TODO: Instruction 'InsertValueInst' has not been tested yet!
-
-                const Value *l = IV->getAggregateOperand();
-                assert(!hasExtraReference(l) || "Agregate operand must "
-                             "be a value and not a pointer.");
-                const Value *r = IV->getInsertedValueOperand();
-                if (hasExtraReference(r))
-                    *out++ = ruleCode(ruleVar(l) = &ruleVar(r));
-                else {
-                    if (isa<const ConstantPointerNull>(r))
-                        *out++ = ruleCode(ruleVar(l) = ruleNull(r));
-                    else
-                        *out++ = ruleCode(ruleVar(l) = ruleVar(r));
-                }
-            }
+  template<typename OutIterator>
+  void toRuleCode(const Value *V, OutIterator out) {
+    if (const llvm::Instruction *I = llvm::dyn_cast<llvm::Instruction>(V)) {
+      if (const llvm::LoadInst *LI = llvm::dyn_cast<llvm::LoadInst>(I)) {
+        const llvm::Value *op = LI->getPointerOperand();
+        if (hasExtraReference(op))
+          *out++ = ruleCode(ruleVar(V) = ruleVar(op));
+        else
+          *out++ = ruleCode(ruleVar(V) = *ruleVar(op));
+            } else if (const llvm::StoreInst *SI =
+                       llvm::dyn_cast<llvm::StoreInst>(I)) {
+        const llvm::Value *l = SI->getPointerOperand();
+        const llvm::Value *r = SI->getValueOperand();
+        if (!hasExtraReference(l)) {
+          if (hasExtraReference(r))
+            *out++ = ruleCode(*ruleVar(l) = &ruleVar(r));
+          else {
+            if (isa<ConstantPointerNull>(r))
+              *out++ = ruleCode(*ruleVar(l) = ruleNull(r));
+            else
+              *out++ = ruleCode(*ruleVar(l) = ruleVar(r));
+          }
+        } else {
+          if (hasExtraReference(r))
+            *out++ = ruleCode(ruleVar(l) = &ruleVar(r));
+          else {
+            if (isa<ConstantPointerNull>(r))
+              *out++ = ruleCode(ruleVar(l) = ruleNull(r));
+            else
+              *out++ = ruleCode(ruleVar(l) = ruleVar(r));
+          }
         }
-        else if (llvm::GlobalVariable const * const G =
-                        llvm::dyn_cast<llvm::GlobalVariable>(V))
-        {
-            llvm::Value const* const op = G->getOperand(0);
+            } else if (const llvm::BitCastInst *BCI =
+                       llvm::dyn_cast<llvm::BitCastInst>(I)) {
+          const llvm::Value *op = BCI->getOperand(0);
+          if (hasExtraReference(op))
             *out++ = ruleCode(ruleVar(V) = &ruleVar(op));
+          else
+            *out++ = ruleCode(ruleVar(V) = ruleVar(op));
+            } else if (const llvm::GetElementPtrInst *gep =
+                       llvm::dyn_cast<llvm::GetElementPtrInst>(I)) {
+          const llvm::Value *op = gep->getPointerOperand();
+          if (hasExtraReference(op))
+            *out++ = ruleCode(ruleVar(V) = &ruleVar(op));
+          else
+            *out++ = ruleCode(ruleVar(V) = ruleVar(op));
+            } else if (const llvm::CallInst *C =
+                       llvm::dyn_cast<llvm::CallInst>(I)) {
+        if (isInlineAssembly(C)) {
+        } if (isMemoryAllocation(C->getCalledValue()))
+          *out++ = ruleCode(ruleVar(V) = ruleAllocSite(V));
+        else if (isMemoryDeallocation(C->getCalledValue()))
+          errs() << "KOKO\n";
+        //                    *out++ = ruleCode(ruleDeallocSite(V));
+        else if (isMemoryCopy(C->getCalledValue()) ||
+            isMemoryMove(C->getCalledValue())) {
+          const llvm::Value *l = C->getArgOperand(0);
+          const llvm::Value *r = C->getArgOperand(1);
+          *out++ = ruleCode(*ruleVar(l) = *ruleVar(r));
         }
+            } else if (const llvm::ExtractValueInst *EV =
+                       llvm::dyn_cast<llvm::ExtractValueInst>(I)) {
+        // TODO: Instruction 'ExtractValueIns' has not been tested yet!
+
+        const llvm::Value *op = EV->getAggregateOperand();
+        assert(!hasExtraReference(op) || "Agregate operand must "
+               "be a value and not a pointer.");
+        *out++ = ruleCode(ruleVar(V) = ruleVar(op));
+            } else if (const llvm::InsertValueInst *IV =
+                       llvm::dyn_cast<llvm::InsertValueInst>(I)) {
+        // TODO: Instruction 'InsertValueInst' has not been tested yet!
+
+        const llvm::Value *l = IV->getAggregateOperand();
+        assert(!hasExtraReference(l) || "Agregate operand must "
+               "be a value and not a pointer.");
+        const llvm::Value *r = IV->getInsertedValueOperand();
+        if (hasExtraReference(r))
+          *out++ = ruleCode(ruleVar(l) = &ruleVar(r));
+        else {
+          if (isa<ConstantPointerNull>(r))
+            *out++ = ruleCode(ruleVar(l) = ruleNull(r));
+          else
+            *out++ = ruleCode(ruleVar(l) = ruleVar(r));
+        }
+      }
+    } else if (const llvm::GlobalVariable *GV =
+               llvm::dyn_cast<llvm::GlobalVariable>(V)) {
+      const llvm::Value *op = GV->getInitializer();
+      *out++ = ruleCode(ruleVar(V) = &ruleVar(op));
     }
+  }
+
+
     template<typename OutIterator>
     void collectCallRuleCodes(llvm::CallInst const* const c,
                               llvm::Function const* f, OutIterator out) {
