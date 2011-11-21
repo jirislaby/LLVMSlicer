@@ -535,7 +535,8 @@ void FunctionStaticSlicer::removeUndefBranches(ModulePass *MP, Function &F) {
     if (cond->getValueID() != Value::UndefValueVal)
       continue;
     DomTreeNode *node = PDT.getNode(&bb);
-    assert(node);
+    if (!node) /* this bb is unreachable */
+      continue;
     DomTreeNode *idom = node->getIDom();
     assert(idom);
 /*    if (!idom)
