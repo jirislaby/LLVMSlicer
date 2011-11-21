@@ -109,19 +109,6 @@ int Kleerer::handleIns(const Instruction &ins) {
   return 0;
 }
 
-#if 0
-void Kleerer::writeMain(const Function &F) {
-  std::string Filename = "main." + M.getModuleIdentifier() + ".c";
-  std::string ErrorInfo;
-  raw_fd_ostream File(Filename.c_str(), ErrorInfo);
-  if (!ErrorInfo.empty()) {
-    errs() << __func__ << ": cannot write '" << Filename << "'!\n";
-    return;
-  }
-  File <<
-}
-#endif
-
 static void check(Value *Func, ArrayRef<Value *> Args) {
   FunctionType *FTy =
     cast<FunctionType>(cast<PointerType>(Func->getType())->getElementType());
