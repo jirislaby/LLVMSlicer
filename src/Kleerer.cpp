@@ -188,12 +188,17 @@ Instruction *Kleerer::call_klee_make_symbolic(Function *klee_make_symbolic,
 void Kleerer::makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
                                   BasicBlock *BB, Constant *noname) {
   Constant *zero = ConstantInt::get(intType, 0);
-  GlobalVariable *ai_state = M.getGlobalVariable("__ai_state", true);
-  ai_state->setInitializer(zero);
-  BB->getInstList().push_back(call_klee_make_symbolic(klee_make_symbolic,
-                                                      noname, BB, intType,
-                                                      ai_state));
-  new StoreInst(zero, ai_state, "", true, BB);
+  for (Module::global_iterator I = M.global_begin(), E = M.global_end();
+      I != E; ++I) {
+    GlobalVariable &GV = *I;
+    if (!GV.hasName() || !GV.getName().startswith("__ai_state_"))
+      continue;
+    GV.setInitializer(zero);
+    BB->getInstList().push_back(call_klee_make_symbolic(klee_make_symbolic,
+                                                        noname, BB, intType,
+                                                        &GV));
+    new StoreInst(zero, &GV, "", true, BB);
+  }
 }
 
 Constant *Kleerer::get_assert_fail()
@@ -208,8 +213,8 @@ Constant *Kleerer::get_assert_fail()
 
 BasicBlock *Kleerer::checkAiState(Function *mainFun, BasicBlock *BB,
                                   Constant *noname) {
+  Module *M = mainFun->getParent();
   Constant *zero = ConstantInt::get(intType, 0);
-  GlobalVariable *ai_state = M.getGlobalVariable("__ai_state", true);
 
   BasicBlock *finalBB = BasicBlock::Create(C, "final", mainFun);
   BasicBlock *assBB = BasicBlock::Create(C, "assertBB", mainFun);
@@ -220,9 +225,18 @@ BasicBlock *Kleerer::checkAiState(Function *mainFun, BasicBlock *BB,
   params.push_back(noname);
   CallInst::Create(get_assert_fail(), params, "", assBB);
   new UnreachableInst(C, assBB);
+  Value *sum = zero;
 
-  Value *ai_stateVal = new LoadInst(ai_state, "", true, BB);
-  Value *ai_stateIsZero = new ICmpInst(*BB, CmpInst::ICMP_EQ, ai_stateVal, zero);
+  for (Module::global_iterator I = M->global_begin(), E = M->global_end();
+      I != E; ++I) {
+    GlobalVariable &ai_state = *I;
+    if (!ai_state.hasName() || !ai_state.getName().startswith("__ai_state_"))
+      continue;
+    Value *ai_stateVal = new LoadInst(&ai_state, "", true, BB);
+    sum = BinaryOperator::Create(BinaryOperator::Add, ai_stateVal, sum, "", BB);
+  }
+
+  Value *ai_stateIsZero = new ICmpInst(*BB, CmpInst::ICMP_EQ, sum, zero);
   BranchInst::Create(finalBB, assBB, ai_stateIsZero, BB);
 
   return finalBB;
