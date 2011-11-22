@@ -16,7 +16,7 @@ namespace llvm { namespace mods {
       if (!f->isDeclaration() && !memoryManStuff(&*f))
         for (inst_iterator i = inst_begin(*f); i != inst_end(*f); ++i)
           if (const StoreInst *s = dyn_cast<StoreInst>(&*i)) {
-            const Value *l = s->getPointerOperand();
+            const Value *l = elimConstExpr(s->getPointerOperand());
 	    this->getContainer()[&*f].push_back(ProgramStructure::Command(
 		  hasExtraReference(l) ? CMD_VAR : CMD_DREF_VAR, l));
           }

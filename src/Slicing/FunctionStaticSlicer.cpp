@@ -55,7 +55,7 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
         addREF(*p);
     }
   } else if (const StoreInst *SI = dyn_cast<const StoreInst>(i)) {
-    const Value *l = SI->getPointerOperand();
+    const Value *l = elimConstExpr(SI->getPointerOperand());
     if (hasExtraReference(l)) {
       addDEF(l);
     } else {
