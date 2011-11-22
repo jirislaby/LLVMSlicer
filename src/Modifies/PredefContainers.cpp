@@ -15,10 +15,10 @@ namespace llvm { namespace mods {
     for (Module::iterator f = M.begin(); f != M.end(); ++f)
       if (!f->isDeclaration() && !memoryManStuff(&*f))
         for (inst_iterator i = inst_begin(*f); i != inst_end(*f); ++i)
-          if (const StoreInst * s = dyn_cast<const StoreInst>(&*i)) {
-            Value const* const l = s->getOperand(1);
+          if (const StoreInst *s = dyn_cast<StoreInst>(&*i)) {
+            const Value *l = s->getPointerOperand();
 	    this->getContainer()[&*f].push_back(ProgramStructure::Command(
-		  hasExtraReference(l) ? CMD_VAR : CMD_DREF_VAR,l));
+		  hasExtraReference(l) ? CMD_VAR : CMD_DREF_VAR, l));
           }
   }
 
