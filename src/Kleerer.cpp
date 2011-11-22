@@ -132,12 +132,16 @@ static void check(Value *Func, ArrayRef<Value *> Args) {
 }
 
 static unsigned getTypeSize(TargetData &TD, Type *type) {
-  unsigned TypeSize = TD.getTypeAllocSize(type);
+  if (type->isFunctionTy()) /* it is not sized, weird */
+    return TD.getPointerSize();
+
+  if (!type->isSized())
+    return 100; /* FIXME */
 
   if (StructType *ST = dyn_cast<StructType>(type))
-    TypeSize = TD.getStructLayout(ST)->getSizeInBytes();
+    return TD.getStructLayout(ST)->getSizeInBytes();
 
-  return TypeSize;
+  return TD.getTypeAllocSize(type);
 }
 
 Instruction *Kleerer::createMalloc(BasicBlock *BB, Type *type,
