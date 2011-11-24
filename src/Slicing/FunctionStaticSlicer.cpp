@@ -373,6 +373,7 @@ bool FunctionStaticSlicer::computeBC() {
 #ifdef DEBUG_BC
   errs() << __func__ << " ============ BEG\n";
 #endif
+  PostDominanceFrontier &PDF = MP->getAnalysis<PostDominanceFrontier>(fun);
   for (inst_iterator I = inst_begin(fun), E = inst_end(fun); I != E; I++) {
     Instruction *i = &*I;
     const InsInfo *ii = getInsInfo(i);
@@ -384,7 +385,6 @@ bool FunctionStaticSlicer::computeBC() {
     i->print(errs());
     errs() << " -> bb=" << BB->getNameStr() << '\n';
 #endif
-    PostDominanceFrontier &PDF = MP->getAnalysis<PostDominanceFrontier>(fun);
     PostDominanceFrontier::const_iterator frontier = PDF.find(BB);
     if (frontier == PDF.end())
       continue;
