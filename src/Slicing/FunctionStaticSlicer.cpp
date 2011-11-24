@@ -283,7 +283,8 @@ bool FunctionStaticSlicer::computeRCi(InsInfo *insInfoi, InsInfo *insInfoj) {
   return changed;
 }
 
-bool FunctionStaticSlicer::computeRCi(const Instruction *i) {
+bool FunctionStaticSlicer::computeRCi(InsInfo *insInfoi) {
+  const Instruction *i = insInfoi->getIns();
   bool changed = false;
 #ifdef DEBUG_RC
   errs() << "  " << __func__ << ": " << i->getOpcodeName();
@@ -295,7 +296,6 @@ bool FunctionStaticSlicer::computeRCi(const Instruction *i) {
   errs() << '\n';
 #endif
   SuccList succList = getSuccList(i);
-  InsInfo *insInfoi = getInsInfo(i);
   for (SuccList::const_iterator I = succList.begin(), E = succList.end();
        I != E; I++)
     changed |= computeRCi(insInfoi, getInsInfo(*I));
@@ -315,8 +315,14 @@ void FunctionStaticSlicer::computeRC() {
 #endif
     for (Function::iterator I = fun.begin(), E = fun.end(); I != E; I++) {
       typedef std::reverse_iterator<BasicBlock::iterator> rev;
+      InsInfo *past = NULL;
       for (rev II = rev(I->end()), EE = rev(I->begin()); II != EE; ++II) {
-        changed |= computeRCi(&*II);
+        InsInfo *insInfo = getInsInfo(&*II);
+        if (!past)
+          changed |= computeRCi(insInfo);
+        else
+          changed |= computeRCi(insInfo, past);
+        past = insInfo;
       }
     }
   } while (changed);

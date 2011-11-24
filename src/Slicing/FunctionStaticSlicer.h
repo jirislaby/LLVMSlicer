@@ -95,7 +95,7 @@ private:
 
   void crawlBasicBlock(const llvm::BasicBlock *bb);
   bool computeRCi(InsInfo *insInfoi, InsInfo *insInfoj);
-  bool computeRCi(const llvm::Instruction *i);
+  bool computeRCi(InsInfo *insInfoi);
   void computeRC();
 
   void computeSCi(const llvm::Instruction *i, const llvm::Instruction *j);
