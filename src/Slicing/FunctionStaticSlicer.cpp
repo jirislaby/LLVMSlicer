@@ -571,7 +571,15 @@ bool llvm::slicing::findInitialCriterion(Function &F,
 
   for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
     const Instruction *i = &*I;
-    if (const CallInst *CI = dyn_cast<const CallInst>(i)) {
+    if (const StoreInst *SI = dyn_cast<StoreInst>(i)) {
+      const Value *LHS = SI->getPointerOperand();
+     if (LHS->hasName() && LHS->getName().startswith("__ai_state_")) {
+#ifdef DEBUG_INITCRIT
+        errs() << "    adding\n";
+#endif
+        ss.addInitialCriterion(SI, LHS);
+     }
+    } else if (const CallInst *CI = dyn_cast<CallInst>(i)) {
       Function *callie = CI->getCalledFunction();
       if (callie == F__assert_fail) {
 #ifdef DEBUG_INITCRIT
