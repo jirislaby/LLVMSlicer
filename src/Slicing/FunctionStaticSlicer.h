@@ -22,6 +22,8 @@ public:
   InsInfo(const llvm::Instruction *i, PointsToSets const& PS,
                    ModifiesSets const& MOD);
 
+  const Instruction *getIns() const { return ins; }
+
   bool addRC(const llvm::Value *var) { return RC.insert(var); }
   bool addDEF(const llvm::Value *var) { return DEF.insert(var); }
   bool addREF(const llvm::Value *var) { return REF.insert(var); }
