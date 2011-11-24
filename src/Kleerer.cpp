@@ -63,12 +63,12 @@ private:
 
   Instruction *createMalloc(BasicBlock *BB, Type *type, Value *arraySize);
   Instruction *call_klee_make_symbolic(Function *klee_make_symbolic,
-                                       Constant *noname, BasicBlock *BB,
+                                       Constant *name, BasicBlock *BB,
                                        Type *type, Value *addr,
                                        Value *arraySize = 0);
   void makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
-                           BasicBlock *BB, Constant *noname);
-  BasicBlock *checkAiState(Function *mainFun, BasicBlock *BB, Constant *noname);
+                           BasicBlock *BB);
+  BasicBlock *checkAiState(Function *mainFun, BasicBlock *BB);
   void addGlobals(Module &M);
 };
 
@@ -153,23 +153,24 @@ Instruction *Kleerer::createMalloc(BasicBlock *BB, Type *type,
                                 arraySize);
 }
 
-static Constant *getNonameGlobal(LLVMContext &C, Module &M) {
-  Constant *noname = ConstantArray::get(C, "noname");
-  GlobalVariable *noname_var =
-        new GlobalVariable(M, noname->getType(), true,
-                           GlobalValue::PrivateLinkage, noname, "noname_str");
-  noname_var->setUnnamedAddr(true);
-  noname_var->setAlignment(1);
+static Constant *getGlobalString(LLVMContext &C, Module &M,
+                                 const StringRef &str) {
+  Constant *strArray = ConstantArray::get(C, str);
+  GlobalVariable *strVar =
+        new GlobalVariable(M, strArray->getType(), true,
+                           GlobalValue::PrivateLinkage, strArray, "");
+  strVar->setUnnamedAddr(true);
+  strVar->setAlignment(1);
 
   std::vector<Value *> params;
   params.push_back(ConstantInt::get(TypeBuilder<types::i<32>, true>::get(C), 0));
   params.push_back(ConstantInt::get(TypeBuilder<types::i<32>, true>::get(C), 0));
 
-  return ConstantExpr::getInBoundsGetElementPtr(noname_var, params);
+  return ConstantExpr::getInBoundsGetElementPtr(strVar, params);
 }
 
 Instruction *Kleerer::call_klee_make_symbolic(Function *klee_make_symbolic,
-                                              Constant *noname, BasicBlock *BB,
+                                              Constant *name, BasicBlock *BB,
                                               Type *type, Value *addr,
                                               Value *arraySize) {
   std::vector<Value *> p;
@@ -182,7 +183,7 @@ Instruction *Kleerer::call_klee_make_symbolic(Function *klee_make_symbolic,
     size = BinaryOperator::CreateMul(arraySize, size,
                                      "make_symbolic_size", BB);
   p.push_back(size);
-  p.push_back(noname);
+  p.push_back(name);
 
   check(klee_make_symbolic, p);
 
@@ -190,7 +191,7 @@ Instruction *Kleerer::call_klee_make_symbolic(Function *klee_make_symbolic,
 }
 
 void Kleerer::makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
-                                  BasicBlock *BB, Constant *noname) {
+                                  BasicBlock *BB) {
   Constant *zero = ConstantInt::get(intType, 0);
   for (Module::global_iterator I = M.global_begin(), E = M.global_end();
       I != E; ++I) {
@@ -198,8 +199,9 @@ void Kleerer::makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
     if (!GV.hasName() || !GV.getName().startswith("__ai_state_"))
       continue;
     GV.setInitializer(zero);
+    Constant *glob_str = getGlobalString(C, M, GV.getName());
     BB->getInstList().push_back(call_klee_make_symbolic(klee_make_symbolic,
-                                                        noname, BB, intType,
+                                                        glob_str, BB, intType,
                                                         &GV));
     new StoreInst(zero, &GV, "", true, BB);
   }
@@ -215,18 +217,17 @@ Constant *Kleerer::get_assert_fail()
                                constCharPtrTy, NULL);
 }
 
-BasicBlock *Kleerer::checkAiState(Function *mainFun, BasicBlock *BB,
-                                  Constant *noname) {
+BasicBlock *Kleerer::checkAiState(Function *mainFun, BasicBlock *BB) {
   Module *M = mainFun->getParent();
   Constant *zero = ConstantInt::get(intType, 0);
 
   BasicBlock *finalBB = BasicBlock::Create(C, "final", mainFun);
   BasicBlock *assBB = BasicBlock::Create(C, "assertBB", mainFun);
   std::vector<Value *> params;
-  params.push_back(noname);
-  params.push_back(noname);
+  params.push_back(getGlobalString(C, *M, "leaving function with lock held"));
+  params.push_back(getGlobalString(C, *M, "n/a"));
   params.push_back(zero);
-  params.push_back(noname);
+  params.push_back(getGlobalString(C, *M, "main"));
   CallInst::Create(get_assert_fail(), params, "", assBB);
   new UnreachableInst(C, assBB);
   Value *sum = zero;
@@ -285,9 +286,6 @@ void Kleerer::writeMain(Function &F) {
               TypeBuilder<int(const char *), false>::get(C),
               GlobalValue::ExternalLinkage, "klee_int", &M);*/
 
-  Constant *noname = getNonameGlobal(C, M);
-  std::vector<Value *> noname_vec;
-  noname_vec.push_back(noname);
 //  F.dump();
 
   std::vector<Value *> params;
@@ -304,12 +302,13 @@ void Kleerer::writeMain(Function &F) {
 #endif
     Value *val = NULL;
     Instruction *ins;
+    Constant *name = getGlobalString(C, M, param.hasName() ? param.getName() :
+                                     "noname");
     if (const PointerType *PT = dyn_cast<const PointerType>(type)) {
-//      insList.push_back(ins = CallInst::Create(klee_int, noname_vec));
       Value *arrSize = ConstantInt::get(intType, 4000);
       insList.push_back(ins = createMalloc(mainBB, PT->getElementType(),
                                            arrSize));
-      insList.push_back(call_klee_make_symbolic(klee_make_symbolic, noname,
+      insList.push_back(call_klee_make_symbolic(klee_make_symbolic, name,
                                                 mainBB, PT->getElementType(),
                                                 ins, arrSize));
       bool cast = false;
@@ -325,7 +324,7 @@ void Kleerer::writeMain(Function &F) {
       val = ins;
     } else if (IntegerType *IT = dyn_cast<IntegerType>(type)) {
       insList.push_front(ins = new AllocaInst(IT));
-      insList.push_back(call_klee_make_symbolic(klee_make_symbolic, noname,
+      insList.push_back(call_klee_make_symbolic(klee_make_symbolic, name,
                                                 mainBB, type, ins));
       insList.push_back(ins = new LoadInst(ins));
       val = ins;
@@ -335,7 +334,7 @@ void Kleerer::writeMain(Function &F) {
   }
 //  mainFun->viewCFG();
 
-  makeAiStateSymbolic(klee_make_symbolic, M, mainBB, noname);
+  makeAiStateSymbolic(klee_make_symbolic, M, mainBB);
   addGlobals(M);
 #ifdef DEBUG_WRITE_MAIN
   errs() << "==============\n";
@@ -345,7 +344,7 @@ void Kleerer::writeMain(Function &F) {
   check(&F, params);
 
   CallInst::Create(&F, params, "", mainBB);
-  BasicBlock *final = checkAiState(mainFun, mainBB, noname);
+  BasicBlock *final = checkAiState(mainFun, mainBB);
   ReturnInst::Create(C, ConstantInt::get(mainFun->getReturnType(), 0),
                      final);
 
