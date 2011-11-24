@@ -313,7 +313,8 @@ void FunctionStaticSlicer::computeRC() {
 #ifdef DEBUG_RC
     errs() << __func__ << ": ============== Iteration " << it++ << '\n';
 #endif
-    for (Function::iterator I = fun.begin(), E = fun.end(); I != E; I++) {
+    typedef std::reverse_iterator<Function::iterator> revFun;
+    for (revFun I = revFun(fun.end()), E = revFun(fun.begin()); I != E; I++) {
       typedef std::reverse_iterator<BasicBlock::iterator> rev;
       InsInfo *past = NULL;
       for (rev II = rev(I->end()), EE = rev(I->begin()); II != EE; ++II) {
