@@ -154,8 +154,10 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
 
     for (unsigned k = 0; k < phi->getNumIncomingValues(); ++k)
       if (!isa<Constant>(phi->getIncomingValue(k)))
-	addREF(phi->getIncomingValue(k));
-  } else if (isa<const SwitchInst>(i)) {
+        addREF(phi->getIncomingValue(k));
+  } else if (const SwitchInst *SI = dyn_cast<SwitchInst>(i)) {
+    if (!isa<Constant>(SI->getCondition()))
+      addREF(SI->getCondition());
   } else if (const SelectInst *SI = dyn_cast<const SelectInst>(i)) {
       // TODO: THE FOLLOWING CODE HAS NOT BEEN TESTED YET
 
