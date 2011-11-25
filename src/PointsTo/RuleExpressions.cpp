@@ -13,30 +13,19 @@ namespace llvm { namespace ptr { namespace detail {
 
 void buildCallMaps(Module const& M, FunctionsMap& F,
 		CallsMap& C) {
-    typedef Module::const_iterator FunctionsIter;
-    for (FunctionsIter f = M.begin(); f != M.end(); ++f)
-    {
+    for (Module::const_iterator f = M.begin(); f != M.end(); ++f) {
 	if (!f->isDeclaration())
-	    F.insert(std::make_pair(f->getFunctionType(),&*f));
-	typedef Function::const_iterator BasicBlocksIter;
-	for (BasicBlocksIter b = f->begin(); b != f->end(); ++b)
-	{
-	    typedef BasicBlock::const_iterator InstructionsIter;
-	    for (InstructionsIter i = b->begin(); i != b->end(); ++i)
-		if (CallInst const* const c =
-			dyn_cast<CallInst>(&*i))
-		{
-		    if (!isInlineAssembly(c) && !callToMemoryManStuff(c))
-			C.insert(std::make_pair(getCalleePrototype(c),c));
-		}
-		else if (i->getOpcode() == Instruction::Store)
-		{
-		    Value const* const r = i->getOperand(0);
-		    if (hasExtraReference(r) && memoryManStuff(r))
-		    {
-			Function const* const fn =
-				dyn_cast<Function>(r);
-			F.insert(std::make_pair(fn->getFunctionType(),fn));
+	    F.insert(std::make_pair(f->getFunctionType(), &*f));
+	for (Function::const_iterator b = f->begin(); b != f->end(); ++b) {
+	    for (BasicBlock::const_iterator i = b->begin(); i != b->end(); ++i)
+		if (const CallInst *CI = dyn_cast<CallInst>(&*i)) {
+		    if (!isInlineAssembly(CI) && !callToMemoryManStuff(CI))
+			C.insert(std::make_pair(getCalleePrototype(CI), CI));
+		} else if (const StoreInst *SI = dyn_cast<StoreInst>(&*i)) {
+		    const Value *r = SI->getValueOperand();
+		    if (hasExtraReference(r) && memoryManStuff(r)) {
+			const Function *fn = dyn_cast<Function>(r);
+			F.insert(std::make_pair(fn->getFunctionType(), fn));
 		    }
 		}
 	}
