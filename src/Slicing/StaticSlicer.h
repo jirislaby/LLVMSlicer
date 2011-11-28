@@ -75,7 +75,7 @@ namespace llvm { namespace slicing { namespace detail {
                                RelevantsIterator b, RelevantsIterator const e,
                                //PointsToSets const& PS,
                                OutIterator out) {
-	assert(!isInlineAssembly(C) || "Inline assembly is not supported!");
+	assert(!isInlineAssembly(C) && "Inline assembly is not supported!");
         ParamsToArgs toArgs;
         fillParamsToArgs(C,F,toArgs);
         for ( ; b != e; ++b)
@@ -93,7 +93,7 @@ namespace llvm { namespace slicing { namespace detail {
                                llvm::ReturnInst const* const R,
                                RelevantsIterator b, RelevantsIterator const e,
                                OutIterator out) {
-	assert(!isInlineAssembly(C) || "Inline assembly is not supported!");
+	assert(!isInlineAssembly(C) && "Inline assembly is not supported!");
 	if (callToVoidFunction(C))
         {
             std::copy(b,e,out);

@@ -125,7 +125,7 @@ namespace llvm {
     }
 
     llvm::FunctionType const* getCalleePrototype(const CallInst *C) {
-	assert(!isInlineAssembly(C) || "Inline assembly is not supported!");
+	assert(!isInlineAssembly(C) && "Inline assembly is not supported!");
 
         if (llvm::Function const* const fn =
                 llvm::dyn_cast<llvm::Function const>(C->getCalledValue()))

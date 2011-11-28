@@ -528,7 +528,7 @@ namespace llvm { namespace ptr { namespace detail {
         // TODO: Instruction 'ExtractValueIns' has not been tested yet!
 
         const llvm::Value *op = EV->getAggregateOperand();
-        assert(!hasExtraReference(op) || "Agregate operand must "
+        assert(!hasExtraReference(op) && "Agregate operand must "
                "be a value and not a pointer.");
         *out++ = ruleCode(ruleVar(V) = ruleVar(op));
             } else if (const llvm::InsertValueInst *IV =
@@ -536,7 +536,7 @@ namespace llvm { namespace ptr { namespace detail {
         // TODO: Instruction 'InsertValueInst' has not been tested yet!
 
         const llvm::Value *l = IV->getAggregateOperand();
-        assert(!hasExtraReference(l) || "Agregate operand must "
+        assert(!hasExtraReference(l) && "Agregate operand must "
                "be a value and not a pointer.");
         const llvm::Value *r = IV->getInsertedValueOperand();
         if (hasExtraReference(r))
@@ -561,7 +561,7 @@ namespace llvm { namespace ptr { namespace detail {
     template<typename OutIterator>
     void collectCallRuleCodes(llvm::CallInst const* const c,
                               const llvm::Function *f, OutIterator out) {
-	assert(!isInlineAssembly(c) || "Inline assembly is not supported!");
+	assert(!isInlineAssembly(c) && "Inline assembly is not supported!");
         if (memoryManStuff(f) && !llvm::isMemoryAllocation(f))
             return;
         if (llvm::isMemoryAllocation(f))
