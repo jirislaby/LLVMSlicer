@@ -93,10 +93,9 @@ namespace llvm { namespace slicing { namespace detail {
                                llvm::ReturnInst const* const R,
                                RelevantsIterator b, RelevantsIterator const e,
                                OutIterator out) {
-	assert(!isInlineAssembly(C) && "Inline assembly is not supported!");
-	if (callToVoidFunction(C))
-        {
-            std::copy(b,e,out);
+        assert(!isInlineAssembly(C) && "Inline assembly is not supported!");
+        if (callToVoidFunction(C)) {
+            std::copy(b, e, out);
             return;
         }
         for ( ; b != e; ++b)
