@@ -10,7 +10,7 @@
 
 using namespace llvm::ptr;
 
-ProgramStructure::ProgramStructure(Module &M) {
+ProgramStructure::ProgramStructure(Module &M) : M(M) {
     typedef llvm::Module::const_global_iterator GlobalsIter;
     for (GlobalsIter g = M.global_begin(); g != M.global_end(); ++g)
       if (llvm::isGlobalPointerInitialization(&*g))

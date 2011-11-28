@@ -31,14 +31,14 @@ namespace llvm { namespace mods {
       for (typename ProgramStructure::mapped_type::const_iterator c = f->second.begin();
            c != f->second.end(); ++c)
         if (c->getType() == CMD_VAR) {
-          if (!P.isLocalToFunction(c->getVar(),f->first))
+          if (!isLocalToFunction(c->getVar(),f->first))
               MOD[f->first].insert(c->getVar());
         } else if (c->getType() == CMD_DREF_VAR) {
           typename PointsToSets::PointsToSet const& S =
               llvm::ptr::getPointsToSet(c->getVar(),PS);
           for (typename PointsToSets::PointsToSet::const_iterator p = S.begin();
                p != S.end(); ++p)
-            if (!P.isLocalToFunction(*p,f->first) && !llvm::isa<llvm::Constant>(*p))
+            if (!isLocalToFunction(*p,f->first) && !isConstantValue(*p))
               MOD[f->first].insert(*p);
         }
 
@@ -60,7 +60,7 @@ namespace llvm { namespace mods {
                 dst.end());
 #endif
       for (typename dst_t::iterator I = dst.begin(), E = dst.end(); I != E; ) {
-        if (P.isLocalToFunction(*I, i->first))
+        if (isLocalToFunction(*I, i->first))
           dst.erase(I++);
         else
           ++I;

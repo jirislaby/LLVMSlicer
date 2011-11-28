@@ -29,9 +29,6 @@ namespace llvm { namespace callgraph {
         template<typename PointsToSets>
         Callgraph(Module &M, PointsToSets const& PS);
 
-        iterator insertDirectCall(value_type const& val)
-        { return directCallsMap.insert(val); }
-
         range_iterator directCalls(key_type const& key) const
         { return directCallsMap.equal_range(key); }
 
@@ -44,6 +41,14 @@ namespace llvm { namespace callgraph {
         range_iterator callees(key_type const& key) const
         { return calleesMap.equal_range(key); }
 
+	bool contains(key_type const key, mapped_type const value) const {
+	  range_iterator rng = directCalls(key);
+	  for (const_iterator it = rng.first; it != rng.second; ++it)
+	    if (it->second == value)
+	      return true;
+	  return false;
+	}
+
         const_iterator begin() const { return directCallsMap.begin(); }
         iterator begin() { return directCallsMap.begin(); }
         const_iterator end() const { return directCallsMap.end(); }
@@ -52,6 +57,10 @@ namespace llvm { namespace callgraph {
         const_iterator end_closure() const { return callsMap.end(); }
         Container const& getContainer() const { return directCallsMap; }
         Container& getContainer() { return directCallsMap; }
+
+    protected:
+        iterator insertDirectCall(value_type const& val)
+        { return directCallsMap.insert(val); }
 
     private:
         Container directCallsMap;
@@ -144,8 +153,9 @@ namespace llvm { namespace callgraph {
                         {
                             llvm::Function const* const h =
                                 llvm::dyn_cast<llvm::Function>(*g);
-                            if (!memoryManStuff(h) && !h->isDeclaration())
-                                insertDirectCall(value_type(f,h));
+                            if (!memoryManStuff(h) && !h->isDeclaration() &&
+				!contains(f, h))
+			      insertDirectCall(value_type(f, h));
                         }
                     }
 

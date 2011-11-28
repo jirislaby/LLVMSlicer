@@ -47,29 +47,41 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
     addDEF(i);
 
     const Value *op = elimConstExpr(LI->getPointerOperand());
-    addREF(op);
-    if (!hasExtraReference(op)) {
-      typename PointsToSets::PointsToSet const& S = getPointsToSet(op, PS);
-      for (typename PointsToSets::PointsToSet::const_iterator p = S.begin();
-           p != S.end(); ++p)
-        addREF(*p);
+    if (isa<ConstantPointerNull>(op)) {
+      errs() << "ERROR in analysed code -- reading from address 0 at " <<
+        i->getParent()->getParent()->getName() << ":\n";
+      i->print(errs());
+    } else {
+      addREF(op);
+      if (!hasExtraReference(op)) {
+      typename PointsToSets::PointsToSet const &S = getPointsToSet(op,PS);
+      for (typename PointsToSets::PointsToSet::const_iterator I = S.begin(),
+           E = S.end(); I != E; ++I)
+        addREF(*I);
+      }
     }
   } else if (const StoreInst *SI = dyn_cast<const StoreInst>(i)) {
     const Value *l = elimConstExpr(SI->getPointerOperand());
-    if (hasExtraReference(l)) {
-      addDEF(l);
+    if (isa<ConstantPointerNull>(l)) {
+      errs() << "ERROR in analysed code -- writing to address 0 at " <<
+        i->getParent()->getParent()->getName() << ":\n";
+      i->print(errs());
     } else {
-      typename PointsToSets::PointsToSet const& S = getPointsToSet(l, PS);
-      for (typename PointsToSets::PointsToSet::const_iterator p = S.begin();
-           p != S.end(); ++p)
-	      addDEF(*p);
-    }
+      if (hasExtraReference(l)) {
+        addDEF(l);
+      } else {
+        typename PointsToSets::PointsToSet const& S = getPointsToSet(l,PS);
+        for (typename PointsToSets::PointsToSet::const_iterator I = S.begin(),
+             E = S.end(); I != E; ++I)
+          addDEF(*I);
+      }
 
-    const Value *r = elimConstExpr(SI->getValueOperand());
-    if (!r->getType()->isIntegerTy())
-      addREF(l);
-    if (!hasExtraReference(r) && !llvm::isa<llvm::Constant>(r))
-      addREF(r);
+      const Value *r = elimConstExpr(SI->getValueOperand());
+      if (!r->getType()->isIntegerTy())
+        addREF(l);
+      if (!hasExtraReference(r) && !isConstantValue(r))
+        addREF(r);
+    }
   } else if (const GetElementPtrInst *gep =
              dyn_cast<const GetElementPtrInst>(i)) {
     addDEF(i);
@@ -82,24 +94,27 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
      errs() << "ERROR: Inline assembler detected in " <<
           i->getParent()->getParent()->getName() << ", ignoring\n";
     } else {
-#if 0 /* bullshit, we do not have malloc/free and other crap */
+#if 0 /* we do not have malloc/free and other crap */
     } else if (isMemoryAllocation(cv)) {
       addDEF(i);
     } else if (isMemoryDeallocation(cv)) {
     } else if (isMemoryCopy(cv) || isMemoryMove(cv)) {
-      llvm::Value const* const l = C->getOperand(0);
-      PointsToSets::PointsToSet const& L = getPointsToSet(l,PS);
-      for (PointsToSets::PointsToSet::const_iterator
-        p = L.begin(); p != L.end(); ++p)
-          addDEF(*p);
-
-      llvm::Value const* const r = C->getOperand(1);
+      const Value *l = elimConstExpr(C->getOperand(0));
+      if (isPointerValue(l)) {
+          PointsToSets::PointsToSet const& L = getPointsToSet(l,PS);
+          for (PointsToSets::PointsToSet::const_iterator
+                  p = L.begin(); p != L.end(); ++p)
+              addDEF(*p);
+      }
+      const Value *r = elimConstExpr(C->getOperand(1));
       addREF(l);
       addREF(r);
-      PointsToSets::PointsToSet const& R = getPointsToSet(r,PS);
-      for (PointsToSets::PointsToSet::const_iterator p = R.begin();
-          p != R.end(); ++p)
-        addREF(*p);
+      if (isPointerValue(r)) {
+          PointsToSets::PointsToSet const& R = getPointsToSet(r,PS);
+          for (PointsToSets::PointsToSet::const_iterator
+                  p = R.begin(); p != R.end(); ++p)
+              addREF(*p);
+      }
     } else if (!memoryManStuff(C)) {
 #endif
       typedef std::vector<llvm::Function const*> CalledVec;
@@ -128,9 +143,9 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
   } else if (const BinaryOperator *BO = dyn_cast<const BinaryOperator>(i)) {
     addDEF(i);
 
-    if (!llvm::isa<llvm::Constant>(BO->getOperand(0)))
+    if (!isConstantValue(BO->getOperand(0)))
       addREF(BO->getOperand(0));
-    if (!llvm::isa<llvm::Constant>(BO->getOperand(1)))
+    if (!isConstantValue(BO->getOperand(1)))
       addREF(BO->getOperand(1));
   } else if (const CastInst *CI = dyn_cast<const CastInst>(i)) {
     addDEF(i);
@@ -142,32 +157,32 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
   } else if (const CmpInst *CI = dyn_cast<const CmpInst>(i)) {
     addDEF(i);
 
-    if (!llvm::isa<llvm::Constant>(CI->getOperand(0)))
+    if (!isConstantValue(CI->getOperand(0)))
       addREF(CI->getOperand(0));
-    if (!llvm::isa<llvm::Constant>(CI->getOperand(1)))
+    if (!isConstantValue(CI->getOperand(1)))
       addREF(CI->getOperand(1));
   } else if (const BranchInst *BI = dyn_cast<const BranchInst>(i)) {
-    if (BI->isConditional() && !isa<Constant>(BI->getCondition()))
+    if (BI->isConditional() && !isConstantValue(BI->getCondition()))
       addREF(BI->getCondition());
   } else if (const PHINode *phi = dyn_cast<const PHINode>(i)) {
     addDEF(i);
 
     for (unsigned k = 0; k < phi->getNumIncomingValues(); ++k)
-      if (!isa<Constant>(phi->getIncomingValue(k)))
+      if (!isConstantValue(phi->getIncomingValue(k)))
         addREF(phi->getIncomingValue(k));
   } else if (const SwitchInst *SI = dyn_cast<SwitchInst>(i)) {
-    if (!isa<Constant>(SI->getCondition()))
+    if (!isConstantValue(SI->getCondition()))
       addREF(SI->getCondition());
   } else if (const SelectInst *SI = dyn_cast<const SelectInst>(i)) {
       // TODO: THE FOLLOWING CODE HAS NOT BEEN TESTED YET
 
     addDEF(i);
 
-    if (!isa<Constant>(SI->getCondition()))
+    if (!isConstantValue(SI->getCondition()))
       addREF(SI->getCondition());
-    if (!isa<Constant>(SI->getTrueValue()))
+    if (!isConstantValue(SI->getTrueValue()))
       addREF(SI->getTrueValue());
-    if (!isa<Constant>(SI->getFalseValue()))
+    if (!isConstantValue(SI->getFalseValue()))
       addREF(SI->getFalseValue());
   } else if (isa<const UnreachableInst>(i)) {
   } else if (const ExtractValueInst *EV = dyn_cast<const ExtractValueInst>(i)) {
@@ -178,7 +193,7 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
 
       const Value *r = IV->getInsertedValueOperand();
       addDEF(IV->getAggregateOperand());
-      if (!isa<Constant>(r))
+      if (!isConstantValue(r))
 	addREF(r);
   } else {
     errs() << "ERROR: Unsupported instruction reached\n";

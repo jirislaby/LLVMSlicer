@@ -44,17 +44,18 @@ namespace llvm { namespace ptr {
   };
 
   template<typename PointsToAlgorithm>
+  struct PointsToSets {
+    typedef PointsToSetsAsMap<PointsToAlgorithm> Type;
+  };
+
+  template<typename PointsToAlgorithm>
   typename PointsToSetsAsMap<PointsToAlgorithm>::PointsToSet const&
   getPointsToSet(const llvm::Value *const& memLoc,
-      PointsToSetsAsMap<PointsToAlgorithm> const& S)
-  {
-      //static typename PointsToSets<Language,PointsToAlgorithm>
-      //    ::Type::PointsToSet const emptySet;
-      //typename PointsToSets<Language,PointsToAlgorithm>
-      //    ::Type::const_iterator const it =
-      //        S.find(memLoc);
-      //return (it == S.end()) ? emptySet : it->second;
-      return S.find(memLoc)->second;
+      PointsToSetsAsMap<PointsToAlgorithm> const& S) {
+      typename PointsToSets<PointsToAlgorithm>::Type::const_iterator const it =
+        S.find(memLoc);
+      assert(it != S.end() && "Each pointer must have its points to set.");
+      return it->second;
   }
 #if 0
   template<typename Language,typename PointsToAlgorithm,typename OutuptStream>
@@ -158,7 +159,9 @@ namespace llvm { namespace ptr {
         typedef Container::iterator iterator;
         typedef Container::const_iterator const_iterator;
 
-	explicit ProgramStructure(Module &M);
+        explicit ProgramStructure(Module &M);
+
+        llvm::Module &getModule() const { return M; }
 
         void insert(iterator it, value_type const& val) { C.insert(it,val); }
         void push_back(value_type const& val) { return C.push_back(val); }
@@ -170,6 +173,7 @@ namespace llvm { namespace ptr {
         Container& getContainer() { return C; }
     private:
         Container C;
+        llvm::Module &M;
     };
 #if 0
     template<typename Language, typename AnalysisProperties,

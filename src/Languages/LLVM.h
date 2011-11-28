@@ -21,10 +21,14 @@
 namespace llvm {
 
     bool hasExtraReference(llvm::Value const* const V);
+    const Value *getUndefValue(LLVMContext &C);
+    bool isConstantValue(llvm::Value const* const V);
     bool isPointerValue(llvm::Value const* const V);
     bool isPointerToPointerValue(llvm::Value const* const V);
     bool isPointerManipulation(llvm::Instruction const* const I);
     llvm::Type const* getPointedType(llvm::Value const* const V);
+    llvm::Type *getPointedType(llvm::Type *T);
+    const llvm::Type *getPointedType(const llvm::Type *T);
     bool isGlobalPointerInitialization(llvm::GlobalVariable const* const G);
     llvm::FunctionType const* getCalleePrototype(llvm::CallInst const* const C);
     bool isMemoryAllocation(llvm::Value const* const V);

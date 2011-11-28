@@ -465,7 +465,7 @@ namespace llvm { namespace ptr { namespace detail {
           *out++ = ruleCode(ruleVar(V) = *ruleVar(op));
             } else if (const llvm::StoreInst *SI =
                        llvm::dyn_cast<llvm::StoreInst>(I)) {
-        const llvm::Value *l = SI->getPointerOperand();
+        const llvm::Value *l = elimConstExpr(SI->getPointerOperand());
         const llvm::Value *r = elimConstExpr(SI->getValueOperand());
         if (!hasExtraReference(l)) {
           if (hasExtraReference(r))
@@ -488,14 +488,14 @@ namespace llvm { namespace ptr { namespace detail {
         }
             } else if (const llvm::BitCastInst *BCI =
                        llvm::dyn_cast<llvm::BitCastInst>(I)) {
-          const llvm::Value *op = BCI->getOperand(0);
+          const llvm::Value *op = elimConstExpr(BCI->getOperand(0));
           if (hasExtraReference(op))
             *out++ = ruleCode(ruleVar(V) = &ruleVar(op));
           else
             *out++ = ruleCode(ruleVar(V) = ruleVar(op));
             } else if (const llvm::GetElementPtrInst *gep =
                        llvm::dyn_cast<llvm::GetElementPtrInst>(I)) {
-          const llvm::Value *op = gep->getPointerOperand();
+          const llvm::Value *op = elimConstExpr(gep->getPointerOperand());
           if (hasExtraReference(op))
             *out++ = ruleCode(ruleVar(V) = &ruleVar(op));
           else
@@ -510,10 +510,19 @@ namespace llvm { namespace ptr { namespace detail {
         //                    *out++ = ruleCode(ruleDeallocSite(V));
         else if (isMemoryCopy(C->getCalledValue()) ||
             isMemoryMove(C->getCalledValue())) {
-          const llvm::Value *l = C->getArgOperand(0);
-          const llvm::Value *r = C->getArgOperand(1);
+          const llvm::Value *l = elimConstExpr(C->getArgOperand(0));
+          const llvm::Value *r = elimConstExpr(C->getArgOperand(1));
           *out++ = ruleCode(*ruleVar(l) = *ruleVar(r));
         }
+            } else if (const llvm::PHINode *PHI = llvm::dyn_cast<llvm::PHINode>(I)) {
+              unsigned int i, n = PHI->getNumIncomingValues();
+              for (i = 0; i < n; ++i) {
+                const llvm::Value *r = PHI->getIncomingValue(i);
+                if (llvm::isa<llvm::ConstantPointerNull>(r))
+                    *out++ = ruleCode(ruleVar(V) = ruleNull(r));
+                else
+                    *out++ = ruleCode(ruleVar(V) = ruleVar(r));
+              }
             } else if (const llvm::ExtractValueInst *EV =
                        llvm::dyn_cast<llvm::ExtractValueInst>(I)) {
         // TODO: Instruction 'ExtractValueIns' has not been tested yet!
@@ -538,6 +547,8 @@ namespace llvm { namespace ptr { namespace detail {
           else
             *out++ = ruleCode(ruleVar(l) = ruleVar(r));
         }
+      } else if (llvm::isa<llvm::IntToPtrInst>(I)) {
+        *out++ = ruleCode(ruleVar(V) = &ruleVar(getUndefValue(I->getContext())));
       }
     } else if (const llvm::GlobalVariable *GV =
                llvm::dyn_cast<llvm::GlobalVariable>(V)) {
@@ -549,7 +560,7 @@ namespace llvm { namespace ptr { namespace detail {
 
     template<typename OutIterator>
     void collectCallRuleCodes(llvm::CallInst const* const c,
-                              llvm::Function const* f, OutIterator out) {
+                              const llvm::Function *f, OutIterator out) {
 	assert(!isInlineAssembly(c) || "Inline assembly is not supported!");
         if (memoryManStuff(f) && !llvm::isMemoryAllocation(f))
             return;
@@ -564,7 +575,13 @@ namespace llvm { namespace ptr { namespace detail {
             for (std::size_t i = 0; fit != f->arg_end(); ++fit, ++i)
                 if (llvm::isPointerValue(&*fit))
                     *out++ = detail::argPassRuleCode(&*fit,
-				    elimConstExpr(c->getOperand(i)));
+                                            elimConstExpr(c->getOperand(i)));
+            if (f->isDeclaration() && f->getReturnType()->isPointerTy()) {
+              const llvm::Value *l = c;
+              const llvm::Value *r =
+                  UndefValue::get(getPointedType(f->getReturnType()));
+              *out++ = ruleCode(ruleVar(l) = &ruleVar(r));
+            }
         }
     }
 

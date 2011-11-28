@@ -15,11 +15,6 @@
 
 namespace llvm { namespace ptr {
 
-  template<typename PointsToAlgorithm>
-  struct PointsToSets {
-    typedef PointsToSetsAsMap<PointsToAlgorithm> Type;
-  };
-
   template<typename MemoryLocationType, typename PointsToSetsType>
   typename PointsToSetsType::PointsToSet const&
   getPointsToSet(MemoryLocationType memLoc, PointsToSetsType const& S) {
@@ -82,5 +77,33 @@ namespace llvm { namespace ptr {
   };
 
 }}
+
+namespace llvm { namespace ptr { namespace detail {
+
+  template<typename PointsToAlgorithm>
+  typename PointsToSets<PointsToAlgorithm>::Type &
+  elimUndefs(LLVMContext &C,
+             typename PointsToSets<PointsToAlgorithm>::Type& S) {
+    typedef typename PointsToSets<PointsToAlgorithm>::Type PTSets;
+    typename PTSets::mapped_type U;
+
+    for (typename PTSets::iterator s = S.begin(); s != S.end(); ++s)
+        std::copy(s->second.begin(),s->second.end(),
+                  std::inserter(U,U.end()));
+
+    S.getContainer().erase(getUndefValue(C));
+
+    for (typename PTSets::iterator s = S.begin(); s != S.end(); ++s) {
+      typename PTSets::mapped_type::iterator undef =
+          s->second.find(getUndefValue(C));
+      if (undef != s->second.end()) {
+        std::copy(U.begin(),U.end(), std::inserter(s->second, s->second.end()));
+        s->second.erase(undef);
+      }
+    }
+    return S;
+  }
+
+}}}
 
 #endif

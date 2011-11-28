@@ -25,6 +25,13 @@ namespace llvm {
         //return V->isDereferenceablePointer();
     }
 
+    bool isConstantValue(llvm::Value const* const V) {
+      return isa<ConstantPointerNull>(V) ||
+        (isa<Constant const>(V) &&
+         !isa<GlobalValue>(V) &&
+         !isa<UndefValue>(V));
+    }
+
     bool isPointerValue(llvm::Value const* const V)
     {
         if (!V->getType()->isPointerTy())
@@ -40,9 +47,10 @@ namespace llvm {
         return isPointerValue(V) && getPointedType(V)->isPointerTy();
     }
 
-    bool isPointerManipulation(llvm::Instruction const* const I)
-    {
-        if (I->getOpcode() == llvm::Instruction::Load)
+    bool isPointerManipulation(llvm::Instruction const* const I) {
+        if (isa<AllocaInst>(I)) {
+          return false;
+        } else if (I->getOpcode() == llvm::Instruction::Load)
         {
             if (llvm::dyn_cast<llvm::PointerType const>(
                         I->getOperand(0)->getType())->
@@ -67,27 +75,41 @@ namespace llvm {
             return true;
         } else if (const llvm::CallInst *C =
                         llvm::dyn_cast<llvm::CallInst>(I)) {
-	    if (isInlineAssembly(C))
-	      return false;
-            return memoryManStuff(C->getCalledValue());
+          if (isInlineAssembly(C))
+            return false;
+          return memoryManStuff(C->getCalledValue());
+        } else if (const PHINode *PHI = dyn_cast<PHINode>(I)) {
+          return isPointerValue(PHI);
         } else if (const ExtractValueInst *EV =
-		dyn_cast<const ExtractValueInst>(I)) {
-	    return isPointerValue(EV);
-	} else if (const InsertValueInst *IV =
-		dyn_cast<const InsertValueInst>(I)) {
-	    return isPointerValue(IV->getInsertedValueOperand());
-	}
+                   dyn_cast<const ExtractValueInst>(I)) {
+          return isPointerValue(EV);
+        } else if (const InsertValueInst *IV =
+                   dyn_cast<const InsertValueInst>(I)) {
+          return isPointerValue(IV->getInsertedValueOperand());
+        } else if (isa<IntToPtrInst>(I)) {
+          return true;
+        }
+
+        assert(!isPointerValue(I) &&
+               "Instruction cannot be a of pointer type here!");
+
         return false;
     }
 
     llvm::Type const* getPointedType(llvm::Value const* const V)
     {
-        llvm::Type const* t =
-            llvm::dyn_cast<llvm::PointerType const>(V->getType())
-                    ->getElementType();
+        const Type *t = getPointedType(V->getType());
         if (hasExtraReference(V))
-            t = llvm::dyn_cast<llvm::PointerType const>(t)->getElementType();
+            t = getPointedType(t);
         return t;
+    }
+
+    Type *getPointedType(Type *T) {
+      return dyn_cast<PointerType>(T)->getElementType();
+    }
+
+    const Type *getPointedType(const Type *T) {
+      return dyn_cast<PointerType>(T)->getElementType();
     }
 
     bool isGlobalPointerInitialization(llvm::GlobalVariable const* const G)
@@ -200,9 +222,9 @@ namespace llvm {
 
     bool callToVoidFunction(llvm::CallInst const* const C)
     {
-	if (isInlineAssembly(C))
-	    return false;
-        return C->getType()->getTypeID() == llvm::Type::VoidTyID;
+      if (isInlineAssembly(C))
+        return false;
+      return C->getType()->getTypeID() == llvm::Type::VoidTyID;
     }
 
     llvm::Instruction const* getSuccInBlock(llvm::Instruction const* const I)
@@ -213,10 +235,17 @@ namespace llvm {
 
     const Value *elimConstExpr(const Value *V) {
       if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(V)) {
-        assert((CE->isGEPWithNoNotionalOverIndexing() || CE->isCast()) &&
+        if (Instruction::isBinaryOp(CE->getOpcode()))
+          return V;
+        assert((CE->getOpcode() == llvm::Instruction::GetElementPtr ||
+                CE->isCast()) &&
           "Only GEP or CAST const expressions are supported for now.");
-        return CE->getOperand(0);
+        return elimConstExpr(CE->getOperand(0));
       }
       return V;
+    }
+
+    const Value *getUndefValue(LLVMContext &C) {
+      return UndefValue::get(Type::getVoidTy(C));
     }
 }
