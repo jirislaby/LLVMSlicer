@@ -93,16 +93,14 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
     if (isInlineAssembly(C)) {
      errs() << "ERROR: Inline assembler detected in " <<
           i->getParent()->getParent()->getName() << ", ignoring\n";
-    } else {
-#if 0 /* we do not have malloc/free and other crap */
     } else if (isMemoryAllocation(cv)) {
       addDEF(i);
     } else if (isMemoryDeallocation(cv)) {
     } else if (isMemoryCopy(cv) || isMemoryMove(cv)) {
       const Value *l = elimConstExpr(C->getOperand(0));
       if (isPointerValue(l)) {
-          PointsToSets::PointsToSet const& L = getPointsToSet(l,PS);
-          for (PointsToSets::PointsToSet::const_iterator
+          typename PointsToSets::PointsToSet const& L = getPointsToSet(l, PS);
+          for (typename PointsToSets::PointsToSet::const_iterator
                   p = L.begin(); p != L.end(); ++p)
               addDEF(*p);
       }
@@ -110,13 +108,12 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
       addREF(l);
       addREF(r);
       if (isPointerValue(r)) {
-          PointsToSets::PointsToSet const& R = getPointsToSet(r,PS);
-          for (PointsToSets::PointsToSet::const_iterator
+          typename PointsToSets::PointsToSet const& R = getPointsToSet(r,PS);
+          for (typename PointsToSets::PointsToSet::const_iterator
                   p = R.begin(); p != R.end(); ++p)
               addREF(*p);
       }
     } else if (!memoryManStuff(C)) {
-#endif
       typedef std::vector<llvm::Function const*> CalledVec;
       CalledVec CV;
       if (C->getCalledFunction() != 0) {
