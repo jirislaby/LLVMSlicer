@@ -145,7 +145,7 @@ namespace llvm {
         if (llvm::Function const* const F =
                 llvm::dyn_cast<llvm::Function const>(V))
             return F->isDeclaration() && F->hasName() &&
-                   F->getNameStr()=="malloc";
+                   F->getName().equals("malloc");
         return false;
     }
 
@@ -154,7 +154,7 @@ namespace llvm {
         if (llvm::Function const* const F =
                 llvm::dyn_cast<llvm::Function const>(V))
             return F->isDeclaration() && F->hasName() &&
-                   F->getNameStr()=="free";
+                   F->getName().equals("free");
         return false;
     }
 
