@@ -23,6 +23,33 @@ namespace {
   };
 }
 
+class FunInfo {
+public:
+  FunInfo(const Function &F) : F(F), ins(0), _hasAsm(false), _hasCall(false),
+          _hasLock(false), _hasLoop(false) {}
+
+  void inline incIns() { ins++; }
+  void inline setHasAsm() { _hasAsm = true; }
+  void inline setHasCall() { _hasCall = true; }
+  void inline setHasLock() { _hasLock = true; }
+  void inline setHasLoop() { _hasLoop = true; }
+
+  unsigned getIns() const { return ins; }
+  bool hasAsm() const { return _hasAsm; }
+  bool hasCall() const { return _hasCall; }
+  bool hasLock() const { return _hasLock; }
+  bool hasLoop() const { return _hasLoop; }
+
+private:
+  const Function &F;
+
+  unsigned ins;
+  bool _hasAsm;
+  bool _hasCall;
+  bool _hasLock;
+  bool _hasLoop;
+};
+
 class ModInfo {
 public:
   ModInfo(const Module &M) : M(M), ins(0), fun(0), funWithAsm(0),
@@ -51,33 +78,6 @@ private:
   unsigned funWithLoop;
   unsigned funSafe;
   unsigned funSafeWOLoop;
-};
-
-class FunInfo {
-public:
-  FunInfo(const Function &F) : F(F), ins(0), _hasAsm(false), _hasCall(false),
-          _hasLock(false), _hasLoop(false) {}
-
-  void inline incIns() { ins++; }
-  void inline setHasAsm() { _hasAsm = true; }
-  void inline setHasCall() { _hasCall = true; }
-  void inline setHasLock() { _hasLock = true; }
-  void inline setHasLoop() { _hasLoop = true; }
-
-  unsigned getIns() const { return ins; }
-  bool hasAsm() const { return _hasAsm; }
-  bool hasCall() const { return _hasCall; }
-  bool hasLock() const { return _hasLock; }
-  bool hasLoop() const { return _hasLoop; }
-
-private:
-  const Function &F;
-
-  unsigned ins;
-  bool _hasAsm;
-  bool _hasCall;
-  bool _hasLock;
-  bool _hasLoop;
 };
 
 class StatsComputer {
