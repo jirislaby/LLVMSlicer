@@ -104,6 +104,34 @@ namespace llvm { namespace ptr { namespace detail {
     return S;
   }
 
+  template<typename PointsToAlgorithm>
+  typename PointsToSets<PointsToAlgorithm>::Type&
+  pruneByType(typename PointsToSets<PointsToAlgorithm>::Type& S)
+  {
+    typedef typename PointsToSets<PointsToAlgorithm>::Type PTSets;
+    typedef typename PTSets::mapped_type PTSet;
+    PTSet U;
+    for (typename PTSets::iterator s = S.begin(); s != S.end(); )
+        if (llvm::isa<llvm::UndefValue>(s->first) ||
+            llvm::isa<llvm::Function>(s->first)) {
+          typename PTSets::iterator const tmp = s++;
+          S.getContainer().erase(tmp);
+        } else {
+          if (isPointerValue(s->first)) {
+            for (typename PTSet::iterator v = s->second.begin();
+                 v != s->second.end(); ) {
+              if (getPointedType(s->first) != (*v)->getType()) {
+                typename PTSet::iterator const tmp = v++;
+                s->second.erase(tmp);
+              } else
+                ++v;
+            }
+          }
+          ++s;
+        }
+    return S;
+  }
+
 }}}
 
 #endif

@@ -88,6 +88,9 @@ namespace llvm {
           return isPointerValue(IV->getInsertedValueOperand());
         } else if (isa<IntToPtrInst>(I)) {
           return true;
+        } else if (const SelectInst *SEL = dyn_cast<SelectInst>(I)) {
+          if (isPointerValue(SEL))
+            return true;
         }
 
         assert(!isPointerValue(I) &&

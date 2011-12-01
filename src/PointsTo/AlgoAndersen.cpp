@@ -12,8 +12,9 @@ namespace llvm { namespace ptr {
 
 PointsToSets<ANDERSEN>::Type &computePointsToSets(const ProgramStructure &P,
 		PointsToSets<ANDERSEN>::Type &S, ANDERSEN) {
-  return detail::elimUndefs<ANDERSEN>(P.getModule().getContext(),
-                                      fixpoint<ANDERSEN>(P, S));
+  return detail::pruneByType<ANDERSEN>(
+               detail::elimUndefs<ANDERSEN>(P.getModule().getContext(),
+                                            fixpoint<ANDERSEN>(P, S)));
 }
 
 RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<

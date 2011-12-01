@@ -51,6 +51,7 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
       errs() << "ERROR in analysed code -- reading from address 0 at " <<
         i->getParent()->getParent()->getName() << ":\n";
       i->print(errs());
+    } else if (isa<ConstantInt>(op)) {
     } else {
       addREF(op);
       if (!hasExtraReference(op)) {
@@ -66,6 +67,7 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
       errs() << "ERROR in analysed code -- writing to address 0 at " <<
         i->getParent()->getParent()->getName() << ":\n";
       i->print(errs());
+    } else if (isa<ConstantInt>(l)) {
     } else {
       if (hasExtraReference(l)) {
         addDEF(l);

@@ -54,7 +54,14 @@ namespace llvm { namespace ptr {
       PointsToSetsAsMap<PointsToAlgorithm> const& S) {
       typename PointsToSets<PointsToAlgorithm>::Type::const_iterator const it =
         S.find(memLoc);
-      assert(it != S.end() && "Each pointer must have its points to set.");
+      if (it == S.end()) {
+        static typename PointsToSets<PointsToAlgorithm>::Type::PointsToSet
+          const emptySet;
+        errs() << "WARNING[PointsTo]: No points-to set has been found: ";
+        memLoc->print(errs());
+        errs() << '\n';
+        return emptySet;
+      }
       return it->second;
   }
 #if 0

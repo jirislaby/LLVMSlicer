@@ -549,6 +549,22 @@ namespace llvm { namespace ptr { namespace detail {
         }
       } else if (llvm::isa<llvm::IntToPtrInst>(I)) {
         *out++ = ruleCode(ruleVar(V) = &ruleVar(getUndefValue(I->getContext())));
+      } else if (const llvm::SelectInst *SEL =
+                      llvm::dyn_cast<llvm::SelectInst>(I)) {
+          const llvm::Value *r1 = elimConstExpr(SEL->getTrueValue());
+          if (llvm::isa<llvm::ConstantPointerNull>(r1))
+              *out++ = ruleCode(ruleVar(V) = ruleNull(r1));
+          else if (hasExtraReference(r1))
+              *out++ = ruleCode(ruleVar(V) = &ruleVar(r1));
+          else
+              *out++ = ruleCode(ruleVar(V) = ruleVar(r1));
+          const llvm::Value *r2 = elimConstExpr(SEL->getFalseValue());
+          if (llvm::isa<llvm::ConstantPointerNull>(r2))
+              *out++ = ruleCode(ruleVar(V) = ruleNull(r2));
+          else if (hasExtraReference(r2))
+              *out++ = ruleCode(ruleVar(V) = &ruleVar(r2));
+          else
+              *out++ = ruleCode(ruleVar(V) = ruleVar(r2));
       }
     } else if (const llvm::GlobalVariable *GV =
                llvm::dyn_cast<llvm::GlobalVariable>(V)) {
