@@ -10,6 +10,10 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetData.h"
 
+#include "Callgraph/Callgraph.h"
+#include "PointsTo/AlgoAndersen.h"
+#include "PointsTo/PointsTo.h"
+
 using namespace llvm;
 
 namespace {
@@ -30,8 +34,9 @@ namespace {
 
 class Kleerer {
 public:
-  Kleerer(ModulePass &modPass, Module &M, TargetData &TD) : modPass(modPass),
-      M(M), TD(TD), C(M.getContext()), intPtrTy(TD.getIntPtrType(C)),
+  Kleerer(ModulePass &modPass, Module &M, TargetData &TD,
+          callgraph::Callgraph &CG) : modPass(modPass),
+      M(M), TD(TD), CG(CG), C(M.getContext()), intPtrTy(TD.getIntPtrType(C)),
       done(false) {
     voidPtrType = TypeBuilder<void *, false>::get(C);
     intType = TypeBuilder<int, false>::get(C);
@@ -44,6 +49,7 @@ private:
   ModulePass &modPass;
   Module &M;
   TargetData &TD;
+  callgraph::Callgraph &CG;
   LLVMContext &C;
   IntegerType *intPtrTy;
   bool done;
@@ -52,10 +58,6 @@ private:
   Type *voidPtrType;
   Type *intType;
   Type *uintType;
-
-  void handleFun(Function &F);
-  void handleBB(const BasicBlock &BB);
-  int handleIns(const Instruction &ins);
 
   void writeMain(Function &F);
 
@@ -74,40 +76,6 @@ private:
 
 static RegisterPass<KleererPass> X("kleerer", "Prepares a module for Klee");
 char KleererPass::ID;
-
-/**
- * @return: 1=important fun, 0=no idea, -1=do not handle
- */
-int Kleerer::handleIns(const Instruction &ins) {
-  switch (ins.getOpcode()) {
-  case Instruction::Store: {
-    const StoreInst *SI = cast<const StoreInst>(&ins);
-    const Value *LHS = SI->getPointerOperand();
-    if (LHS->hasName() && LHS->getName().startswith("__ai_state"))
-      return 1;
-    break;
-  }
-  case Instruction::Call: {
-    const CallInst *CI = cast<const CallInst>(&ins);
-    const Function *callie = CI->getCalledFunction();
-    if (callie) {
-      if (!callie->isDeclaration())
-        return 0;
-      if (callie->getName().startswith("mutex_") ||
-          callie->getName().equals("__assert_fail"))
-        return 0;
-    }
-    errs() << "in " << ins.getParent()->getParent()->getName() << " CALL: ";
-    if (callie)
-      errs() << callie->getName();
-    if (CI->isInlineAsm())
-        errs() << "is ASM";
-    errs() << "  ignoring fun\n";
-    return -1;
-  }
-  }
-  return 0;
-}
 
 static void check(Value *Func, ArrayRef<Value *> Args) {
   FunctionType *FTy =
@@ -358,29 +326,28 @@ void Kleerer::writeMain(Function &F) {
 //  done = true;
 }
 
-void Kleerer::handleFun(Function &F) {
-/*  for (Function::const_iterator I = F.begin(), E = F.end(); I != E; ++I)
-    handleBB()*/
-  bool handle = false;
-  for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
-    int ret = handleIns(*I);
-    if (ret < 0)
-      return;
-    handle |= !!ret;
-  }
-
-  if (handle)
-    writeMain(F);
-}
-
 bool Kleerer::run() {
+  Function *F__assert_fail = M.getFunction("__assert_fail");
+  if (!F__assert_fail) /* nothing to find here bro */
+    return false;
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
     if (F.isDeclaration())
       continue;
 /*    if (!F.getName().equals("tty_reset_termios"))
       continue;*/
-    handleFun(F);
+    callgraph::Callgraph::const_iterator I, E;
+    llvm::tie(I, E) = CG.calls(&F);
+    errs() << F.getName() << " calls:" << '\n';
+    for (; I != E; ++I) {
+      const Function *callee = (*I).second;
+      errs() << "  " << callee->getName() << '\n';
+      if (callee == F__assert_fail) {
+        errs() << "    ^^^^^ASSERT\n";
+        writeMain(F);
+        break;
+      }
+    }
     if (done)
       break;
   }
@@ -389,6 +356,20 @@ bool Kleerer::run() {
 
 bool KleererPass::runOnModule(Module &M) {
   TargetData &TD = getAnalysis<TargetData>();
-  Kleerer K(*this, M, TD);
+  ptr::PointsToSets<ptr::ANDERSEN>::Type PS;
+  {
+    ptr::ProgramStructure P(M);
+    computePointsToSets(P, PS);
+  }
+
+  callgraph::Callgraph CG(M, PS);
+
+  errs() << "dist=" << std::distance(CG.begin(), CG.end()) << "\n";
+  for (callgraph::Callgraph::const_iterator I = CG.begin(), E = CG.end();
+      I != E; ++I) {
+    errs() << I->first->getName() << " => " << I->second->getName() << "\n";
+  }
+
+  Kleerer K(*this, M, TD, CG);
   return K.run();
 }
