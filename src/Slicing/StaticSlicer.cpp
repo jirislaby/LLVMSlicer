@@ -118,7 +118,7 @@ bool Slicer::runOnModule(Module &M) {
 
   bool modified = slicing::Prepare::prepareModule(M);
 
-  slicing::StaticSlicer SS(this, M, PS, MOD);
+  slicing::StaticSlicer SS(this, M, PS, CG, MOD);
   SS.computeSlice();
   modified |= SS.sliceModule();
   return modified;

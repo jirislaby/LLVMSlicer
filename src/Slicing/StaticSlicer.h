@@ -11,6 +11,7 @@
 #include "llvm/Analysis/PostDominators.h"
 
 #include "FunctionStaticSlicer.h"
+#include "../Callgraph/Callgraph.h"
 #include "../PointsTo/PointsTo.h"
 #include "../Languages/LLVM.h"
 
@@ -26,6 +27,7 @@ namespace llvm { namespace slicing {
 
         template<typename PointsToSets, typename ModifiesSets>
         StaticSlicer(ModulePass *MP, Module &M, const PointsToSets &PS,
+                     const callgraph::Callgraph &CG,
                      const ModifiesSets &MOD);
 
         ~StaticSlicer();
@@ -47,7 +49,7 @@ namespace llvm { namespace slicing {
 
         template<typename PointsToSets, typename ModifiesSets>
         void runFSS(Function &F, const PointsToSets &PS,
-                    const ModifiesSets &MOD);
+                    const callgraph::Callgraph &CG, const ModifiesSets &MOD);
 
         ModulePass *MP;
         Module &module;
@@ -112,12 +114,13 @@ namespace llvm { namespace slicing {
     template<typename PointsToSets, typename ModifiesSets>
     StaticSlicer::StaticSlicer(ModulePass *MP, Module &M,
                                PointsToSets const& PS,
+                               const callgraph::Callgraph &CG,
                                ModifiesSets const& MOD) : MP(MP), module(M),
                                slicers(), initFuns(), funcsToCalls(),
                                callsToFuncs() {
         for (llvm::Module::iterator f = M.begin(); f != M.end(); ++f)
           if (!f->isDeclaration() && !memoryManStuff(&*f))
-            runFSS(*f, PS, MOD);
+            runFSS(*f, PS, CG, MOD);
         buildDicts(PS);
     }
 
@@ -129,10 +132,15 @@ namespace llvm { namespace slicing {
 
   template<typename PointsToSets, typename ModifiesSets>
   void StaticSlicer::runFSS(Function &F, const PointsToSets &PS,
+                            const callgraph::Callgraph &CG,
                             const ModifiesSets &MOD) {
     FunctionStaticSlicer *FSS = new FunctionStaticSlicer(F, MP, PS, MOD);
-    if (llvm::slicing::findInitialCriterion(F, *FSS))
+    llvm::slicing::findInitialCriterion(F, *FSS);
+
+    callgraph::Callgraph::range_iterator callees = CG.callees(&F);
+    if (!std::distance(callees.first, callees.second))
       initFuns.push_back(&F);
+
     slicers.insert(Slicers::value_type(&F, FSS));
   }
 
