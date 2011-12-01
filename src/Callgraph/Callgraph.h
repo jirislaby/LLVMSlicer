@@ -41,13 +41,13 @@ namespace llvm { namespace callgraph {
         range_iterator callees(key_type const& key) const
         { return calleesMap.equal_range(key); }
 
-	bool contains(key_type const key, mapped_type const value) const {
-	  range_iterator rng = directCalls(key);
-	  for (const_iterator it = rng.first; it != rng.second; ++it)
-	    if (it->second == value)
-	      return true;
-	  return false;
-	}
+        bool contains(key_type const key, mapped_type const value) const {
+          range_iterator rng = directCalls(key);
+          for (const_iterator it = rng.first; it != rng.second; ++it)
+            if (it->second == value)
+              return true;
+          return false;
+        }
 
         const_iterator begin() const { return directCallsMap.begin(); }
         iterator begin() { return directCallsMap.begin(); }
@@ -67,6 +67,10 @@ namespace llvm { namespace callgraph {
         Container directCalleesMap;
         Container callsMap;
         Container calleesMap;
+
+        template<typename PointsToSets>
+        void handleCall(const llvm::Function *parent, const llvm::CallInst *CI,
+                        const PointsToSets &PS);
     };
 }}
 
@@ -126,45 +130,50 @@ namespace llvm { namespace callgraph {
         return CG.callees(key);
     }
 
-    template<typename PointsToSets>
-    Callgraph::Callgraph(Module &M, PointsToSets const& PS) {
-        typedef llvm::Module::iterator FunctionsIter;
-        for (FunctionsIter f = M.begin(); f != M.end(); ++f)
-            if (!f->isDeclaration() && !memoryManStuff(&*f))
-                for (llvm::inst_iterator i = llvm::inst_begin(*f);
-                        i != llvm::inst_end(*f); i++)
-                    if (llvm::CallInst const* c =
-                            llvm::dyn_cast<llvm::CallInst const>(&*i)) {
-			if (isInlineAssembly(c))
-			    continue;
-                        std::vector<const llvm::Value *> G;
-                        if (c->getCalledFunction() != 0)
-                            G.push_back(c->getCalledFunction());
-                        else {
-                            typename PointsToSets::PointsToSet const& S =
-                                getPointsToSet(c->getCalledValue(),PS);
-			    for (typename PointsToSets::PointsToSet::const_iterator
-				I = S.begin(), E = S.end(); I != E; ++I)
-			      if (isa<llvm::Function>(*I))
-				G.push_back(*I);
-                        }
-                        for (std::vector<llvm::Value const*>::const_iterator g =
-                                G.begin(); g != G.end(); ++g)
-                        {
-                            llvm::Function const* const h =
-                                llvm::dyn_cast<llvm::Function>(*g);
-                            if (!memoryManStuff(h) && !h->isDeclaration() &&
-				!contains(f, h))
-			      insertDirectCall(value_type(f, h));
-                        }
-                    }
+  template<typename PointsToSets>
+  Callgraph::Callgraph(Module &M, PointsToSets const& PS) {
+    typedef llvm::Module::iterator FunctionsIter;
+    for (FunctionsIter f = M.begin(); f != M.end(); ++f)
+      if (!f->isDeclaration() && !memoryManStuff(&*f))
+        for (llvm::inst_iterator i = llvm::inst_begin(*f);
+             i != llvm::inst_end(*f); i++)
+          if (const llvm::CallInst *CI =
+              llvm::dyn_cast<llvm::CallInst const>(&*i))
+            handleCall(&*f, CI, PS);
 
-      detail::computeTransitiveClosure(directCallsMap, callsMap);
-      for (const_iterator it = begin(); it != end(); ++it)
-	directCalleesMap.insert(value_type(it->second,it->first));
-      for (const_iterator it = callsMap.begin(); it != callsMap.end(); ++it)
-	calleesMap.insert(value_type(it->second,it->first));
+    detail::computeTransitiveClosure(directCallsMap, callsMap);
+    for (const_iterator it = begin(); it != end(); ++it)
+      directCalleesMap.insert(value_type(it->second,it->first));
+    for (const_iterator it = callsMap.begin(); it != callsMap.end(); ++it)
+      calleesMap.insert(value_type(it->second,it->first));
+  }
+
+  template<typename PointsToSets>
+  void Callgraph::handleCall(const llvm::Function *parent,
+                             const llvm::CallInst *CI, const PointsToSets &PS) {
+    if (isInlineAssembly(CI))
+      return;
+
+    typedef llvm::SmallVector<const llvm::Value *, 10> CalledFunctions;
+    CalledFunctions G;
+    if (CI->getCalledFunction() != 0) {
+      G.push_back(CI->getCalledFunction());
+    } else {
+      typename PointsToSets::PointsToSet const& S =
+          getPointsToSet(CI->getCalledValue(), PS);
+      for (typename PointsToSets::PointsToSet::const_iterator
+           I = S.begin(), E = S.end(); I != E; ++I)
+        if (isa<llvm::Function>(*I))
+          G.push_back(*I);
     }
+    for (CalledFunctions::const_iterator I = G.begin(), E = G.end();
+         I != E; ++I) {
+      const llvm::Function *called = llvm::dyn_cast<llvm::Function>(*I);
+      if (!memoryManStuff(called) && !called->isDeclaration() &&
+          !contains(parent, called))
+        insertDirectCall(value_type(parent, called));
+    }
+  }
 
 #if 0
     template<typename Language>
