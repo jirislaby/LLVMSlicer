@@ -253,27 +253,13 @@ void Kleerer::addGlobals(Module &mainMod) {
     GlobalVariable &G = *I;
     if (!G.isDeclaration() || G.hasInitializer())
       continue;
-//    errs() << "glob: " << G.getName() << '\n';
-/*    GlobalValue::LinkageTypes linkage = G.getLinkage();
-    if (linkage == GlobalValue::ExternalWeakLinkage)
-      linkage = GlobalValue::CommonLinkage;
-    new GlobalVariable(mainMod, G.getType(), G.isConstant(), linkage,
-                       Constant::getNullValue(G.getType()), G.getName());*/
     Constant *xxx = Constant::getNullValue(G.getType()->getElementType());
-/*    errs() << "xxx=";
-    xxx->getType()->print(errs());
-    errs() << "\nyyy=";
-    G.getType()->getElementType()->print(errs());
-    errs() << "\n";*/
     G.setInitializer(xxx);
   }
 }
 
 void Kleerer::writeMain(Function &F) {
   std::string name = M.getModuleIdentifier() + ".main." + F.getNameStr() + ".o";
-//  Module mainMod(name, C);
-/*  Function *callie = Function::Create(F.getFunctionType(),
-                    GlobalValue::ExternalLinkage, F.getName(), &mainMod);*/
   Function *mainFun = Function::Create(TypeBuilder<int(), false>::get(C),
                     GlobalValue::ExternalLinkage, "main", &M);
   BasicBlock *mainBB = BasicBlock::Create(C, "entry", mainFun);
