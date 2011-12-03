@@ -9,6 +9,7 @@
 #include "llvm/Constants.h"
 #include "llvm/Function.h"
 #include "llvm/GlobalVariable.h"
+#include "llvm/InlineAsm.h"
 #include "llvm/Instructions.h"
 #include "llvm/Module.h"
 #include "llvm/Pass.h"
@@ -32,6 +33,8 @@ namespace {
     private:
       static void replaceInsLoad(llvm::Function &F, llvm::CallInst *CI);
       static void replaceInsStore(llvm::Function &F, llvm::CallInst *CI);
+      static bool handleAsm(Function &F, CallInst *CI);
+      static void deleteAsmBodies(Module &M);
       static bool runOnFunction(Function &F);
   };
 }
@@ -79,6 +82,17 @@ void Prepare::replaceInsStore(Function &F, CallInst *CI) {
   ReplaceInstWithInst(CI, SI);
 }
 
+bool Prepare::handleAsm(Function &F, CallInst *CI) {
+  const InlineAsm *IA = cast<InlineAsm>(CI->getCalledValue());
+  std::string ASM = IA->getAsmString();
+  if (!ASM.compare(0, 6, "1:\tud2")) {
+    CI->eraseFromParent();
+    return true;
+  }
+  errs() << "ASM str (" << F.getName() << "): " << ASM << "\n===========\n";
+  return false;
+}
+
 bool Prepare::runOnFunction(Function &F) {
   bool modified = false;
   const Module *M = F.getParent();
@@ -89,6 +103,10 @@ bool Prepare::runOnFunction(Function &F) {
     Instruction *ins = &*I;
     ++I;
     if (CallInst *CI = dyn_cast<CallInst>(ins)) {
+      if (CI->isInlineAsm()) {
+        modified |= handleAsm(F, CI);
+        continue;
+      }
       Function *callee = CI->getCalledFunction();
       if (callee) {
         if (callee == __ai_load) {
@@ -104,7 +122,25 @@ bool Prepare::runOnFunction(Function &F) {
   return modified;
 }
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+
+void Prepare::deleteAsmBodies(llvm::Module &M) {
+  static const char *toDelete[] = {
+    "atomic_inc", "atomic_dec", "atomic_dec_and_test",
+    "__fswab16", "__fswab32", "__fswab64"
+  };
+  unsigned int i;
+
+  for (i = 0; i < ARRAY_SIZE(toDelete); i++) {
+    Function *F = M.getFunction(toDelete[i]);
+    if (F)
+      F->deleteBody();
+  }
+}
+
 bool Prepare::runOnModule(Module &M) {
+  deleteAsmBodies(M);
+
   for (llvm::Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
     if (!F.isDeclaration())
