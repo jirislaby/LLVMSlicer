@@ -35,7 +35,6 @@
 #include "../PointsTo/PointsTo.h"
 
 #include "FunctionStaticSlicer.h"
-#include "Prepare.h"
 
 using namespace llvm;
 using namespace llvm::slicing;
@@ -624,8 +623,6 @@ bool llvm::slicing::findInitialCriterion(Function &F,
 template<typename PointsToSets, typename ModifiesSets>
 bool FunctionSlicer::runOnFunction(Function &F, const PointsToSets &PS,
                            const ModifiesSets &MOD) {
-  bool modified = Prepare::prepareFun(F);
-
   FunctionStaticSlicer ss(F, this, PS, MOD);
 
   findInitialCriterion(F, ss);
@@ -636,7 +633,7 @@ bool FunctionSlicer::runOnFunction(Function &F, const PointsToSets &PS,
   if (sliced)
     FunctionStaticSlicer::removeUndefBranches(this, F);
 
-  return modified || sliced;
+  return sliced;
 }
 
 bool FunctionSlicer::runOnModule(Module &M) {

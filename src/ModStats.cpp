@@ -12,8 +12,6 @@
 #include "PointsTo/AlgoAndersen.h"
 #include "PointsTo/PointsTo.h"
 
-#include "Slicing/Prepare.h"
-
 using namespace llvm;
 
 namespace {
@@ -339,7 +337,6 @@ void StatsComputer::run() {
 }
 
 bool ModStats::runOnModule(Module &M) {
-  slicing::Prepare::prepareModule(M);
   StatsComputer sc(*this, M);
   sc.run();
 	return false;

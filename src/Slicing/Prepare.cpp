@@ -11,16 +11,33 @@
 #include "llvm/GlobalVariable.h"
 #include "llvm/Instructions.h"
 #include "llvm/Module.h"
+#include "llvm/Pass.h"
 #include "llvm/Support/InstIterator.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/TypeBuilder.h"
 #include "llvm/Type.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
-#include "Prepare.h"
-
 using namespace llvm;
-using namespace llvm::slicing;
+
+namespace {
+  class Prepare : public ModulePass {
+    public:
+      static char ID;
+
+      Prepare() : ModulePass(ID) {}
+
+      virtual bool runOnModule(Module &M);
+
+    private:
+      static void replaceInsLoad(llvm::Function &F, llvm::CallInst *CI);
+      static void replaceInsStore(llvm::Function &F, llvm::CallInst *CI);
+      static bool runOnFunction(Function &F);
+  };
+}
+
+static RegisterPass<Prepare> X("prepare", "Prepares the code for slicing");
+char Prepare::ID;
 
 static GlobalVariable *getAiVar(Function &F, const CallInst *CI) {
   const ConstantExpr *GEP =
@@ -62,7 +79,7 @@ void Prepare::replaceInsStore(Function &F, CallInst *CI) {
   ReplaceInstWithInst(CI, SI);
 }
 
-bool Prepare::prepareFun(Function &F) {
+bool Prepare::runOnFunction(Function &F) {
   bool modified = false;
   const Module *M = F.getParent();
   const Function *__ai_load = M->getFunction("__ai_load");
@@ -85,4 +102,13 @@ bool Prepare::prepareFun(Function &F) {
     }
   }
   return modified;
+}
+
+bool Prepare::runOnModule(Module &M) {
+  for (llvm::Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
+    Function &F = *I;
+    if (!F.isDeclaration())
+      runOnFunction(F);
+  }
+  return true;
 }
