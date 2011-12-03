@@ -19,6 +19,7 @@ if (LLVM_SRC_PATH)
 endif(LLVM_SRC_PATH)
 if (LLVM_BUILD_PATH)
   include_directories(${LLVM_BUILD_PATH}/include)
+  link_directories(${LLVM_BUILD_PATH}/lib)
 endif(LLVM_BUILD_PATH)
 
 add_subdirectory(src)
