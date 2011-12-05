@@ -20,6 +20,10 @@
 #include "llvm/Type.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
+#include "../Callgraph/Callgraph.h"
+#include "../PointsTo/AlgoAndersen.h"
+#include "../PointsTo/PointsTo.h"
+
 using namespace llvm;
 
 namespace {
@@ -89,7 +93,7 @@ bool Prepare::handleAsm(Function &F, CallInst *CI) {
   std::string ASM = IA->getAsmString();
   std::string CONS = IA->getConstraintString();
 
-  BasicBlock *BB = CI->getParent();
+//  BasicBlock *BB = CI->getParent();
 
   if ((ASM.empty() && !CI->getNumArgOperands()) || /* a barrier */
       !ASM.compare(0, 6, "1:\tud2") ||
@@ -238,6 +242,33 @@ void Prepare::deleteAsmBodies(llvm::Module &M) {
   }
 }
 
+void findInitFuns(Module &M) {
+  ptr::PointsToSets<ptr::ANDERSEN>::Type PS;
+  {
+    ptr::ProgramStructure P(M);
+    computePointsToSets(P, PS);
+  }
+
+  callgraph::Callgraph CG(M, PS);
+
+  SmallVector<Constant *, 10> initFns;
+  Type *ETy = TypeBuilder<void *, false>::get(M.getContext());
+
+  for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
+    Function &F = *I;
+    if (F.isDeclaration())
+      continue;
+    callgraph::Callgraph::range_iterator callees = CG.callees(&F);
+    if (std::distance(callees.first, callees.second))
+      continue;
+    initFns.push_back(ConstantExpr::getBitCast(&F, ETy));
+  }
+  ArrayType *ATy = ArrayType::get(ETy, initFns.size());
+  new GlobalVariable(M, ATy, true, GlobalVariable::InternalLinkage,
+                     ConstantArray::get(ATy, initFns),
+                     "__ai_init_functions");
+}
+
 bool Prepare::runOnModule(Module &M) {
   deleteAsmBodies(M);
 
@@ -246,5 +277,8 @@ bool Prepare::runOnModule(Module &M) {
     if (!F.isDeclaration())
       runOnFunction(F);
   }
+
+  findInitFuns(M);
+
   return true;
 }
