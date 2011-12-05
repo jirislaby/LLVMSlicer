@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <cstring>
 
+#include "llvm/BasicBlock.h"
 #include "llvm/Constants.h"
 #include "llvm/Function.h"
 #include "llvm/GlobalVariable.h"
@@ -34,6 +35,7 @@ namespace {
       static void replaceInsLoad(llvm::Function &F, llvm::CallInst *CI);
       static void replaceInsStore(llvm::Function &F, llvm::CallInst *CI);
       static bool handleAsm(Function &F, CallInst *CI);
+      static void makeNop(Function *F);
       static void deleteAsmBodies(Module &M);
       static bool runOnFunction(Function &F);
   };
@@ -85,11 +87,57 @@ void Prepare::replaceInsStore(Function &F, CallInst *CI) {
 bool Prepare::handleAsm(Function &F, CallInst *CI) {
   const InlineAsm *IA = cast<InlineAsm>(CI->getCalledValue());
   std::string ASM = IA->getAsmString();
-  if (!ASM.compare(0, 6, "1:\tud2")) {
+  std::string CONS = IA->getConstraintString();
+
+  BasicBlock *BB = CI->getParent();
+
+  if ((ASM.empty() && !CI->getNumArgOperands()) || /* a barrier */
+      !ASM.compare(0, 6, "1:\tud2") ||
+      !ASM.compare("lfence") || !ASM.compare("mfence") ||
+      !ASM.compare("sfence")) {
+/*    errs() << ASM << " (" << F.getName() << "): " << ASM.empty() << " " << !ASM.compare(0, 6, "1:\tud2") << " " <<
+      !ASM.compare("lfence") << " " << !ASM.compare("mfence") << " " <<
+      !ASM.compare("sfence");
+    BB->dump();*/
     CI->eraseFromParent();
     return true;
+  } else if (ASM.empty() && CI->getNumArgOperands() == 1) { /* reloc hide */
+    ReplaceInstWithInst(CI, CastInst::CreatePointerCast(CI->getArgOperand(0),
+                                                        CI->getType()));
+    return true;
+  } else if (!ASM.compare("movs %gs:${1:c},$0") || /* reading pda */
+             !ASM.compare("movl %gs:${1:c},$0") ||
+             !ASM.compare("movq %gs:${1:c},$0")) {
+    const ConstantInt *param = dyn_cast<ConstantInt>(CI->getArgOperand(0));
+    if (param) {
+      const APInt &paramVal = param->getValue();
+      Module *M = F.getParent();
+      if (paramVal == 0) { /* current */
+        ReplaceInstWithInst(CI, new LoadInst(
+                                  M->getOrInsertGlobal("__ai_current_singleton",
+                                                       CI->getType())));
+        return true;
+      } else { /* others, let's fake it with global var */
+        GlobalVariable *GV = dyn_cast<GlobalVariable>(
+              M->getOrInsertGlobal("__ai_pda_" + paramVal.toString(10, false),
+                                   CI->getType()));
+        GV->setInitializer(Constant::getNullValue(CI->getType()));
+        if (CI->getType()->isPointerTy())
+          errs() << "Warn ptr type => we set it to point to NULL\n";
+        ReplaceInstWithInst(CI, new LoadInst(GV));
+        return true;
+      }
+    }
+  } else if (!ASM.compare(0, 16, "call __put_user_") ||
+             !ASM.compare(0, 16, "call __get_user_") ) {
+    BasicBlock::iterator it(CI);
+    ReplaceInstWithValue(CI->getParent()->getInstList(), it,
+                         Constant::getNullValue(CI->getType()));
+    return true;
   }
-  errs() << "ASM str (" << F.getName() << "): " << ASM << "\n===========\n";
+  errs() << "ASM str (" << F.getName() << "): " << ASM << " from:\n";
+  CI->dump();
+  errs() << "===========\n";
   return false;
 }
 
@@ -122,12 +170,59 @@ bool Prepare::runOnFunction(Function &F) {
   return modified;
 }
 
+void Prepare::makeNop(Function *F) {
+  F->deleteBody();
+  BasicBlock *BB = BasicBlock::Create(F->getContext(), "entry", F);
+  ReturnInst::Create(F->getContext(), F->getReturnType()->isVoidTy() ? NULL :
+                     Constant::getNullValue(F->getReturnType()), BB);
+}
+
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
 void Prepare::deleteAsmBodies(llvm::Module &M) {
   static const char *toDelete[] = {
-    "atomic_inc", "atomic_dec", "atomic_dec_and_test",
-    "__fswab16", "__fswab32", "__fswab64"
+    "atomic_inc", "atomic_dec", "atomic_add", "atomic_sub",
+    "atomic_dec_and_test", "atomic_add_return",
+    "atomic64_inc", "atomic64_dec", "atomic64_add", "atomic64_sub",
+    "local_inc", "local_dec",
+    "__fswab16", "__fswab32", "__fswab64",
+    "__xchg", "__cmpxchg",
+    "__set_bit", "__clear_bit", "set_bit", "clear_bit",
+    "variable_test_bit",
+    "__test_and_set_bit", "__test_and_clear_bit",
+    "test_and_set_bit", "test_and_clear_bit",
+    "__fls", "fls", "__ffs", "ffs", "ffz",
+
+    "___arch__swab32", "___arch__swab64" // generates false positives in stats
+  };
+  static const char *_makeNop[] = {
+    "pagefault_disable",
+    "__raw_local_save_flags", "raw_local_irq_restore",
+    "raw_local_irq_enable", "raw_local_irq_disable",
+    "__raw_spin_is_contended",
+    "local_bh_enable", "local_bh_disable",
+    "schedule", "schedule_timeout", "schedule_timeout_uninterruptible",
+    "preempt_schedule",
+    "msleep", "msleep_interruptible", "__const_udelay",
+    "printk_ratelimit", "warn_slowpath", "warn_on_slowpath", "dump_stack",
+    "rep_nop",
+    "inb", "inw", "inl",
+    "insb", "insw", "insl",
+    "outb", "outw", "outl",
+    "outsb", "outsw", "outsl",
+    "inb_p", "inw_p", "inl_p",
+    "outb_p", "outw_p", "outl_p",
+    "readb", "readw", "readl", "readq",
+    "writeb", "writew", "writel", "writeq",
+    "__readb", "__readw", "__readl", "__readq",
+    "__writeb", "__writew", "__writel", "__writeq",
+
+    "mod_timer", "del_timer", "del_timer_sync",
+    "complete", "wait_for_completion",
+    "interruptible_sleep_on",
+    "add_wait_queue", "remove_wait_queue", "prepare_to_wait", "finish_wait",
+    "queue_work", "schedule_work", "flush_scheduled_work",
+    "__wake_up", "wake_up_process", "kill_fasync"
   };
   unsigned int i;
 
@@ -135,6 +230,11 @@ void Prepare::deleteAsmBodies(llvm::Module &M) {
     Function *F = M.getFunction(toDelete[i]);
     if (F)
       F->deleteBody();
+  }
+  for (i = 0; i < ARRAY_SIZE(_makeNop); i++) {
+    Function *F = M.getFunction(_makeNop[i]);
+    if (F)
+      makeNop(F);
   }
 }
 
