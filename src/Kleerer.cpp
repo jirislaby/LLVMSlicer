@@ -330,20 +330,30 @@ bool Kleerer::run() {
   Function *F__assert_fail = M.getFunction("__assert_fail");
   if (!F__assert_fail) /* nothing to find here bro */
     return false;
-  for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
-    Function &F = *I;
-    if (F.isDeclaration())
-      continue;
-/*    if (!F.getName().equals("tty_reset_termios"))
-      continue;*/
+
+  callgraph::Callgraph::range_iterator RI = CG.callees(F__assert_fail);
+  if (std::distance(RI.first, RI.second) == 0)
+    return false;
+
+  GlobalVariable *initFunsVar = M.getGlobalVariable("__ai_init_functions", true);
+
+  assert(initFunsVar && "No initial functions found. Did you run -prepare?");
+
+  const ConstantArray *initFuns =
+      dyn_cast<ConstantArray>(initFunsVar->getInitializer());
+  assert(initFuns);
+
+  for (ConstantArray::const_op_iterator I = initFuns->op_begin(),
+       E = initFuns->op_end(); I != E; ++I) {
+    const ConstantExpr *CE = cast<ConstantExpr>(&*I);
+    assert(CE->getOpcode() == Instruction::BitCast);
+    Function &F = *cast<Function>(CE->getOperand(0));
+
     callgraph::Callgraph::const_iterator I, E;
     llvm::tie(I, E) = CG.calls(&F);
-    errs() << F.getName() << " calls:" << '\n';
     for (; I != E; ++I) {
       const Function *callee = (*I).second;
-      errs() << "  " << callee->getName() << '\n';
       if (callee == F__assert_fail) {
-        errs() << "    ^^^^^ASSERT\n";
         writeMain(F);
         break;
       }
@@ -363,12 +373,6 @@ bool KleererPass::runOnModule(Module &M) {
   }
 
   callgraph::Callgraph CG(M, PS);
-
-  errs() << "dist=" << std::distance(CG.begin(), CG.end()) << "\n";
-  for (callgraph::Callgraph::const_iterator I = CG.begin(), E = CG.end();
-      I != E; ++I) {
-    errs() << I->first->getName() << " => " << I->second->getName() << "\n";
-  }
 
   Kleerer K(*this, M, TD, CG);
   return K.run();
