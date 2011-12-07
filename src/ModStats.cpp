@@ -11,6 +11,7 @@
 #include "Callgraph/Callgraph.h"
 #include "PointsTo/AlgoAndersen.h"
 #include "PointsTo/PointsTo.h"
+#include "Slicing/Prepare.h"
 
 using namespace llvm;
 
@@ -271,13 +272,14 @@ void StatsComputer::run() {
     handleFun(modInfo, F, modPass.getAnalysis<LoopInfo>(F));
   }
 
-  for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
-    const Function &F = *I;
-    if (F.isDeclaration())
-      continue;
-    callgraph::Callgraph::range_iterator callees = CG.callees(&F);
-    if (std::distance(callees.first, callees.second))
-      continue;
+  const ConstantArray *initFuns = getInitFuns(M);
+  assert(initFuns && "No initial functions found. Did you run -prepare?");
+
+  for (ConstantArray::const_op_iterator I = initFuns->op_begin(),
+       E = initFuns->op_end(); I != E; ++I) {
+    const ConstantExpr *CE = cast<ConstantExpr>(&*I);
+    assert(CE->getOpcode() == Instruction::BitCast);
+    const Function &F = *cast<Function>(CE->getOperand(0));
     FunInfo *funInfo = modInfo.getFunInfo(&F);
     callgraph::Callgraph::const_iterator I, E;
     llvm::tie(I, E) = CG.calls(&F);
