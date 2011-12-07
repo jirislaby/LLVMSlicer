@@ -13,6 +13,7 @@
 #include "Callgraph/Callgraph.h"
 #include "PointsTo/AlgoAndersen.h"
 #include "PointsTo/PointsTo.h"
+#include "Slicing/Prepare.h"
 
 using namespace llvm;
 
@@ -335,13 +336,8 @@ bool Kleerer::run() {
   if (std::distance(RI.first, RI.second) == 0)
     return false;
 
-  GlobalVariable *initFunsVar = M.getGlobalVariable("__ai_init_functions", true);
-
-  assert(initFunsVar && "No initial functions found. Did you run -prepare?");
-
-  const ConstantArray *initFuns =
-      dyn_cast<ConstantArray>(initFunsVar->getInitializer());
-  assert(initFuns);
+  const ConstantArray *initFuns = getInitFuns(M);
+  assert(initFuns && "No initial functions found. Did you run -prepare?");
 
   for (ConstantArray::const_op_iterator I = initFuns->op_begin(),
        E = initFuns->op_end(); I != E; ++I) {
