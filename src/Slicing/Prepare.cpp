@@ -205,10 +205,12 @@ void Prepare::deleteAsmBodies(llvm::Module &M) {
     "raw_local_irq_enable", "raw_local_irq_disable",
     "__raw_spin_is_contended",
     "local_bh_enable", "local_bh_disable",
-    "schedule", "schedule_timeout", "schedule_timeout_uninterruptible",
+    "schedule", "schedule_timeout", "schedule_timeout_interruptible",
+    "schedule_timeout_uninterruptible",
     "preempt_schedule",
-    "msleep", "msleep_interruptible", "__const_udelay",
+    "msleep", "msleep_interruptible", "__udelay", "__const_udelay",
     "printk_ratelimit", "warn_slowpath", "warn_on_slowpath", "dump_stack",
+    "printk", "vprintk", "snd_verbose_printk",
     "rep_nop",
     "inb", "inw", "inl",
     "insb", "insw", "insl",
@@ -221,12 +223,14 @@ void Prepare::deleteAsmBodies(llvm::Module &M) {
     "__readb", "__readw", "__readl", "__readq",
     "__writeb", "__writew", "__writel", "__writeq",
 
-    "mod_timer", "del_timer", "del_timer_sync",
+    "mod_timer", "__mod_timer", "del_timer", "del_timer_sync",
     "complete", "wait_for_completion",
     "interruptible_sleep_on",
     "add_wait_queue", "remove_wait_queue", "prepare_to_wait", "finish_wait",
+    "__tasklet_schedule",
     "queue_work", "schedule_work", "flush_scheduled_work",
-    "__wake_up", "wake_up_process", "kill_fasync"
+    "schedule_delayed_work",
+    "__wake_up", "wake_up_process", "wake_up_state", "kill_fasync"
   };
   unsigned int i;
 
