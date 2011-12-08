@@ -549,6 +549,9 @@ void FunctionStaticSlicer::removeUndefBranches(ModulePass *MP, Function &F) {
   errs() << __func__ << " ============ Removing unused branches\n";
 #endif
   PostDominatorTree &PDT = MP->getAnalysis<PostDominatorTree>(F);
+  typedef llvm::SmallVector<const BasicBlock *, 10> Unsafe;
+  Unsafe unsafe;
+
   for (Function::iterator I = F.begin(), E = F.end(); I != E; ++I) {
     BasicBlock &bb = *I;
     if (std::distance(succ_begin(&bb), succ_end(&bb)) <= 1)
@@ -574,9 +577,21 @@ void FunctionStaticSlicer::removeUndefBranches(ModulePass *MP, Function &F) {
     errs() << "  considering branch: " << bb.getName() << '\n';
     errs() << "  dest=" << dest->getName() << "\n";
 #endif
+    if (PHINode *PHI = dyn_cast<PHINode>(&dest->front()))
+      if (PHI->getBasicBlockIndex(&bb) == -1) {
+        /* TODO this is unsafe! */
+        unsafe.push_back(&bb);
+        PHI->addIncoming(Constant::getNullValue(PHI->getType()), &bb);
+    }
     BasicBlock::iterator ii(back);
     Instruction *newI = BranchInst::Create(dest);
     ReplaceInstWithInst(bb.getInstList(), ii, newI);
+  }
+  for (Unsafe::const_iterator I = unsafe.begin(), E = unsafe.end();
+       I != E; ++I) {
+    const BasicBlock *bb = *I;
+    if (std::distance(pred_begin(bb), pred_end(bb)) > 1)
+      errs() << "WARNING: PHI node with added value which is zero\n";
   }
 #ifdef DEBUG_SLICE
   errs() << __func__ << " ============ END\n";
