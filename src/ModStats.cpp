@@ -169,7 +169,13 @@ void ModInfo::dump() const {
 
 static bool isLockingFun(StringRef name) {
   return name.startswith("_spin_lock") || name.startswith("_spin_unlock") ||
-    name.equals("mutex_lock") || name.equals("mutex_unlock");
+    name.startswith("_spin_trylock") ||
+    name.startswith("_read_lock") || name.startswith("_read_unlock") ||
+    name.startswith("_read_trylock") ||
+    name.startswith("_write_lock") || name.startswith("_write_unlock") ||
+    name.startswith("_write_trylock") ||
+    name.equals("mutex_lock") || name.equals("mutex_unlock") ||
+    name.equals("mutex_trylock");
 }
 
 void StatsComputer::handleIns(FunInfo &funInfo, const Instruction &ins) {
