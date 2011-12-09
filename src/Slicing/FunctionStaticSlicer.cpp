@@ -461,7 +461,7 @@ void FunctionStaticSlicer::dump() {
   for (inst_iterator I = inst_begin(fun), E = inst_end(fun); I != E; I++) {
     const Instruction &i = *I;
     const InsInfo *ii = getInsInfo(&i);
-    i->print(errs());
+    i.print(errs());
     errs() << "\n    ";
     if (!ii->isSliced() || !canSlice(i))
       errs() << "UN";
