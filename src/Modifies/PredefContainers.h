@@ -54,31 +54,6 @@ namespace llvm { namespace mods {
             S.find(f);
         return (it == S.end()) ? empty : it->second;
     }
-#if 0
-    template<typename Language,typename Algorithm,typename OutuptStream>
-    OutuptStream& dump(OutuptStream& ostr,
-                       ModifiesAsMap<Language,Algorithm> const& S)
-    {
-        for (typename ModifiesAsMap<Language,Algorithm>::const_iterator i =
-                S.begin(); i != S.end(); ++i)
-            if (!i->second.empty())
-            {
-                using monty::codespy::dump;
-                ostr << "  ";
-                dump(ostr,i->first);
-                ostr << '\n';
-                typedef typename ModifiesAsMap<Language,Algorithm>::mapped_type
-                            ::const_iterator ModIter;
-                for (ModIter j = i->second.begin(); j != i->second.end(); ++j)
-                {
-                    ostr << "    ";
-                    dump(ostr,*j);
-                    ostr << '\n';
-                }
-            }
-        return ostr;
-    }
-#endif
 }}
 
 namespace llvm { namespace mods {
@@ -111,29 +86,6 @@ namespace llvm { namespace mods {
         WriteType type;
         Variable var;
     };
-#if 0
-    template<typename Language, typename OutuptStream>
-    OutuptStream&
-    dump(OutuptStream& ostr, WriteCommand<Language> const& C,
-         Language = Language())
-    {
-        using monty::codespy::dump;
-        switch (C.getType())
-        {
-            case CMD_VAR:
-                dump(ostr,C.getVar());
-                break;
-            case CMD_DREF_VAR:
-                ostr << '*';
-                dump(ostr,C.getVar());
-                break;
-            default:
-                ostr << "CMD_UNKNOWN";
-                break;
-        }
-        return ostr;
-    }
-#endif
 }}
 
 namespace llvm { namespace mods {
@@ -170,36 +122,6 @@ namespace llvm { namespace mods {
       Container C;
   };
 
-#if 0
-  template<typename Language, typename AnalysisProperties,
-           typename OutuptStream>
-  OutuptStream& dump(OutuptStream& ostr,
-                     FunctionWrites<Language,AnalysisProperties> const& P)
-  {
-      MONTY_TMPROF_BLOCK_LVL1();
-
-      for (typename FunctionWrites<Language,AnalysisProperties>
-              ::const_iterator f = P.begin(); f != P.end(); ++f)
-      {
-          if (!f->second.empty())
-          {
-              ostr << "  ";
-              using monty::codespy::dump;
-              dump(ostr,f->first);
-              ostr << '\n';
-          }
-          for (typename FunctionWrites<Language,AnalysisProperties>::Commands
-                  ::const_iterator c = f->second.begin();
-                  c != f->second.end(); ++c)
-          {
-              ostr << "    ";
-              dump(ostr,*c);
-              ostr << '\n';
-          }
-      }
-      return ostr;
-  }
-#endif
 }}
 
 #endif

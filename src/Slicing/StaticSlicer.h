@@ -233,13 +233,4 @@ namespace llvm { namespace slicing {
 
 }}
 
-#if 0
-inline std::ostream&
-operator<<(std::ostream& ostr, monty::codespy::slicing::StaticSlicer const& S)
-{
-    S.dump(ostr);
-    return ostr;
-}
-#endif
-
 #endif

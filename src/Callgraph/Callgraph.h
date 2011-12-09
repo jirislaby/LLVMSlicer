@@ -175,50 +175,6 @@ namespace llvm { namespace callgraph {
     }
   }
 
-#if 0
-    template<typename Language>
-    std::ostream& dump(std::ostream& ostr, BasicCallgraph<Language> const& CG)
-    {
-        if (CG.begin() != CG.end())
-            ostr << "--- Direct calls ---\n";
-        for (typename BasicCallgraph<Language>::const_iterator
-                it = CG.begin(), old_it = CG.end(); it != CG.end(); ++it)
-        {
-            using monty::codespy::dump;
-            if (old_it == CG.end() || it->first != old_it->first)
-            {
-                ostr << "  ";
-                dump(ostr,it->first);
-                ostr << '\n';
-
-                old_it = it;
-            }
-            ostr << "    ";
-            dump(ostr,it->second);
-            ostr << '\n';
-        }
-        if (CG.begin_closure() != CG.end_closure())
-            ostr << "--- Transitive closure of calls ---\n";
-        for (typename BasicCallgraph<Language>::const_iterator
-                it = CG.begin_closure(), old_it = CG.end_closure();
-                it != CG.end_closure(); ++it)
-        {
-            using monty::codespy::dump;
-            if (old_it == CG.end_closure() || it->first != old_it->first)
-            {
-                ostr << "  ";
-                dump(ostr,it->first);
-                ostr << '\n';
-
-                old_it = it;
-            }
-            ostr << "    ";
-            dump(ostr,it->second);
-            ostr << '\n';
-        }
-        return ostr;
-    }
-#endif
 }}
 
 #endif

@@ -61,22 +61,6 @@ namespace llvm { namespace slicing {
             FunctionStaticSlicer::removeUndefBranches(MP, *I);
       return modified;
     }
-#if 0
-    void StaticSlicer::dump(std::ostream& ostr) const
-    {
-        using monty::codespy::dump;
-
-        for (Slicers::const_iterator s = slicers.begin();
-                s != slicers.end(); ++s)
-        {
-            ostr << "Function ";
-            codespy::dump(ostr,s->first);
-            ostr << std::endl;
-            s->second->dump(ostr);
-            ostr << std::endl;
-        }
-    }
-#endif
 }}
 
 using namespace llvm;
