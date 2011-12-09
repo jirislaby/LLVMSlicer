@@ -81,30 +81,6 @@ namespace llvm { namespace ptr {
 namespace llvm { namespace ptr { namespace detail {
 
   template<typename PointsToAlgorithm>
-  typename PointsToSets<PointsToAlgorithm>::Type &
-  elimUndefs(LLVMContext &C,
-             typename PointsToSets<PointsToAlgorithm>::Type& S) {
-    typedef typename PointsToSets<PointsToAlgorithm>::Type PTSets;
-    typename PTSets::mapped_type U;
-
-    for (typename PTSets::iterator s = S.begin(); s != S.end(); ++s)
-        std::copy(s->second.begin(),s->second.end(),
-                  std::inserter(U,U.end()));
-
-    S.getContainer().erase(getUndefValue(C));
-
-    for (typename PTSets::iterator s = S.begin(); s != S.end(); ++s) {
-      typename PTSets::mapped_type::iterator undef =
-          s->second.find(getUndefValue(C));
-      if (undef != s->second.end()) {
-        std::copy(U.begin(),U.end(), std::inserter(s->second, s->second.end()));
-        s->second.erase(undef);
-      }
-    }
-    return S;
-  }
-
-  template<typename PointsToAlgorithm>
   typename PointsToSets<PointsToAlgorithm>::Type&
   pruneByType(typename PointsToSets<PointsToAlgorithm>::Type& S)
   {
@@ -112,8 +88,7 @@ namespace llvm { namespace ptr { namespace detail {
     typedef typename PTSets::mapped_type PTSet;
     PTSet U;
     for (typename PTSets::iterator s = S.begin(); s != S.end(); )
-        if (llvm::isa<llvm::UndefValue>(s->first) ||
-            llvm::isa<llvm::Function>(s->first)) {
+        if (llvm::isa<llvm::Function>(s->first)) {
           typename PTSets::iterator const tmp = s++;
           S.getContainer().erase(tmp);
         } else {

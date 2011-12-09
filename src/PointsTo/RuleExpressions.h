@@ -548,7 +548,8 @@ namespace llvm { namespace ptr { namespace detail {
             *out++ = ruleCode(ruleVar(l) = ruleVar(r));
         }
       } else if (llvm::isa<llvm::IntToPtrInst>(I)) {
-        *out++ = ruleCode(ruleVar(V) = &ruleVar(getUndefValue(I->getContext())));
+        errs() << __func__ << ": WARNING[PointsTo]: Integer converted to a pointer "
+                "=> getting unsound analysis!\n";
       } else if (const llvm::SelectInst *SEL =
                       llvm::dyn_cast<llvm::SelectInst>(I)) {
           const llvm::Value *r1 = elimConstExpr(SEL->getTrueValue());
@@ -592,12 +593,6 @@ namespace llvm { namespace ptr { namespace detail {
                 if (llvm::isPointerValue(&*fit))
                     *out++ = detail::argPassRuleCode(&*fit,
                                             elimConstExpr(c->getOperand(i)));
-            if (f->isDeclaration() && f->getReturnType()->isPointerTy()) {
-              const llvm::Value *l = c;
-              const llvm::Value *r =
-                  UndefValue::get(getPointedType(f->getReturnType()));
-              *out++ = ruleCode(ruleVar(l) = &ruleVar(r));
-            }
         }
     }
 

@@ -21,7 +21,6 @@
 namespace llvm {
 
     bool hasExtraReference(llvm::Value const* const V);
-    const Value *getUndefValue(LLVMContext &C);
     bool isConstantValue(llvm::Value const* const V);
     bool isPointerValue(llvm::Value const* const V);
     bool isPointerToPointerValue(llvm::Value const* const V);

@@ -77,9 +77,9 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
           addDEF(*I);
       }
 
-      const Value *r = elimConstExpr(SI->getValueOperand());
-      if (!r->getType()->isIntegerTy())
+      if (!l->getType()->isIntegerTy())
         addREF(l);
+      const Value *r = elimConstExpr(SI->getValueOperand());
       if (!hasExtraReference(r) && !isConstantValue(r))
         addREF(r);
     }

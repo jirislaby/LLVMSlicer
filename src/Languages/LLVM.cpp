@@ -247,8 +247,4 @@ namespace llvm {
       }
       return V;
     }
-
-    const Value *getUndefValue(LLVMContext &C) {
-      return UndefValue::get(Type::getVoidTy(C));
-    }
 }
