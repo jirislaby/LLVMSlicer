@@ -175,7 +175,7 @@ static bool isLockingFun(StringRef name) {
     name.startswith("_write_lock") || name.startswith("_write_unlock") ||
     name.startswith("_write_trylock") ||
     name.equals("mutex_lock") || name.equals("mutex_unlock") ||
-    name.equals("mutex_trylock");
+    name.equals("mutex_lock_interruptible") || name.equals("mutex_trylock");
 }
 
 void StatsComputer::handleIns(FunInfo &funInfo, const Instruction &ins) {
