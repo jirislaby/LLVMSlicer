@@ -391,8 +391,7 @@ namespace llvm { namespace ptr { namespace detail {
         } if (isMemoryAllocation(C->getCalledValue()))
           *out++ = ruleCode(ruleVar(V) = ruleAllocSite(V));
         else if (isMemoryDeallocation(C->getCalledValue()))
-          errs() << "KOKO\n";
-        //                    *out++ = ruleCode(ruleDeallocSite(V));
+          *out++ = ruleCode(ruleDeallocSite(V));
         else if (isMemoryCopy(C->getCalledValue()) ||
             isMemoryMove(C->getCalledValue())) {
           const llvm::Value *l = elimConstExpr(C->getArgOperand(0));
