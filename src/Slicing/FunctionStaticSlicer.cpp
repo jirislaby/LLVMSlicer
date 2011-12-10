@@ -599,7 +599,8 @@ void FunctionStaticSlicer::removeUndefBranches(ModulePass *MP, Function &F) {
 }
 
 bool llvm::slicing::findInitialCriterion(Function &F,
-                                         FunctionStaticSlicer &ss) {
+                                         FunctionStaticSlicer &ss,
+                                         bool starting) {
   bool added = false;
 #ifdef DEBUG_INITCRIT
   errs() << __func__ << " ============ BEGIN\n";
@@ -626,6 +627,22 @@ bool llvm::slicing::findInitialCriterion(Function &F,
 #endif
         ss.addInitialCriterion(CI);
         added = true;
+      }
+    } else if (const ReturnInst *RI = dyn_cast<ReturnInst>(i)) {
+      if (starting) {
+        const Module *M = F.getParent();
+        for (Module::const_global_iterator II = M->global_begin(),
+             EE = M->global_end(); II != EE; ++II) {
+          const GlobalVariable &GV = *II;
+          if (!GV.hasName() || !GV.getName().startswith("__ai_state_"))
+            continue;
+#ifdef DEBUG_INITCRIT
+          errs() << "adding " << GV.getName() << " into " << F.getName() <<
+              " to \n";
+          RI->dump();
+#endif
+          ss.addInitialCriterion(RI, &GV, false);
+        }
       }
     }
   }

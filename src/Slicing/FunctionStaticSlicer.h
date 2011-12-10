@@ -78,7 +78,7 @@ public:
   }
 
   void addInitialCriterion(const llvm::Instruction *ins,
-			   const llvm::Value *cond = 0) {
+			   const llvm::Value *cond = 0, bool deslice = true) {
     InsInfo *ii = getInsInfo(ins);
     if (cond)
       ii->addRC(cond);
@@ -112,7 +112,8 @@ private:
   }
 };
 
-bool findInitialCriterion(llvm::Function &F, FunctionStaticSlicer &ss);
+bool findInitialCriterion(llvm::Function &F, FunctionStaticSlicer &ss,
+                          bool startingFunction = false);
 
 }}
 

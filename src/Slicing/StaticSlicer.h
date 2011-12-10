@@ -134,11 +134,13 @@ namespace llvm { namespace slicing {
   void StaticSlicer::runFSS(Function &F, const PointsToSets &PS,
                             const callgraph::Callgraph &CG,
                             const ModifiesSets &MOD) {
-    FunctionStaticSlicer *FSS = new FunctionStaticSlicer(F, MP, PS, MOD);
-    llvm::slicing::findInitialCriterion(F, *FSS);
-
     callgraph::Callgraph::range_iterator callees = CG.callees(&F);
-    if (!std::distance(callees.first, callees.second))
+    bool starting = std::distance(callees.first, callees.second) == 0;
+
+    FunctionStaticSlicer *FSS = new FunctionStaticSlicer(F, MP, PS, MOD);
+    llvm::slicing::findInitialCriterion(F, *FSS, starting);
+
+    if (starting)
       initFuns.push_back(&F);
 
     slicers.insert(Slicers::value_type(&F, FSS));
