@@ -431,9 +431,15 @@ namespace llvm { namespace ptr { namespace detail {
           else
             *out++ = ruleCode(ruleVar(l) = ruleVar(r));
         }
-      } else if (llvm::isa<llvm::IntToPtrInst>(I)) {
-        errs() << __func__ << ": WARNING[PointsTo]: Integer converted to a pointer "
-                "=> getting unsound analysis!\n";
+      } else if (const llvm::IntToPtrInst *ITPI =
+                 llvm::dyn_cast<llvm::IntToPtrInst>(I)) {
+        errs() << __func__ << ": WARNING[PointsTo]: Integer ";
+        if (const llvm::ConstantInt *C =
+            llvm::dyn_cast<llvm::ConstantInt>(ITPI->getOperand(0)))
+          errs() << "(" << C->getValue() << ") ";
+        errs() << "converted to a pointer in '" <<
+            I->getParent()->getParent()->getName() <<
+            "' => getting unsound analysis!\n";
       } else if (const llvm::SelectInst *SEL =
                       llvm::dyn_cast<llvm::SelectInst>(I)) {
           const llvm::Value *r1 = elimConstExpr(SEL->getTrueValue());
