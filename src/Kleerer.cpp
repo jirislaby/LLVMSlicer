@@ -71,7 +71,8 @@ private:
                                        Value *arraySize = 0);
   void makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
                            BasicBlock *BB);
-  BasicBlock *checkAiState(Function *mainFun, BasicBlock *BB);
+  BasicBlock *checkAiState(Function *mainFun, BasicBlock *BB,
+                           const DebugLoc &debugLoc);
   void addGlobals(Module &M);
 };
 
@@ -186,7 +187,8 @@ Constant *Kleerer::get_assert_fail()
                                constCharPtrTy, NULL);
 }
 
-BasicBlock *Kleerer::checkAiState(Function *mainFun, BasicBlock *BB) {
+BasicBlock *Kleerer::checkAiState(Function *mainFun, BasicBlock *BB,
+                                  const DebugLoc &debugLoc) {
   Module *M = mainFun->getParent();
   Constant *zero = ConstantInt::get(intType, 0);
 
@@ -197,7 +199,7 @@ BasicBlock *Kleerer::checkAiState(Function *mainFun, BasicBlock *BB) {
   params.push_back(getGlobalString(C, *M, "n/a"));
   params.push_back(zero);
   params.push_back(getGlobalString(C, *M, "main"));
-  CallInst::Create(get_assert_fail(), params, "", assBB);
+  CallInst::Create(get_assert_fail(), params, "", assBB)->setDebugLoc(debugLoc);
   new UnreachableInst(C, assBB);
   Value *sum = zero;
 
@@ -299,7 +301,7 @@ void Kleerer::writeMain(Function &F) {
   check(&F, params);
 
   CallInst::Create(&F, params, "", mainBB);
-  BasicBlock *final = checkAiState(mainFun, mainBB);
+  BasicBlock *final = checkAiState(mainFun, mainBB, F.back().back().getDebugLoc());
   ReturnInst::Create(C, ConstantInt::get(mainFun->getReturnType(), 0),
                      final);
 
