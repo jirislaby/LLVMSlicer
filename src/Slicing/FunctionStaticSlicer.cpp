@@ -396,7 +396,7 @@ bool FunctionStaticSlicer::computeBC() {
 #ifdef DEBUG_BC
     errs() << "  ";
     i->print(errs());
-    errs() << " -> bb=" << BB->getNameStr() << '\n';
+    errs() << " -> bb=" << BB->getName() << '\n';
 #endif
     PostDominanceFrontier::const_iterator frontier = PDF.find(BB);
     if (frontier == PDF.end())
@@ -422,7 +422,7 @@ bool FunctionStaticSlicer::updateRCSC(
     InsInfo *ii = getInsInfo(&i);
     /* SC = BC \cup ... */
 #ifdef DEBUG_SLICING
-    errs() << "XXXXXXXXXXXXXX ";
+    errs() << "XXXXXXXXXXXXXX " << BB->getName() << " ";
     i.print(errs());
     errs() << '\n';
 #endif
