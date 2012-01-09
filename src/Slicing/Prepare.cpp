@@ -53,7 +53,7 @@ char Prepare::ID;
 
 static GlobalVariable *getAiVar(Function &F, const CallInst *CI) {
   const ConstantExpr *GEP =
-    dyn_cast<const ConstantExpr>(CI->getOperand(0));
+    dyn_cast<const ConstantExpr>(CI->getOperand(1));
   assert(GEP && GEP->getOpcode() == Instruction::GetElementPtr);
   const GlobalVariable *strVar =
     dyn_cast<const GlobalVariable>(GEP->getOperand(0));
@@ -86,7 +86,7 @@ void Prepare::replaceInsLoad(Function &F, CallInst *CI) {
 
 void Prepare::replaceInsStore(Function &F, CallInst *CI) {
   GlobalVariable *glob = getAiVar(F, CI);
-  StoreInst *SI = new StoreInst(CI->getOperand(1), glob, true);
+  StoreInst *SI = new StoreInst(CI->getOperand(2), glob, true);
   SI->setDebugLoc(CI->getDebugLoc());
   ReplaceInstWithInst(CI, SI);
 }
