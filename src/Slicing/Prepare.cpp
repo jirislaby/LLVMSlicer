@@ -42,6 +42,9 @@ namespace {
       static void makeNop(Function *F);
       static void deleteAsmBodies(Module &M);
       static bool runOnFunction(Function &F);
+
+      template<typename PointsToSets>
+      void findInitFuns(Module &M, const PointsToSets &PS);
   };
 }
 
@@ -246,13 +249,8 @@ void Prepare::deleteAsmBodies(llvm::Module &M) {
   }
 }
 
-void findInitFuns(Module &M) {
-  ptr::PointsToSets<ptr::ANDERSEN>::Type PS;
-  {
-    ptr::ProgramStructure P(M);
-    computePointsToSets(P, PS);
-  }
-
+template<typename PointsToSets>
+void Prepare::findInitFuns(Module &M, const PointsToSets &PS) {
   callgraph::Callgraph CG(M, PS);
 
   SmallVector<Constant *, 10> initFns;
@@ -274,6 +272,12 @@ void findInitFuns(Module &M) {
 }
 
 bool Prepare::runOnModule(Module &M) {
+  ptr::PointsToSets<ptr::ANDERSEN>::Type PS;
+  {
+    ptr::ProgramStructure P(M);
+    computePointsToSets(P, PS);
+  }
+
   deleteAsmBodies(M);
 
   for (llvm::Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
@@ -282,7 +286,7 @@ bool Prepare::runOnModule(Module &M) {
       runOnFunction(F);
   }
 
-  findInitFuns(M);
+  findInitFuns(M, PS);
 
   return true;
 }
