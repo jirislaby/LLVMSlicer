@@ -262,13 +262,6 @@ void StatsComputer::run() {
   }
 
   callgraph::Callgraph CG(M, PS);
-
-  /*errs() << "dist=" << std::distance(CG.begin(), CG.end()) << "\n";
-  for (callgraph::Callgraph::const_iterator I = CG.begin(), E = CG.end();
-      I != E; ++I) {
-    errs() << I->first->getName() << " => " << I->second->getName() << "\n";
-  }*/
-
   ModInfo modInfo(M);
 
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
