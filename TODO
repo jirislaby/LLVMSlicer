@@ -1,0 +1,79 @@
+* global variables symbolically
+* nested locking (syntax-based locking)
+* syntax-based locking => semantic-based
+* inttoptr a ulong<->ptr
+* link at least whole module
+* failing large alloc: 312992000 bytes
+
+files: 6546
+instructions: 2541197 / 736117 (71.03% is gone)
+functions: 17069
+  WHAT: before slicing / after slicing
+  with asm: 477 (2.79%) / 0 (0.00%)
+  with ext call: 13760 (80.61%) / 6174 (36.17%)
+  with lock: 17069 (100.00%) / 17056 (99.92%)
+  with loop: 11243 (65.87%) / 6207 (36.36%)
+  w/o asm+call: 3269 (19.15%) / 10882 (63.75%)
+  w/o asm+call+loop: 1855 (10.87%) / 8655 (50.71%)
+
+./net/xfrm/xfrm_state.i.llvm.sliced.main.xfrm_state_delete_tunnel.o:
+KLEE: output directory = "klee-out-7"
+KLEE: WARNING: undefined reference to function: __kmalloc
+KLEE: WARNING: undefined reference to function: get_seconds
+KLEE: WARNING: undefined reference to function: security_xfrm_state_alloc_acquire
+KLEE: WARNING: undefined reference to function: security_xfrm_state_delete
+KLEE: WARNING: undefined reference to function: security_xfrm_state_pol_flow_match
+KLEE: WARNING: undefined reference to function: xfrm_hash_alloc
+KLEE: WARNING: undefined reference to function: xfrm_selector_match
+KLEE: ERROR: /l/latest/a/ai/../../repos/AI_slicing/library.c:286: memory error: out of bound pointer
+
+
+./drivers/char/isicom.i.llvm.sliced.main.isicom_close.o:
+KLEE: output directory = "klee-out-6"
+KLEE: WARNING: undefined reference to function: tty_hung_up_p
+KLEE: WARNING: undefined reference to function: tty_port_alloc_xmit_buf
+KLEE: WARNING: undefined reference to function: tty_port_tty_get
+klee: /l/latest/repos/llvm/lib/Target/TargetData.cpp:393: uint64_t llvm::TargetData::getTypeSizeInBits(llvm::Type*) const: Assertion `Ty->isSized() && "Cannot getTypeInfo() on a type that is unsized!"' failed.
+0  klee            0x0000000000e4c68f
+1  klee            0x0000000000e4cb79
+2  libpthread.so.0 0x00007f30a72dfd00
+3  libc.so.6       0x00007f30a6600d15 gsignal + 53
+4  libc.so.6       0x00007f30a660222b abort + 379
+5  libc.so.6       0x00007f30a65f987e
+6  libc.so.6       0x00007f30a65f9922
+7  klee            0x0000000000ce3709 llvm::TargetData::getTypeSizeInBits(llvm::Type*) const + 105
+8  klee            0x0000000000580525 klee::Executor::initializeGlobals(klee::ExecutionState&) + 1461
+9  klee            0x0000000000590197 klee::Executor::runFunctionAsMain(llvm::Function*, int, char**, char**) + 1783
+10 klee            0x0000000000567147 main + 10567
+11 libc.so.6       0x00007f30a65ed1bd __libc_start_main + 237
+12 klee            0x00000000005756cd
+
+
+./drivers/char/riscom8.i.llvm.sliced.main.rc_close.o:
+KLEE: output directory = "klee-out-0"
+KLEE: WARNING: undefined reference to function: __request_region
+KLEE: WARNING: undefined reference to function: alloc_tty_driver
+KLEE: WARNING: undefined reference to function: probe_irq_off
+KLEE: WARNING: undefined reference to function: probe_irq_on
+KLEE: WARNING: undefined reference to function: request_irq
+KLEE: WARNING: undefined reference to function: tty_hung_up_p
+KLEE: WARNING: undefined reference to function: tty_port_alloc_xmit_buf
+KLEE: WARNING: undefined reference to function: tty_register_driver
+klee: Memory.cpp:511: void klee::ObjectState::write(unsigned int, klee::ref<klee::Expr>): Assertion `0 && "Invalid write size!"' failed.
+0  klee            0x0000000000e4c68f
+1  klee            0x0000000000e4cb79
+2  libpthread.so.0 0x00007fb56778ad00
+3  libc.so.6       0x00007fb566aabd15 gsignal + 53
+4  libc.so.6       0x00007fb566aad22b abort + 379
+5  libc.so.6       0x00007fb566aa487e
+6  libc.so.6       0x00007fb566aa4922
+7  klee            0x000000000059c99c klee::ObjectState::write(unsigned int, klee::ref<klee::Expr>) + 444
+8  klee            0x000000000057eeca klee::Executor::initializeGlobalObject(klee::ExecutionState&, klee::ObjectState*, llvm::Constant const*, unsigned int) + 186
+9  klee            0x000000000057f0de klee::Executor::initializeGlobalObject(klee::ExecutionState&, klee::ObjectState*, llvm::Constant const*, unsigned int) + 718
+10 klee            0x000000000057f0de klee::Executor::initializeGlobalObject(klee::ExecutionState&, klee::ObjectState*, llvm::Constant const*, unsigned int) + 718
+11 klee            0x0000000000580c30 klee::Executor::initializeGlobals(klee::ExecutionState&) + 3264
+12 klee            0x0000000000590197 klee::Executor::runFunctionAsMain(llvm::Function*, int, char**, char**) + 1783
+13 klee            0x0000000000567147 main + 10567
+14 libc.so.6       0x00007fb566a981bd __libc_start_main + 237
+15 klee            0x00000000005756cd
+
