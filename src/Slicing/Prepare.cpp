@@ -36,20 +36,15 @@ namespace {
       virtual bool runOnModule(Module &M);
 
     private:
+      static void replaceInsLoad(llvm::Function &F, llvm::CallInst *CI);
+      static void replaceInsStore(llvm::Function &F, llvm::CallInst *CI);
       static bool handleAsm(Function &F, CallInst *CI);
       static void makeNop(Function *F);
       static void deleteAsmBodies(Module &M);
+      static bool runOnFunction(Function &F);
 
       template<typename PointsToSets>
-      static void replaceInsLoad(llvm::Function &F, llvm::CallInst *CI,
-                                 const PointsToSets &PS);
-      template<typename PointsToSets>
-      static void replaceInsStore(llvm::Function &F, llvm::CallInst *CI,
-                                  const PointsToSets &PS);
-      template<typename PointsToSets>
-      static bool runOnFunction(Function &F, const PointsToSets &PS);
-      template<typename PointsToSets>
-      static void findInitFuns(Module &M, const PointsToSets &PS);
+      void findInitFuns(Module &M, const PointsToSets &PS);
   };
 }
 
@@ -82,44 +77,14 @@ static GlobalVariable *getAiVar(Function &F, const CallInst *CI) {
   return glob;
 }
 
-template<typename PointsToSets>
-void Prepare::replaceInsLoad(Function &F, CallInst *CI,
-                             const PointsToSets &PS) {
-  const Value *lock = CI->getOperand(0)->stripPointerCasts();
-  if (isa<GlobalValue>(lock)) {
-    errs() << "GLOB: ";
-    lock->dump();
-  } else {
-    if (const GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(lock)) {
-      errs() << "GEP:\n";
-      lock->dump();
-      const LoadInst *load = dyn_cast<LoadInst>(
-                                GEP->getPointerOperand()->stripPointerCasts());
-      assert(load);
-      lock = load->getPointerOperand();
-      load->getPointerOperand()->dump();
-    }
-  }
-    typename PointsToSets::PointsToSet const& S = getPointsToSet(lock, PS);
-    errs() << "points-to of ";
-    lock->dump();
-    errs() << "\n";
-    for (typename PointsToSets::PointsToSet::const_iterator I = S.begin(),
-         E = S.end(); I != E; ++I) {
-      errs() << "  ";
-      (*I)->dump();
-    }
-
-
+void Prepare::replaceInsLoad(Function &F, CallInst *CI) {
   GlobalVariable *glob = getAiVar(F, CI);
   LoadInst *LI = new LoadInst(glob, 0, true);
   LI->setDebugLoc(CI->getDebugLoc());
   ReplaceInstWithInst(CI, LI);
 }
 
-template<typename PointsToSets>
-void Prepare::replaceInsStore(Function &F, CallInst *CI,
-                              const PointsToSets &PS) {
+void Prepare::replaceInsStore(Function &F, CallInst *CI) {
   GlobalVariable *glob = getAiVar(F, CI);
   StoreInst *SI = new StoreInst(CI->getOperand(2), glob, true);
   SI->setDebugLoc(CI->getDebugLoc());
@@ -183,9 +148,7 @@ bool Prepare::handleAsm(Function &F, CallInst *CI) {
   return false;
 }
 
-
-template<typename PointsToSets>
-bool Prepare::runOnFunction(Function &F, const PointsToSets &PS) {
+bool Prepare::runOnFunction(Function &F) {
   bool modified = false;
   const Module *M = F.getParent();
   const Function *__ai_load = M->getFunction("__ai_load");
@@ -202,10 +165,10 @@ bool Prepare::runOnFunction(Function &F, const PointsToSets &PS) {
       Function *callee = CI->getCalledFunction();
       if (callee) {
         if (callee == __ai_load) {
-          replaceInsLoad(F, CI, PS);
+          replaceInsLoad(F, CI);
           modified = true;
         } else if (callee == __ai_store) {
-          replaceInsStore(F, CI, PS);
+          replaceInsStore(F, CI);
           modified = true;
         }
       }
@@ -320,7 +283,7 @@ bool Prepare::runOnModule(Module &M) {
   for (llvm::Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
     if (!F.isDeclaration())
-      runOnFunction(F, PS);
+      runOnFunction(F);
   }
 
   findInitFuns(M, PS);
