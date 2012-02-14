@@ -64,7 +64,8 @@ private:
 
   Constant *get_assert_fail();
 
-  Instruction *createMalloc(BasicBlock *BB, Type *type, Value *arraySize);
+  Instruction *createMalloc(BasicBlock *BB, Type *type, unsigned typeSize,
+                            Value *arraySize);
   Instruction *call_klee_make_symbolic(Function *klee_make_symbolic,
                                        Constant *name, BasicBlock *BB,
                                        Type *type, Value *addr,
@@ -115,9 +116,7 @@ static unsigned getTypeSize(TargetData &TD, Type *type) {
 }
 
 Instruction *Kleerer::createMalloc(BasicBlock *BB, Type *type,
-                                   Value *arraySize) {
-  unsigned typeSize = getTypeSize(TD, type);
-
+                                   unsigned typeSize, Value *arraySize) {
   return CallInst::CreateMalloc(BB, intPtrTy, type,
                                 ConstantInt::get(intPtrTy, typeSize),
                                 arraySize);
@@ -262,9 +261,11 @@ void Kleerer::writeMain(Function &F) {
     Constant *name = getGlobalString(C, M, param.hasName() ? param.getName() :
                                      "noname");
     if (const PointerType *PT = dyn_cast<const PointerType>(type)) {
-      Value *arrSize = ConstantInt::get(intType, 4000);
-      insList.push_back(ins = createMalloc(mainBB, PT->getElementType(),
-                                           arrSize));
+      unsigned typeSize = getTypeSize(TD, PT->getElementType());
+      Value *arrSize = ConstantInt::get(intType, typeSize < (1 << 20) / 4192 ?
+                                        4192 : (1 << 20) / typeSize);
+
+      insList.push_back(ins = createMalloc(mainBB, type, typeSize, arrSize));
       insList.push_back(call_klee_make_symbolic(klee_make_symbolic, name,
                                                 mainBB, PT->getElementType(),
                                                 ins, arrSize));
@@ -274,7 +275,7 @@ void Kleerer::writeMain(Function &F) {
         cast = true;
       }
       ins = GetElementPtrInst::CreateInBounds(ins,
-               ConstantInt::get(TypeBuilder<types::i<64>, true>::get(C), 2000));
+               ConstantInt::get(TypeBuilder<types::i<64>, true>::get(C), 2048));
       insList.push_back(ins);
       if (cast)
         insList.push_back(ins = new BitCastInst(ins, type));
