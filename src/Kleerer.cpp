@@ -268,31 +268,30 @@ static void initPrivateData(Value *_struct, const struct st_desc *st_desc) {
 }
 
 Value *Kleerer::handlePtrArg(BasicBlock *mainBB, Function *klee_make_symbolic,
-                           Constant *name, PointerType *PT) {
+                             Constant *name, PointerType *PT) {
   BasicBlock::InstListType &insList = mainBB->getInstList();
   Instruction *ins;
   Type *elemTy = PT->getElementType();
   const struct st_desc *st_desc = getStDesc(elemTy);
   unsigned typeSize = getTypeSize(TD, elemTy);
-  unsigned arrSizeI = typeSize < (1 << 20) / 4192 ? 4192 :
-                     (1 << 20) / typeSize;
-  if (st_desc && st_desc->flag & STF_ONE)
-    arrSizeI = 1;
-  Value *arrSize = ConstantInt::get(intType, arrSizeI);
+  Value *arrSize = NULL;
+  if (!st_desc || !(st_desc->flag & STF_ONE))
+    arrSize = ConstantInt::get(intType, typeSize < (1 << 20) / 4192 ? 4192 :
+                               (1 << 20) / typeSize);
 
-  insList.push_back(ins = createMalloc(mainBB, PT, typeSize, arrSize));
+  insList.push_back(ins = createMalloc(mainBB, elemTy, typeSize, arrSize));
   insList.push_back(call_klee_make_symbolic(klee_make_symbolic, name,
                                             mainBB, elemTy, ins, arrSize));
-  bool cast = ins->getType() != voidPtrType;
-  if (arrSizeI != 1) {
+  if (arrSize) {
+    bool cast = ins->getType() != voidPtrType;
     if (cast)
       insList.push_back(ins = new BitCastInst(ins, voidPtrType));
     ins = GetElementPtrInst::CreateInBounds(ins,
            ConstantInt::get(TypeBuilder<types::i<64>, true>::get(C), 2048));
     insList.push_back(ins);
+    if (cast)
+      insList.push_back(ins = new BitCastInst(ins, PT));
   }
-  if (cast)
-    insList.push_back(ins = new BitCastInst(ins, PT));
 
   if (st_desc)
     initPrivateData(ins, st_desc);
