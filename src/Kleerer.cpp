@@ -54,16 +54,15 @@ private:
   LLVMContext &C;
   IntegerType *intPtrTy;
   bool done;
+  Function *klee_make_symbolic;
 
   /* types */
   Type *voidPtrType;
   Type *intType;
   Type *uintType;
 
-  Value *handlePtrArg(BasicBlock *mainBB, Function *klee_make_symbolic,
-                      Constant *name, PointerType *PT);
+  Value *handlePtrArg(BasicBlock *mainBB, Constant *name, PointerType *PT);
   void prepareArguments(Function &F, BasicBlock *mainBB,
-                        Function *klee_make_symbolic,
                         std::vector<Value *> &params);
   void writeMain(Function &F);
 
@@ -71,12 +70,10 @@ private:
 
   Instruction *createMalloc(BasicBlock *BB, Type *type, unsigned typeSize,
                             Value *arraySize);
-  Instruction *call_klee_make_symbolic(Function *klee_make_symbolic,
-                                       Constant *name, BasicBlock *BB,
+  Instruction *call_klee_make_symbolic(Constant *name, BasicBlock *BB,
                                        Type *type, Value *addr,
                                        Value *arraySize = 0);
-  void makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
-                           BasicBlock *BB);
+  void makeAiStateSymbolic(Module &M, BasicBlock *BB);
   BasicBlock *checkAiState(Function *mainFun, BasicBlock *BB,
                            const DebugLoc &debugLoc);
   void addGlobals(Module &M);
@@ -143,8 +140,7 @@ static Constant *getGlobalString(LLVMContext &C, Module &M,
   return ConstantExpr::getInBoundsGetElementPtr(strVar, params);
 }
 
-Instruction *Kleerer::call_klee_make_symbolic(Function *klee_make_symbolic,
-                                              Constant *name, BasicBlock *BB,
+Instruction *Kleerer::call_klee_make_symbolic(Constant *name, BasicBlock *BB,
                                               Type *type, Value *addr,
                                               Value *arraySize) {
   std::vector<Value *> p;
@@ -164,8 +160,7 @@ Instruction *Kleerer::call_klee_make_symbolic(Function *klee_make_symbolic,
   return CallInst::Create(klee_make_symbolic, p);
 }
 
-void Kleerer::makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
-                                  BasicBlock *BB) {
+void Kleerer::makeAiStateSymbolic(Module &M, BasicBlock *BB) {
   Constant *zero = ConstantInt::get(intType, 0);
   for (Module::global_iterator I = M.global_begin(), E = M.global_end();
       I != E; ++I) {
@@ -174,8 +169,7 @@ void Kleerer::makeAiStateSymbolic(Function *klee_make_symbolic, Module &M,
       continue;
     GV.setInitializer(zero);
     Constant *glob_str = getGlobalString(C, M, GV.getName());
-    BB->getInstList().push_back(call_klee_make_symbolic(klee_make_symbolic,
-                                                        glob_str, BB, intType,
+    BB->getInstList().push_back(call_klee_make_symbolic(glob_str, BB, intType,
                                                         &GV));
     new StoreInst(zero, &GV, "", true, BB);
   }
@@ -267,8 +261,8 @@ static const struct st_desc *getStDesc(const Type *elemTy) {
 static void initPrivateData(Value *_struct, const struct st_desc *st_desc) {
 }
 
-Value *Kleerer::handlePtrArg(BasicBlock *mainBB, Function *klee_make_symbolic,
-                             Constant *name, PointerType *PT) {
+Value *Kleerer::handlePtrArg(BasicBlock *mainBB, Constant *name,
+                             PointerType *PT) {
   BasicBlock::InstListType &insList = mainBB->getInstList();
   Instruction *ins;
   Type *elemTy = PT->getElementType();
@@ -280,8 +274,7 @@ Value *Kleerer::handlePtrArg(BasicBlock *mainBB, Function *klee_make_symbolic,
                                (1 << 20) / typeSize);
 
   insList.push_back(ins = createMalloc(mainBB, elemTy, typeSize, arrSize));
-  insList.push_back(call_klee_make_symbolic(klee_make_symbolic, name,
-                                            mainBB, elemTy, ins, arrSize));
+  insList.push_back(call_klee_make_symbolic(name, mainBB, elemTy, ins, arrSize));
   if (arrSize) {
     bool cast = ins->getType() != voidPtrType;
     if (cast)
@@ -300,7 +293,6 @@ Value *Kleerer::handlePtrArg(BasicBlock *mainBB, Function *klee_make_symbolic,
 }
 
 void Kleerer::prepareArguments(Function &F, BasicBlock *mainBB,
-                               Function *klee_make_symbolic,
                                std::vector<Value *> &params) {
   BasicBlock::InstListType &insList = mainBB->getInstList();
 
@@ -319,12 +311,11 @@ void Kleerer::prepareArguments(Function &F, BasicBlock *mainBB,
     Constant *name = getGlobalString(C, M, param.hasName() ? param.getName() :
                                      "noname");
     if (PointerType *PT = dyn_cast<PointerType>(type)) {
-      val = handlePtrArg(mainBB, klee_make_symbolic, name, PT);
+      val = handlePtrArg(mainBB, name, PT);
     } else if (IntegerType *IT = dyn_cast<IntegerType>(type)) {
       Instruction *ins;
       insList.push_front(ins = new AllocaInst(IT));
-      insList.push_back(call_klee_make_symbolic(klee_make_symbolic, name,
-                                                mainBB, type, ins));
+      insList.push_back(call_klee_make_symbolic(name, mainBB, type, ins));
       insList.push_back(ins = new LoadInst(ins));
       val = ins;
     }
@@ -339,7 +330,7 @@ void Kleerer::writeMain(Function &F) {
                     GlobalValue::ExternalLinkage, "main", &M);
   BasicBlock *mainBB = BasicBlock::Create(C, "entry", mainFun);
 
-  Function *klee_make_symbolic = Function::Create(
+  klee_make_symbolic = Function::Create(
               TypeBuilder<void(void *, unsigned, const char *), false>::get(C),
               GlobalValue::ExternalLinkage, "klee_make_symbolic", &M);
 /*  Function *klee_int = Function::Create(
@@ -349,10 +340,10 @@ void Kleerer::writeMain(Function &F) {
 //  F.dump();
 
   std::vector<Value *> params;
-  prepareArguments(F, mainBB, klee_make_symbolic, params);
+  prepareArguments(F, mainBB, params);
 //  mainFun->viewCFG();
 
-  makeAiStateSymbolic(klee_make_symbolic, M, mainBB);
+  makeAiStateSymbolic(M, mainBB);
   addGlobals(M);
 #ifdef DEBUG_WRITE_MAIN
   errs() << "==============\n";
@@ -387,6 +378,7 @@ void Kleerer::writeMain(Function &F) {
   errs() << __func__ << ": written: '" << name << "'\n";
   mainFun->eraseFromParent();
   klee_make_symbolic->eraseFromParent();
+  klee_make_symbolic = NULL;
 //  done = true;
 }
 
