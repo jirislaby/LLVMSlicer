@@ -60,6 +60,8 @@ private:
   Type *intType;
   Type *uintType;
 
+  Value *handlePtrArg(BasicBlock *mainBB, Function *klee_make_symbolic,
+                      Constant *name, PointerType *PT);
   void writeMain(Function &F);
 
   Constant *get_assert_fail();
@@ -259,6 +261,42 @@ static const struct st_desc *getStDesc(const Type *elemTy) {
   return NULL;
 }
 
+static void initPrivateData(Value *_struct, const struct st_desc *st_desc) {
+}
+
+Value *Kleerer::handlePtrArg(BasicBlock *mainBB, Function *klee_make_symbolic,
+                           Constant *name, PointerType *PT) {
+  BasicBlock::InstListType &insList = mainBB->getInstList();
+  Instruction *ins;
+  Type *elemTy = PT->getElementType();
+  const struct st_desc *st_desc = getStDesc(elemTy);
+  unsigned typeSize = getTypeSize(TD, elemTy);
+  unsigned arrSizeI = typeSize < (1 << 20) / 4192 ? 4192 :
+                     (1 << 20) / typeSize;
+  if (st_desc && st_desc->flag & STF_ONE)
+    arrSizeI = 1;
+  Value *arrSize = ConstantInt::get(intType, arrSizeI);
+
+  insList.push_back(ins = createMalloc(mainBB, PT, typeSize, arrSize));
+  insList.push_back(call_klee_make_symbolic(klee_make_symbolic, name,
+                                            mainBB, elemTy, ins, arrSize));
+  bool cast = false;
+  if (ins->getType() != voidPtrType) {
+    insList.push_back(ins = new BitCastInst(ins, voidPtrType));
+    cast = true;
+  }
+  ins = GetElementPtrInst::CreateInBounds(ins,
+           ConstantInt::get(TypeBuilder<types::i<64>, true>::get(C), 2048));
+  insList.push_back(ins);
+  if (cast)
+    insList.push_back(ins = new BitCastInst(ins, PT));
+
+  if (st_desc)
+    initPrivateData(ins, st_desc);
+
+  return ins;
+}
+
 void Kleerer::writeMain(Function &F) {
   std::string name = M.getModuleIdentifier() + ".main." + F.getNameStr() + ".o";
   Function *mainFun = Function::Create(TypeBuilder<int(), false>::get(C),
@@ -288,37 +326,12 @@ void Kleerer::writeMain(Function &F) {
     errs() << "\n";
 #endif
     Value *val = NULL;
-    Instruction *ins;
     Constant *name = getGlobalString(C, M, param.hasName() ? param.getName() :
                                      "noname");
-    if (const PointerType *PT = dyn_cast<PointerType>(type)) {
-      Type *elemTy = PT->getElementType();
-      const struct st_desc *st_desc = getStDesc(elemTy);
-      unsigned typeSize = getTypeSize(TD, elemTy);
-      unsigned arrSizeI = typeSize < (1 << 20) / 4192 ? 4192 :
-                         (1 << 20) / typeSize;
-      if (st_desc && st_desc->flag & STF_ONE) {
-        arrSizeI = 1;
-        llvm::errs() << "  using only one for ";
-        param.dump();
-      }
-      Value *arrSize = ConstantInt::get(intType, arrSizeI);
-
-      insList.push_back(ins = createMalloc(mainBB, type, typeSize, arrSize));
-      insList.push_back(call_klee_make_symbolic(klee_make_symbolic, name,
-                                                mainBB, elemTy, ins, arrSize));
-      bool cast = false;
-      if (ins->getType() != voidPtrType) {
-        insList.push_back(ins = new BitCastInst(ins, voidPtrType));
-        cast = true;
-      }
-      ins = GetElementPtrInst::CreateInBounds(ins,
-               ConstantInt::get(TypeBuilder<types::i<64>, true>::get(C), 2048));
-      insList.push_back(ins);
-      if (cast)
-        insList.push_back(ins = new BitCastInst(ins, type));
-      val = ins;
+    if (PointerType *PT = dyn_cast<PointerType>(type)) {
+      val = handlePtrArg(mainBB, klee_make_symbolic, name, PT);
     } else if (IntegerType *IT = dyn_cast<IntegerType>(type)) {
+      Instruction *ins;
       insList.push_front(ins = new AllocaInst(IT));
       insList.push_back(call_klee_make_symbolic(klee_make_symbolic, name,
                                                 mainBB, type, ins));
