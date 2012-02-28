@@ -177,7 +177,6 @@ bool Prepare::runOnFunction(Function &F) {
   return modified;
 }
 
-#if 0
 void Prepare::makeNop(Function *F) {
   F->deleteBody();
   BasicBlock *BB = BasicBlock::Create(F->getContext(), "entry", F);
@@ -249,7 +248,7 @@ void Prepare::deleteAsmBodies(llvm::Module &M) {
       makeNop(F);
   }
 }
-#endif
+
 template<typename PointsToSets>
 void Prepare::findInitFuns(Module &M, const PointsToSets &PS) {
   callgraph::Callgraph CG(M, PS);
@@ -278,9 +277,9 @@ bool Prepare::runOnModule(Module &M) {
     ptr::ProgramStructure P(M);
     computePointsToSets(P, PS);
   }
-#if 0
+
   deleteAsmBodies(M);
-#endif
+
   for (llvm::Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
     if (!F.isDeclaration())
