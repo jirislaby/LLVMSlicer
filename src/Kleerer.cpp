@@ -232,15 +232,13 @@ void Kleerer::addGlobals(Module &mainMod) {
 struct st_desc {
   unsigned long flag;
 #define STF_ONE  1
-  const char *s_member[3];
 };
 
 static const struct st_desc *getStDesc(const Type *elemTy) {
   typedef std::map<std::string, struct st_desc> StructMap;
 
   static const StructMap::value_type structMapData[] = {
-    StructMap::value_type("pci_dev", (struct st_desc)
-                          { STF_ONE, { "private_data", NULL } }),
+    StructMap::value_type("pci_dev", (struct st_desc){ STF_ONE }),
   };
 
   #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
@@ -258,9 +256,6 @@ static const struct st_desc *getStDesc(const Type *elemTy) {
     }
 
   return NULL;
-}
-
-static void initPrivateData(Value *_struct, const struct st_desc *st_desc) {
 }
 
 Instruction *Kleerer::mallocSymbolic(BasicBlock *BB, Constant *name,
@@ -296,9 +291,6 @@ Value *Kleerer::handlePtrArg(BasicBlock *mainBB, Constant *name,
     if (cast)
       insList.push_back(ins = new BitCastInst(ins, PT));
   }
-
-  if (st_desc)
-    initPrivateData(ins, st_desc);
 
   return ins;
 }
