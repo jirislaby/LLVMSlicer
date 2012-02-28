@@ -283,14 +283,14 @@ Value *Kleerer::handlePtrArg(BasicBlock *mainBB, Function *klee_make_symbolic,
   insList.push_back(ins = createMalloc(mainBB, PT, typeSize, arrSize));
   insList.push_back(call_klee_make_symbolic(klee_make_symbolic, name,
                                             mainBB, elemTy, ins, arrSize));
-  bool cast = false;
-  if (ins->getType() != voidPtrType) {
-    insList.push_back(ins = new BitCastInst(ins, voidPtrType));
-    cast = true;
-  }
-  ins = GetElementPtrInst::CreateInBounds(ins,
+  bool cast = ins->getType() != voidPtrType;
+  if (arrSizeI != 1) {
+    if (cast)
+      insList.push_back(ins = new BitCastInst(ins, voidPtrType));
+    ins = GetElementPtrInst::CreateInBounds(ins,
            ConstantInt::get(TypeBuilder<types::i<64>, true>::get(C), 2048));
-  insList.push_back(ins);
+    insList.push_back(ins);
+  }
   if (cast)
     insList.push_back(ins = new BitCastInst(ins, PT));
 
