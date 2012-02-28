@@ -62,6 +62,9 @@ private:
 
   Value *handlePtrArg(BasicBlock *mainBB, Function *klee_make_symbolic,
                       Constant *name, PointerType *PT);
+  void prepareArguments(Function &F, BasicBlock *mainBB,
+                        Function *klee_make_symbolic,
+                        std::vector<Value *> &params);
   void writeMain(Function &F);
 
   Constant *get_assert_fail();
@@ -297,23 +300,11 @@ Value *Kleerer::handlePtrArg(BasicBlock *mainBB, Function *klee_make_symbolic,
   return ins;
 }
 
-void Kleerer::writeMain(Function &F) {
-  std::string name = M.getModuleIdentifier() + ".main." + F.getNameStr() + ".o";
-  Function *mainFun = Function::Create(TypeBuilder<int(), false>::get(C),
-                    GlobalValue::ExternalLinkage, "main", &M);
-  BasicBlock *mainBB = BasicBlock::Create(C, "entry", mainFun);
+void Kleerer::prepareArguments(Function &F, BasicBlock *mainBB,
+                               Function *klee_make_symbolic,
+                               std::vector<Value *> &params) {
   BasicBlock::InstListType &insList = mainBB->getInstList();
 
-  Function *klee_make_symbolic = Function::Create(
-              TypeBuilder<void(void *, unsigned, const char *), false>::get(C),
-              GlobalValue::ExternalLinkage, "klee_make_symbolic", &M);
-/*  Function *klee_int = Function::Create(
-              TypeBuilder<int(const char *), false>::get(C),
-              GlobalValue::ExternalLinkage, "klee_int", &M);*/
-
-//  F.dump();
-
-  std::vector<Value *> params;
   for (Function::const_arg_iterator I = F.arg_begin(), E = F.arg_end(); I != E;
        ++I) {
     const Value &param = *I;
@@ -341,6 +332,25 @@ void Kleerer::writeMain(Function &F) {
     if (val)
       params.push_back(val);
   }
+}
+
+void Kleerer::writeMain(Function &F) {
+  std::string name = M.getModuleIdentifier() + ".main." + F.getNameStr() + ".o";
+  Function *mainFun = Function::Create(TypeBuilder<int(), false>::get(C),
+                    GlobalValue::ExternalLinkage, "main", &M);
+  BasicBlock *mainBB = BasicBlock::Create(C, "entry", mainFun);
+
+  Function *klee_make_symbolic = Function::Create(
+              TypeBuilder<void(void *, unsigned, const char *), false>::get(C),
+              GlobalValue::ExternalLinkage, "klee_make_symbolic", &M);
+/*  Function *klee_int = Function::Create(
+              TypeBuilder<int(const char *), false>::get(C),
+              GlobalValue::ExternalLinkage, "klee_int", &M);*/
+
+//  F.dump();
+
+  std::vector<Value *> params;
+  prepareArguments(F, mainBB, klee_make_symbolic, params);
 //  mainFun->viewCFG();
 
   makeAiStateSymbolic(klee_make_symbolic, M, mainBB);
