@@ -4,6 +4,7 @@ add_llvm_loadable_module(LLVMSlicer
 	Slicing/FunctionStaticSlicer.cpp
 	Slicing/PostDominanceFrontier.cpp
 	Slicing/Prepare.cpp
+	Slicing/Prepare2.cpp
 	Slicing/StaticSlicer.cpp
 	Languages/LLVM.cpp
 	Modifies/PredefContainers.cpp
