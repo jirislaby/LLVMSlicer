@@ -228,6 +228,37 @@ void Kleerer::addGlobals(Module &mainMod) {
   }
 }
 
+struct st_desc {
+  unsigned long flag;
+#define STF_ONE  1
+  const char *s_member[3];
+};
+
+static const struct st_desc *getStDesc(const Type *elemTy) {
+  typedef std::map<std::string, struct st_desc> StructMap;
+
+  static const StructMap::value_type structMapData[] = {
+    StructMap::value_type("pci_dev", (struct st_desc)
+                          { STF_ONE, { "private_data", NULL } }),
+  };
+
+  #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+
+  static const StructMap structMap(structMapData,
+                                   structMapData + ARRAY_SIZE(structMapData));
+
+  if (const StructType *ST = dyn_cast<StructType>(elemTy))
+    if (!ST->isLiteral() && ST->hasName()) {
+
+      /* each struct name has "struct." prepended */
+      StructMap::const_iterator I = structMap.find(ST->getName().substr(7));
+      if (I != structMap.end())
+        return &I->second;
+    }
+
+  return NULL;
+}
+
 void Kleerer::writeMain(Function &F) {
   std::string name = M.getModuleIdentifier() + ".main." + F.getNameStr() + ".o";
   Function *mainFun = Function::Create(TypeBuilder<int(), false>::get(C),
@@ -260,15 +291,22 @@ void Kleerer::writeMain(Function &F) {
     Instruction *ins;
     Constant *name = getGlobalString(C, M, param.hasName() ? param.getName() :
                                      "noname");
-    if (const PointerType *PT = dyn_cast<const PointerType>(type)) {
-      unsigned typeSize = getTypeSize(TD, PT->getElementType());
-      Value *arrSize = ConstantInt::get(intType, typeSize < (1 << 20) / 4192 ?
-                                        4192 : (1 << 20) / typeSize);
+    if (const PointerType *PT = dyn_cast<PointerType>(type)) {
+      Type *elemTy = PT->getElementType();
+      const struct st_desc *st_desc = getStDesc(elemTy);
+      unsigned typeSize = getTypeSize(TD, elemTy);
+      unsigned arrSizeI = typeSize < (1 << 20) / 4192 ? 4192 :
+                         (1 << 20) / typeSize;
+      if (st_desc && st_desc->flag & STF_ONE) {
+        arrSizeI = 1;
+        llvm::errs() << "  using only one for ";
+        param.dump();
+      }
+      Value *arrSize = ConstantInt::get(intType, arrSizeI);
 
       insList.push_back(ins = createMalloc(mainBB, type, typeSize, arrSize));
       insList.push_back(call_klee_make_symbolic(klee_make_symbolic, name,
-                                                mainBB, PT->getElementType(),
-                                                ins, arrSize));
+                                                mainBB, elemTy, ins, arrSize));
       bool cast = false;
       if (ins->getType() != voidPtrType) {
         insList.push_back(ins = new BitCastInst(ins, voidPtrType));
