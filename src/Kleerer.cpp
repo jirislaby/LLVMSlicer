@@ -73,6 +73,8 @@ private:
   Instruction *call_klee_make_symbolic(Constant *name, BasicBlock *BB,
                                        Type *type, Value *addr,
                                        Value *arraySize = 0);
+  Instruction *mallocSymbolic(BasicBlock *BB, Constant *name, Type *elemTy,
+                              unsigned typeSize, Value *arrSize);
   void makeAiStateSymbolic(Module &M, BasicBlock *BB);
   BasicBlock *checkAiState(Function *mainFun, BasicBlock *BB,
                            const DebugLoc &debugLoc);
@@ -261,6 +263,16 @@ static const struct st_desc *getStDesc(const Type *elemTy) {
 static void initPrivateData(Value *_struct, const struct st_desc *st_desc) {
 }
 
+Instruction *Kleerer::mallocSymbolic(BasicBlock *BB, Constant *name,
+                                     Type *elemTy, unsigned typeSize,
+                                     Value *arrSize) {
+  BasicBlock::InstListType &insList = BB->getInstList();
+  Instruction *ins = createMalloc(BB, elemTy, typeSize, arrSize);
+  insList.push_back(ins);
+  insList.push_back(call_klee_make_symbolic(name, BB, elemTy, ins, arrSize));
+  return ins;
+}
+
 Value *Kleerer::handlePtrArg(BasicBlock *mainBB, Constant *name,
                              PointerType *PT) {
   BasicBlock::InstListType &insList = mainBB->getInstList();
@@ -273,8 +285,7 @@ Value *Kleerer::handlePtrArg(BasicBlock *mainBB, Constant *name,
     arrSize = ConstantInt::get(intType, typeSize < (1 << 20) / 4192 ? 4192 :
                                (1 << 20) / typeSize);
 
-  insList.push_back(ins = createMalloc(mainBB, elemTy, typeSize, arrSize));
-  insList.push_back(call_klee_make_symbolic(name, mainBB, elemTy, ins, arrSize));
+  ins = mallocSymbolic(mainBB, name, elemTy, typeSize, arrSize);
   if (arrSize) {
     bool cast = ins->getType() != voidPtrType;
     if (cast)
