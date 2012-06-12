@@ -92,9 +92,19 @@ namespace llvm { namespace ptr { namespace detail {
           S.getContainer().erase(tmp);
         } else {
           if (isPointerValue(s->first)) {
-            for (typename PTSet::iterator v = s->second.begin();
+            for (typename PTSet::const_iterator v = s->second.begin();
                  v != s->second.end(); ) {
-              if (getPointedType(s->first) != (*v)->getType()) {
+	      const llvm::Value *second = *v;
+	      const llvm::Type *secondTy = second->getType();
+
+	      if (hasExtraReference(second))
+		      secondTy = llvm::cast<llvm::PointerType>(secondTy)->
+			      getElementType();
+	      if (const llvm::ArrayType *AT =
+			      llvm::dyn_cast<llvm::ArrayType>(secondTy))
+		      secondTy = AT->getElementType();
+
+              if (getPointedType(s->first) != secondTy) {
                 typename PTSet::iterator const tmp = v++;
                 s->second.erase(tmp);
               } else
