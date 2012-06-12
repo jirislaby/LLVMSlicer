@@ -403,10 +403,10 @@ bool Kleerer::run() {
     assert(CE->getOpcode() == Instruction::BitCast);
     Function &F = *cast<Function>(CE->getOperand(0));
 
-    callgraph::Callgraph::const_iterator I, E;
-    llvm::tie(I, E) = CG.calls(&F);
-    for (; I != E; ++I) {
-      const Function *callee = (*I).second;
+    callgraph::Callgraph::const_iterator II, EE;
+    llvm::tie(II, EE) = CG.calls(&F);
+    for (; II != EE; ++II) {
+      const Function *callee = (*II).second;
       if (callee == F__assert_fail) {
         writeMain(F);
         break;

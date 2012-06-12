@@ -280,13 +280,13 @@ void StatsComputer::run() {
     assert(CE->getOpcode() == Instruction::BitCast);
     const Function &F = *cast<Function>(CE->getOperand(0));
     FunInfo *funInfo = modInfo.getFunInfo(&F);
-    callgraph::Callgraph::const_iterator I, E;
-    llvm::tie(I, E) = CG.calls(&F);
+    callgraph::Callgraph::const_iterator II, EE;
+    llvm::tie(II, EE) = CG.calls(&F);
 #ifdef DEBUG_NESTED
     errs() << "at " << F.getName() << " flags [" << getFlags(funInfo) << "]\n";
 #endif
-    for (; I != E; ++I) {
-      const Function *called = I->second;
+    for (; II != EE; ++II) {
+      const Function *called = II->second;
       const FunInfo *calledFunInfo = modInfo.getFunInfo(called);
 #ifdef DEBUG_NESTED
       errs() << "  " << called->getName() << " [" << getFlags(calledFunInfo) <<
