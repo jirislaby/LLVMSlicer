@@ -86,7 +86,6 @@ namespace llvm { namespace ptr { namespace detail {
   {
     typedef typename PointsToSets<PointsToAlgorithm>::Type PTSets;
     typedef typename PTSets::mapped_type PTSet;
-    PTSet U;
     for (typename PTSets::iterator s = S.begin(); s != S.end(); )
         if (llvm::isa<llvm::Function>(s->first)) {
           typename PTSets::iterator const tmp = s++;
