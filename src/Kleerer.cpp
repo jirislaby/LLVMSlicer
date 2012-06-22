@@ -128,7 +128,7 @@ Instruction *Kleerer::createMalloc(BasicBlock *BB, Type *type,
 
 static Constant *getGlobalString(LLVMContext &C, Module &M,
                                  const StringRef &str) {
-  Constant *strArray = ConstantArray::get(C, str);
+  Constant *strArray = ConstantDataArray::getString(C, str);
   GlobalVariable *strVar =
         new GlobalVariable(M, strArray->getType(), true,
                            GlobalValue::PrivateLinkage, strArray, "");
@@ -328,7 +328,7 @@ void Kleerer::prepareArguments(Function &F, BasicBlock *mainBB,
 }
 
 void Kleerer::writeMain(Function &F) {
-  std::string name = M.getModuleIdentifier() + ".main." + F.getNameStr() + ".o";
+  std::string name = M.getModuleIdentifier() + ".main." + F.getName().str() + ".o";
   Function *mainFun = Function::Create(TypeBuilder<int(), false>::get(C),
                     GlobalValue::ExternalLinkage, "main", &M);
   BasicBlock *mainBB = BasicBlock::Create(C, "entry", mainFun);

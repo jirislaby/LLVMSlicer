@@ -58,8 +58,8 @@ static GlobalVariable *getAiVar(Function &F, const CallInst *CI) {
   const GlobalVariable *strVar =
     dyn_cast<const GlobalVariable>(GEP->getOperand(0));
   assert(strVar && strVar->hasInitializer());
-  const ConstantArray *str =
-    dyn_cast<const ConstantArray>(strVar->getInitializer());
+  const ConstantDataArray *str =
+    dyn_cast<const ConstantDataArray>(strVar->getInitializer());
   assert(str && str->isCString());
   std::string id = str->getAsCString();
   char *cstr = new char[11 + id.size() + 1];
