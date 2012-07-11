@@ -106,8 +106,11 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
               addDEF(*p);
       }
       const Value *r = elimConstExpr(C->getOperand(1));
+      const Value *len = elimConstExpr(C->getOperand(2));
       addREF(l);
       addREF(r);
+      /* memcpy/memset wouldn't work with len being 'undef' */
+      addREF(len);
       if (isPointerValue(r)) {
           typename PointsToSets::PointsToSet const& R = getPointsToSet(r,PS);
           for (typename PointsToSets::PointsToSet::const_iterator
