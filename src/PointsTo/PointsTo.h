@@ -78,6 +78,11 @@ namespace llvm { namespace ptr {
 
 }}
 
+#if 0
+/*
+ * It does not really work -- it prunes too much. Like it does not take into
+ * account bitcast instructions in the code.
+ */
 namespace llvm { namespace ptr { namespace detail {
 
   template<typename PointsToAlgorithm>
@@ -86,12 +91,20 @@ namespace llvm { namespace ptr { namespace detail {
   {
     typedef typename PointsToSets<PointsToAlgorithm>::Type PTSets;
     typedef typename PTSets::mapped_type PTSet;
-    for (typename PTSets::iterator s = S.begin(); s != S.end(); )
-        if (llvm::isa<llvm::Function>(s->first)) {
+    for (typename PTSets::iterator s = S.begin(); s != S.end(); ) {
+	const llvm::Value *first = s->first;
+        if (llvm::isa<llvm::Function>(first)) {
           typename PTSets::iterator const tmp = s++;
           S.getContainer().erase(tmp);
         } else {
-          if (isPointerValue(s->first)) {
+          if (isPointerValue(first)) {
+	    const llvm::Type *firstTy;
+	    if (const llvm::BitCastInst *BC =
+			llvm::dyn_cast<llvm::BitCastInst>(first))
+	      firstTy = getPointedType(BC->getSrcTy());
+	    else
+	      firstTy = getPointedType(first);
+
             for (typename PTSet::const_iterator v = s->second.begin();
                  v != s->second.end(); ) {
 	      const llvm::Value *second = *v;
@@ -104,7 +117,7 @@ namespace llvm { namespace ptr { namespace detail {
 			      llvm::dyn_cast<llvm::ArrayType>(secondTy))
 		      secondTy = AT->getElementType();
 
-              if (getPointedType(s->first) != secondTy) {
+              if (firstTy != secondTy) {
                 typename PTSet::iterator const tmp = v++;
                 s->second.erase(tmp);
               } else
@@ -113,9 +126,11 @@ namespace llvm { namespace ptr { namespace detail {
           }
           ++s;
         }
+    }
     return S;
   }
 
 }}}
+#endif
 
 #endif
