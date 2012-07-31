@@ -4,11 +4,10 @@
 #ifndef POINTSTO_POINTSTO_H
 #define POINTSTO_POINTSTO_H
 
+#include <functional>
 #include <map>
 #include <set>
 #include <vector>
-
-#include <boost/tr1/functional.hpp>
 
 #include "PredefContainers.h"
 #include "RuleExpressions.h"
@@ -38,7 +37,7 @@ namespace llvm { namespace ptr {
 
   template<typename PointsToAlgorithm>
   struct RuleFunction {
-      typedef std::tr1::function<bool(typename PointsToSets<PointsToAlgorithm>::Type&)>
+      typedef std::function<bool(typename PointsToSets<PointsToAlgorithm>::Type&)>
               Type;
 
       static inline bool
