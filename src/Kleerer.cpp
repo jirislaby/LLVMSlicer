@@ -75,7 +75,7 @@ private:
                                        Value *arraySize = 0);
   Instruction *mallocSymbolic(BasicBlock *BB, Constant *name, Type *elemTy,
                               unsigned typeSize, Value *arrSize);
-  void makeAiStateSymbolic(Module &M, BasicBlock *BB);
+  void makeGlobalsSymbolic(Module &M, BasicBlock *BB);
   BasicBlock *checkAiState(Function *mainFun, BasicBlock *BB,
                            const DebugLoc &debugLoc);
   void addGlobals(Module &M);
@@ -162,18 +162,29 @@ Instruction *Kleerer::call_klee_make_symbolic(Constant *name, BasicBlock *BB,
   return CallInst::Create(klee_make_symbolic, p);
 }
 
-void Kleerer::makeAiStateSymbolic(Module &M, BasicBlock *BB) {
+/*
+ * it also initializes __ai_state_*
+ */
+void Kleerer::makeGlobalsSymbolic(Module &M, BasicBlock *BB) {
   Constant *zero = ConstantInt::get(intType, 0);
   for (Module::global_iterator I = M.global_begin(), E = M.global_end();
       I != E; ++I) {
     GlobalVariable &GV = *I;
-    if (!GV.hasName() || !GV.getName().startswith("__ai_state_"))
-      continue;
-    GV.setInitializer(zero);
-    Constant *glob_str = getGlobalString(C, M, GV.getName());
-    BB->getInstList().push_back(call_klee_make_symbolic(glob_str, BB, intType,
-                                                        &GV));
-    new StoreInst(zero, &GV, "", true, BB);
+    if (GV.isConstant() || !GV.hasName())
+	continue;
+    StringRef GVName = GV.getName();
+    if (GVName.startswith("llvm."))
+	    continue;
+    if (GVName.startswith("__ai_") && !GVName.startswith("__ai_state_"))
+	    continue;
+/*    errs() << "TU " << GVName << " ";
+    GV.getType()->getElementType()->dump();
+    errs() << "\n\t" << GVName << "\n";*/
+    Constant *glob_str = getGlobalString(C, M, GVName);
+    BB->getInstList().push_back(call_klee_make_symbolic(glob_str, BB,
+		GV.getType()->getElementType(), &GV));
+    if (GVName.startswith("__ai_state_"))
+	new StoreInst(zero, &GV, "", true, BB);
   }
 }
 
@@ -346,7 +357,7 @@ void Kleerer::writeMain(Function &F) {
   prepareArguments(F, mainBB, params);
 //  mainFun->viewCFG();
 
-  makeAiStateSymbolic(M, mainBB);
+  makeGlobalsSymbolic(M, mainBB);
   addGlobals(M);
 #ifdef DEBUG_WRITE_MAIN
   errs() << "==============\n";
