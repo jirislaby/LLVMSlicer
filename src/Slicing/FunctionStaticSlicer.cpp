@@ -524,7 +524,7 @@ bool FunctionStaticSlicer::slice() {
     if (ii->isSliced() && canSlice(i)) {
 #ifdef DEBUG_SLICE
       errs() << "  removing:";
-      i->print(errs());
+      i.print(errs());
       errs() << " from " << i.getParent()->getName() << '\n';
 #endif
       i.replaceAllUsesWith(UndefValue::get(i.getType()));
