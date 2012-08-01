@@ -264,6 +264,14 @@ void StatsComputer::run() {
   callgraph::Callgraph CG(M, PS);
   ModInfo modInfo(M);
 
+#ifdef DEBUG_DUMP_CALLREL
+  for (callgraph::Callgraph::const_iterator I = CG.begin(), E = CG.end(); I != E; ++I) {
+	  const Function *from = I->first;
+	  const Function *to = I->second;
+	  errs() << from->getName() << " => " << to->getName() << "\n";
+  }
+#endif
+
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
     if (F.isDeclaration())
