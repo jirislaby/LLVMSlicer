@@ -1,7 +1,7 @@
 // This file is distributed under the University of Illinois Open Source
 // License. See LICENSE.TXT for details.
 
-#include <boost/tr1/functional.hpp>
+#include <functional>
 
 #include "AlgoAndersen.h"
 #include "Fixpoint.h"
@@ -33,8 +33,8 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 	    return old_size != L.size();
 	}
     };
-    using std::tr1::bind;
-    using std::tr1::placeholders::_1;
+    using std::bind;
+    using std::placeholders::_1;
     return bind(&local::function,_1,
 		E.getArgument1().getArgument(),
 		E.getArgument2().getArgument());
@@ -58,8 +58,8 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 	    return old_size != L.size();
 	}
     };
-    using std::tr1::bind;
-    using std::tr1::placeholders::_1;
+    using std::bind;
+    using std::placeholders::_1;
     return bind(&local::function,_1,
 		E.getArgument1().getArgument(),
 		E.getArgument2().getArgument().getArgument());
@@ -86,8 +86,8 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 	    return old_size != L.size();
 	}
     };
-    using std::tr1::bind;
-    using std::tr1::placeholders::_1;
+    using std::bind;
+    using std::placeholders::_1;
     return bind(&local::function,_1,
 		E.getArgument1().getArgument(),
 		E.getArgument2().getArgument().getArgument());
@@ -116,8 +116,8 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 	    return change;
 	}
     };
-    using std::tr1::bind;
-    using std::tr1::placeholders::_1;
+    using std::bind;
+    using std::placeholders::_1;
     return bind(&local::function,_1,
 		E.getArgument1().getArgument().getArgument(),
 		E.getArgument2().getArgument());
@@ -150,8 +150,8 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 	    return change;
 	}
     };
-    using std::tr1::bind;
-    using std::tr1::placeholders::_1;
+    using std::bind;
+    using std::placeholders::_1;
     return bind(&local::function,_1,
 		E.getArgument1().getArgument().getArgument(),
 		E.getArgument2().getArgument().getArgument());
@@ -179,8 +179,8 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 	    return change;
 	}
     };
-    using std::tr1::bind;
-    using std::tr1::placeholders::_1;
+    using std::bind;
+    using std::placeholders::_1;
     return bind(&local::function,_1,
 		E.getArgument1().getArgument().getArgument(),
 		E.getArgument2().getArgument().getArgument());
@@ -204,8 +204,8 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 	    return old_size != L.size();
 	}
     };
-    using std::tr1::bind;
-    using std::tr1::placeholders::_1;
+    using std::bind;
+    using std::placeholders::_1;
     return bind(&local::function,_1,
 		E.getArgument1().getArgument(),
 		E.getArgument2().getArgument());
@@ -229,8 +229,8 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 	    return old_size != L.size();
 	}
     };
-    using std::tr1::bind;
-    using std::tr1::placeholders::_1;
+    using std::bind;
+    using std::placeholders::_1;
     return bind(&local::function,_1,
 		E.getArgument1().getArgument(),
 		E.getArgument2().getArgument());
@@ -260,8 +260,8 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 	    return change;
 	}
     };
-    using std::tr1::bind;
-    using std::tr1::placeholders::_1;
+    using std::bind;
+    using std::placeholders::_1;
     return bind(&local::function,_1,
 		E.getArgument1().getArgument().getArgument(),
 		E.getArgument2().getArgument());
