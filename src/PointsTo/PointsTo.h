@@ -77,7 +77,6 @@ namespace llvm { namespace ptr {
 
 }}
 
-#if 0
 /*
  * It does not really work -- it prunes too much. Like it does not take into
  * account bitcast instructions in the code.
@@ -96,6 +95,7 @@ namespace llvm { namespace ptr { namespace detail {
           typename PTSets::iterator const tmp = s++;
           S.getContainer().erase(tmp);
         } else {
+#if 0
           if (isPointerValue(first)) {
 	    const llvm::Type *firstTy;
 	    if (const llvm::BitCastInst *BC =
@@ -123,6 +123,7 @@ namespace llvm { namespace ptr { namespace detail {
                 ++v;
             }
           }
+#endif
           ++s;
         }
     }
@@ -130,6 +131,5 @@ namespace llvm { namespace ptr { namespace detail {
   }
 
 }}}
-#endif
 
 #endif
