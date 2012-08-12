@@ -101,9 +101,9 @@ namespace llvm { namespace slicing { namespace detail {
             return;
         }
         for ( ; b != e; ++b)
-            if (*b == C)
-                *out++ = R->getOperand(0);
-            else
+	    if (*b == C)
+		*out++ = R->getReturnValue();
+	    else
                 *out++ = *b;
     }
 
