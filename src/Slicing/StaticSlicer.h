@@ -104,9 +104,9 @@ namespace llvm { namespace slicing { namespace detail {
 	    if (*b == C) {
 		    Value *ret = R->getReturnValue();
 		    if (!ret) {
-			    C->dump();
+/*			    C->dump();
 			    C->getCalledValue()->dump();
-			    R->dump();
+			    R->dump();*/
 //			    abort();
 				return;
 		    }
