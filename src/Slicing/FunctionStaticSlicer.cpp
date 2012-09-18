@@ -305,7 +305,7 @@ bool FunctionStaticSlicer::computeRCi(InsInfo *insInfoi) {
 #ifdef DEBUG_RC
   errs() << "  " << __func__ << ": " << i->getOpcodeName();
   if (i->hasName())
-    errs() << " (" << i->getNameStr() << ")";
+    errs() << " (" << i->getName() << ")";
   errs() << '\n';
   errs() << "    DUMP: ";
   i->print(errs());
@@ -436,7 +436,7 @@ bool FunctionStaticSlicer::updateRCSC(
       if (ii->addRC(*II)) {
         changed = true;
 #ifdef DEBUG_RC
-        errs() << "  added " << (*II)->getNameStr() << "\n";
+        errs() << "  added " << (*II)->getName() << "\n";
 #endif
       }
   }
@@ -471,15 +471,15 @@ void FunctionStaticSlicer::dump() {
     errs() << "SLICED\n    DEF:\n";
     for (ValSet::const_iterator II = ii->DEF_begin(), EE = ii->DEF_end();
          II != EE; II++)
-      errs() << "      " << (*II)->getNameStr() << '\n';
+      errs() << "      " << (*II)->getName() << '\n';
     errs() << "    REF:\n";
     for (ValSet::const_iterator II = ii->REF_begin(), EE = ii->REF_end();
          II != EE; II++)
-      errs() << "      " << (*II)->getNameStr() << '\n';
+      errs() << "      " << (*II)->getName() << '\n';
     errs() << "    RC:\n";
     for (ValSet::const_iterator II = ii->RC_begin(), EE = ii->RC_end();
          II != EE; II++)
-      errs() << "      " << (*II)->getNameStr() << '\n';
+      errs() << "      " << (*II)->getName() << '\n';
   }
 #endif
 }
