@@ -108,7 +108,9 @@ private:
   void dump();
 
   InsInfo *getInsInfo(const llvm::Instruction *i) const {
-    return insInfoMap.find(i)->second;
+    InsInfoMap::const_iterator I = insInfoMap.find(i);
+    assert(I != insInfoMap.end());
+    return I->second;
   }
 };
 
