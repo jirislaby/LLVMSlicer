@@ -54,7 +54,6 @@ namespace llvm {
 
     virtual void getAnalysisUsage(AnalysisUsage &AU) const {
       AU.setPreservesAll();
-      AU.addRequired<CreateHammockCFG>();
       AU.addRequired<PostDominatorTree>();
     }
 
