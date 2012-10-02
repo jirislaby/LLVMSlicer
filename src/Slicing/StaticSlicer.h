@@ -146,9 +146,13 @@ namespace llvm { namespace slicing {
     bool starting = std::distance(callees.first, callees.second) == 0;
 
     FunctionStaticSlicer *FSS = new FunctionStaticSlicer(F, MP, PS, MOD);
-    llvm::slicing::findInitialCriterion(F, *FSS, starting);
+    bool hadAssert = llvm::slicing::findInitialCriterion(F, *FSS, starting);
 
-    if (starting)
+    /*
+     * Functions with an assert might not have a return and slicer wouldn't
+     * compute them at all in that case.
+     */
+    if (starting || hadAssert)
       initFuns.push_back(&F);
 
     slicers.insert(Slicers::value_type(&F, FSS));
