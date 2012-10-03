@@ -66,13 +66,13 @@ public:
 
   template<typename FwdValueIterator>
   bool addCriterion(const llvm::Instruction *ins, FwdValueIterator b,
-		    FwdValueIterator const e, bool deslice = false) {
+		    FwdValueIterator const e, bool desliceIfChanged = false) {
     InsInfo *ii = getInsInfo(ins);
     bool change = false;
     for (; b != e; ++b)
       if (ii->addRC(*b))
         change = true;
-    if (deslice)
+    if (change && desliceIfChanged)
       ii->deslice();
     return change;
   }

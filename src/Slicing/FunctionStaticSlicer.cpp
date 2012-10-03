@@ -628,7 +628,7 @@ bool llvm::slicing::findInitialCriterion(Function &F,
 #ifdef DEBUG_INITCRIT
         errs() << "    adding\n";
 #endif
-        ss.addInitialCriterion(CI);
+        ss.addInitialCriterion(CI, F.getParent()->getGlobalVariable("__ai_init_functions", true));
         added = true;
       }
     } else if (const ReturnInst *RI = dyn_cast<ReturnInst>(i)) {

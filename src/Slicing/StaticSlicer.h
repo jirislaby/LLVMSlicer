@@ -212,7 +212,7 @@ namespace llvm { namespace slicing {
             std::set<const llvm::Value *> R;
             detail::getRelevantVarsAtCall(c->second, f, relBgn, relEnd,
                                           std::inserter(R, R.end()));
-            if (slicers[g]->addCriterion(c->second, R.begin(), R.end()))
+            if (slicers[g]->addCriterion(c->second, R.begin(), R.end(), true))
                 *out++ = g;
         }
     }
