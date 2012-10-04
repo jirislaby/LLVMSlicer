@@ -33,6 +33,7 @@
 #include "../Modifies/AlgoDumbSpeedy.h"
 #include "../PointsTo/AlgoAndersen.h"
 #include "../PointsTo/PointsTo.h"
+#include "../Languages/LLVMSupport.h"
 
 #include "FunctionStaticSlicer.h"
 
@@ -118,17 +119,9 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
               addREF(*p);
       }
     } else if (!memoryManStuff(C)) {
-      typedef std::vector<llvm::Function const*> CalledVec;
+      typedef std::vector<const llvm::Function *> CalledVec;
       CalledVec CV;
-      if (C->getCalledFunction() != 0) {
-          CV.push_back(C->getCalledFunction());
-      } else {
-        typename PointsToSets::PointsToSet const& R = getPointsToSet(cv,PS);
-        for (typename PointsToSets::PointsToSet::const_iterator p = R.begin();
-             p != R.end(); ++p)
-          if (const Function *fn = dyn_cast<const Function>(*p))
-            CV.push_back(fn);
-      }
+      getCalledFunctions(C, PS, std::back_inserter(CV));
 
       for (CalledVec::const_iterator f = CV.begin(); f != CV.end(); ++f) {
         typename ModifiesSets::mapped_type const& M = getModSet(*f, MOD);

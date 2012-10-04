@@ -13,6 +13,7 @@
 #include "llvm/ADT/STLExtras.h" /* tie */
 
 #include "../Languages/LLVM.h"
+#include "../Languages/LLVMSupport.h"
 
 namespace llvm { namespace callgraph {
 
@@ -156,16 +157,8 @@ namespace llvm { namespace callgraph {
 
     typedef llvm::SmallVector<const llvm::Value *, 10> CalledFunctions;
     CalledFunctions G;
-    if (CI->getCalledFunction() != 0) {
-      G.push_back(CI->getCalledFunction());
-    } else {
-      typename PointsToSets::PointsToSet const& S =
-          getPointsToSet(CI->getCalledValue(), PS);
-      for (typename PointsToSets::PointsToSet::const_iterator
-           I = S.begin(), E = S.end(); I != E; ++I)
-        if (isa<llvm::Function>(*I))
-          G.push_back(*I);
-    }
+    getCalledFunctions(CI, PS, std::back_inserter(G));
+
     for (CalledFunctions::const_iterator I = G.begin(), E = G.end();
          I != E; ++I) {
       const llvm::Function *called = llvm::dyn_cast<llvm::Function>(*I);

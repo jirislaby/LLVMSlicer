@@ -14,6 +14,7 @@
 #include "../Callgraph/Callgraph.h"
 #include "../PointsTo/PointsTo.h"
 #include "../Languages/LLVM.h"
+#include "../Languages/LLVMSupport.h"
 
 namespace llvm { namespace slicing {
 
@@ -173,26 +174,16 @@ namespace llvm { namespace slicing {
                                 f->getName() << ", skipping\n";
                             continue;
                         }
-                        std::vector<llvm::Value const*> G;
-                        if (c->getCalledFunction() != 0)
-                            G.push_back(c->getCalledFunction());
-                        else {
-                            typename PointsToSets::PointsToSet const& S =
-                                getPointsToSet(c->getCalledValue(),PS);
-			    for (typename PointsToSets::PointsToSet::const_iterator
-				I = S.begin(), E = S.end(); I != E; ++I)
-			      if (isa<llvm::Function>(*I))
-				G.push_back(*I);
-                        }
-                        for (std::vector<llvm::Value const*>::const_iterator g =
-                                G.begin(); g != G.end(); ++g)
-                        {
-                            llvm::Function const* const h =
-                                llvm::dyn_cast<llvm::Function>(*g);
-                            if (!memoryManStuff(h) && !h->isDeclaration())
-                            {
-                                funcsToCalls.insert(std::make_pair(h,c));
-                                callsToFuncs.insert(std::make_pair(c,h));
+			typedef std::vector<const llvm::Function *> FunCon;
+			FunCon G;
+			llvm::getCalledFunctions(c, PS, std::back_inserter(G));
+
+                        for (FunCon::const_iterator g = G.begin();
+					g != G.end(); ++g) {
+                            llvm::Function const* const h = *g;
+                            if (!memoryManStuff(h) && !h->isDeclaration()) {
+                                funcsToCalls.insert(std::make_pair(h, c));
+                                callsToFuncs.insert(std::make_pair(c, h));
                             }
                         }
                     }
