@@ -223,8 +223,9 @@ namespace llvm { namespace slicing {
             llvm::tie(g, e) = callsToFuncs.equal_range(*c);
             for ( ; g != e; ++g) {
                 typedef std::vector<const llvm::ReturnInst *> ExitsVec;
+		const Function *callie = g->second;
                 ExitsVec E;
-                getFunctionExits(g->second,std::back_inserter(E));
+                getFunctionExits(callie, std::back_inserter(E));
                 for (ExitsVec::const_iterator e = E.begin(); e != E.end(); ++e) {
                     std::set<const llvm::Value *> R;
                     detail::getRelevantVarsAtExit(*c, *e, relBgn, relEnd,
