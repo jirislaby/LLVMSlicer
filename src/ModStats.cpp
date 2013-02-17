@@ -268,7 +268,7 @@ void StatsComputer::run() {
   for (callgraph::Callgraph::const_iterator I = CG.begin(), E = CG.end(); I != E; ++I) {
 	  const Function *from = I->first;
 	  const Function *to = I->second;
-	  errs() << from->getName() << " => " << to->getName() << "\n";
+	  errs() << "CALLREL " << from->getName() << " => " << to->getName() << "\n";
   }
 #endif
 
