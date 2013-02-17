@@ -58,7 +58,7 @@ namespace llvm { namespace slicing {
       if (modified)
         for (Module::iterator I = module.begin(), E = module.end(); I != E; ++I)
           if (!I->isDeclaration())
-            FunctionStaticSlicer::removeUndefBranches(MP, *I);
+            FunctionStaticSlicer::removeUndefs(MP, *I);
       return modified;
     }
 }}

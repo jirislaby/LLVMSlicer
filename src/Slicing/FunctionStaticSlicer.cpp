@@ -537,7 +537,7 @@ bool FunctionStaticSlicer::slice() {
 /**
  * removeUndefBranches -- remove branches with undef condition
  *
- * These are irrelevant to the code, so may be remvoed completely with their
+ * These are irrelevant to the code, so may be removed completely with their
  * bodies.
  */
 void FunctionStaticSlicer::removeUndefBranches(ModulePass *MP, Function &F) {
@@ -592,6 +592,28 @@ void FunctionStaticSlicer::removeUndefBranches(ModulePass *MP, Function &F) {
 #ifdef DEBUG_SLICE
   errs() << __func__ << " ============ END\n";
 #endif
+}
+
+/**
+ * removeUndefBranches -- remove calls with undef function
+ *
+ * These are irrelevant to the code, so may be removed completely.
+ */
+void FunctionStaticSlicer::removeUndefCalls(ModulePass *MP, Function &F) {
+  for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E;) {
+    CallInst *CI = dyn_cast<CallInst>(&*I);
+    ++I;
+    if (CI && isa<UndefValue>(CI->getCalledValue())) {
+      CI->replaceAllUsesWith(UndefValue::get(CI->getType()));
+      CI->eraseFromParent();
+    }
+  }
+}
+
+void FunctionStaticSlicer::removeUndefs(ModulePass *MP, Function &F)
+{
+  removeUndefBranches(MP, F);
+  removeUndefCalls(MP, F);
 }
 
 bool llvm::slicing::findInitialCriterion(Function &F,
@@ -659,7 +681,7 @@ bool FunctionSlicer::runOnFunction(Function &F, const PointsToSets &PS,
 
   bool sliced = ss.slice();
   if (sliced)
-    FunctionStaticSlicer::removeUndefBranches(this, F);
+    FunctionStaticSlicer::removeUndefs(this, F);
 
   return sliced;
 }

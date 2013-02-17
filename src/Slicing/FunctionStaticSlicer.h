@@ -86,7 +86,7 @@ public:
   }
   void calculateStaticSlice();
   bool slice();
-  static void removeUndefBranches(ModulePass *MP, Function &F);
+  static void removeUndefs(ModulePass *MP, Function &F);
 
 private:
   llvm::Function &fun;
@@ -112,6 +112,9 @@ private:
     assert(I != insInfoMap.end());
     return I->second;
   }
+
+  static void removeUndefBranches(ModulePass *MP, Function &F);
+  static void removeUndefCalls(ModulePass *MP, Function &F);
 };
 
 bool findInitialCriterion(llvm::Function &F, FunctionStaticSlicer &ss,
