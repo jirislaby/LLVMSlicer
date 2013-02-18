@@ -265,7 +265,8 @@ void StatsComputer::run() {
   ModInfo modInfo(M);
 
 #ifdef DEBUG_DUMP_CALLREL
-  for (callgraph::Callgraph::const_iterator I = CG.begin(), E = CG.end(); I != E; ++I) {
+  for (callgraph::Callgraph::const_iterator I = CG.begin_closure(),
+		  E = CG.end_closure(); I != E; ++I) {
 	  const Function *from = I->first;
 	  const Function *to = I->second;
 	  errs() << "CALLREL " << from->getName() << " => " << to->getName() << "\n";
