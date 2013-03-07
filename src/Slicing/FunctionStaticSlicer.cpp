@@ -616,6 +616,47 @@ void FunctionStaticSlicer::removeUndefs(ModulePass *MP, Function &F)
   removeUndefCalls(MP, F);
 }
 
+static bool handleAssert(Function &F, FunctionStaticSlicer &ss,
+		const CallInst *CI) {
+
+  const char *ass_file = getenv("SLICE_ASSERT_FILE");
+  const char *ass_line = getenv("SLICE_ASSERT_LINE");
+  const ConstantExpr *fileArg = dyn_cast<ConstantExpr>(CI->getArgOperand(1));
+  const ConstantInt *lineArg = dyn_cast<ConstantInt>(CI->getArgOperand(2));
+
+  if (ass_file && ass_line) {
+    if (fileArg && fileArg->getOpcode() == Instruction::GetElementPtr &&
+	lineArg) {
+      const GlobalVariable *strVar =
+	dyn_cast<GlobalVariable>(fileArg->getOperand(0));
+      assert(strVar && strVar->hasInitializer());
+      const ConstantDataArray *str =
+	dyn_cast<ConstantDataArray>(strVar->getInitializer());
+      assert(str && str->isCString());
+      /* trim the NUL terminator */
+      StringRef fileArgStr = str->getAsString().drop_back(1);
+      const int ass_line_int = atoi(ass_line);
+
+      errs() << "ASSERT at " << fileArgStr << ":" << lineArg->getValue() << "\n";
+
+      if (fileArgStr.equals(ass_file) && lineArg->equalsInt(ass_line_int)) {
+	errs() << "\tMATCH\n";
+	goto count;
+      }
+    }
+    ss.addSkipAssert(CI);
+    return false;
+  }
+
+count:
+#ifdef DEBUG_INITCRIT
+        errs() << "    adding\n";
+#endif
+  ss.addInitialCriterion(CI,
+      F.getParent()->getGlobalVariable("__ai_init_functions", true));
+  return true;
+}
+
 bool llvm::slicing::findInitialCriterion(Function &F,
                                          FunctionStaticSlicer &ss,
                                          bool starting) {
@@ -640,11 +681,7 @@ bool llvm::slicing::findInitialCriterion(Function &F,
     } else if (const CallInst *CI = dyn_cast<CallInst>(i)) {
       Function *callie = CI->getCalledFunction();
       if (callie == F__assert_fail) {
-#ifdef DEBUG_INITCRIT
-        errs() << "    adding\n";
-#endif
-        ss.addInitialCriterion(CI, F.getParent()->getGlobalVariable("__ai_init_functions", true));
-        added = true;
+	added = handleAssert(F, ss, CI);
       }
     } else if (const ReturnInst *RI = dyn_cast<ReturnInst>(i)) {
       if (starting) {

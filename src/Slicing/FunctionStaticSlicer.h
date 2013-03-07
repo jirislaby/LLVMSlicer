@@ -88,10 +88,19 @@ public:
   bool slice();
   static void removeUndefs(ModulePass *MP, Function &F);
 
+  void addSkipAssert(const llvm::CallInst *CI) {
+    skipAssert.insert(CI);
+  }
+
+  bool shouldSkipAssert(const llvm::CallInst *CI) {
+    return skipAssert.count(CI);
+  }
+
 private:
   llvm::Function &fun;
   llvm::ModulePass *MP;
   InsInfoMap insInfoMap;
+  llvm::SmallSetVector<const llvm::CallInst *, 10> skipAssert;
 
   void crawlBasicBlock(const llvm::BasicBlock *bb);
   bool computeRCi(InsInfo *insInfoi, InsInfo *insInfoj);

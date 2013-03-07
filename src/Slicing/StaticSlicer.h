@@ -199,11 +199,14 @@ namespace llvm { namespace slicing {
         FuncsToCalls::const_iterator c, e;
         llvm::tie(c,e) = funcsToCalls.equal_range(f);
         for ( ; c != e; ++c) {
-            const llvm::Function *g = c->second->getParent()->getParent();
+	    const llvm::CallInst *CI = c->second;
+	    const llvm::Function *g = CI->getParent()->getParent();
             std::set<const llvm::Value *> R;
             detail::getRelevantVarsAtCall(c->second, f, relBgn, relEnd,
                                           std::inserter(R, R.end()));
-            if (slicers[g]->addCriterion(c->second, R.begin(), R.end(), true))
+	    FunctionStaticSlicer *FSS = slicers[g];
+	    if (FSS->addCriterion(c->second, R.begin(), R.end(),
+				    !FSS->shouldSkipAssert(CI)))
                 *out++ = g;
         }
     }
