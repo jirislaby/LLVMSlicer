@@ -595,7 +595,7 @@ void FunctionStaticSlicer::removeUndefBranches(ModulePass *MP, Function &F) {
 }
 
 /**
- * removeUndefBranches -- remove calls with undef function
+ * removeUndefCalls -- remove calls with undef function
  *
  * These are irrelevant to the code, so may be removed completely.
  */
