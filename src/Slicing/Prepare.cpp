@@ -45,6 +45,9 @@ namespace {
 
       template<typename PointsToSets>
       void findInitFuns(Module &M, const PointsToSets &PS);
+      template<typename Callgraph>
+      bool addInitFun(const Callgraph &CG, SmallVector<Constant *, 10> &initFns,
+	  Type *ETy, Function &F, bool starting = false);
   };
 }
 
@@ -249,21 +252,36 @@ void Prepare::deleteAsmBodies(llvm::Module &M) {
   }
 }
 
+template<typename Callgraph>
+bool Prepare::addInitFun(const Callgraph &CG,
+    SmallVector<Constant *, 10> &initFns, Type *ETy, Function &F, bool starting)
+{
+  if (F.isDeclaration())
+    return false;
+  if (starting) {
+    callgraph::Callgraph::range_iterator callees = CG.callees(&F);
+    if (std::distance(callees.first, callees.second))
+      return false;
+  }
+  initFns.push_back(ConstantExpr::getBitCast(&F, ETy));
+  return true;
+}
+
 template<typename PointsToSets>
 void Prepare::findInitFuns(Module &M, const PointsToSets &PS) {
   callgraph::Callgraph CG(M, PS);
 
   SmallVector<Constant *, 10> initFns;
   Type *ETy = TypeBuilder<void *, false>::get(M.getContext());
+  const char *initFun = getenv("SLICE_INITIAL_FUNCTION");
 
-  for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
-    Function &F = *I;
-    if (F.isDeclaration())
-      continue;
-    callgraph::Callgraph::range_iterator callees = CG.callees(&F);
-    if (std::distance(callees.first, callees.second))
-      continue;
-    initFns.push_back(ConstantExpr::getBitCast(&F, ETy));
+  if (initFun) {
+    Function *F = M.getFunction(initFun);
+    if (F && addInitFun(CG, initFns, ETy, *F))
+      errs() << "INITIAL set to " << F->getName() << "\n";
+  } else {
+    for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I)
+      addInitFun(CG, initFns, ETy, *I, true);
   }
   ArrayType *ATy = ArrayType::get(ETy, initFns.size());
   new GlobalVariable(M, ATy, true, GlobalVariable::InternalLinkage,
