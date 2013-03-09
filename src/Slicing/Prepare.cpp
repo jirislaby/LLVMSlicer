@@ -202,6 +202,11 @@ void Prepare::deleteAsmBodies(llvm::Module &M) {
     "__test_and_set_bit", "__test_and_clear_bit",
     "test_and_set_bit", "test_and_clear_bit",
     "__fls", "fls", "__ffs", "ffs", "ffz",
+    "inb", "inw", "inl",
+    "insb", "insw", "insl",
+    "inb_p", "inw_p", "inl_p",
+    "readb", "readw", "readl", "readq",
+    "__readb", "__readw", "__readl", "__readq",
 
     "___arch__swab32", "___arch__swab64" // generates false positives in stats
   };
@@ -218,15 +223,10 @@ void Prepare::deleteAsmBodies(llvm::Module &M) {
     "printk_ratelimit", "warn_slowpath", "warn_on_slowpath", "dump_stack",
     "printk", "vprintk", "snd_verbose_printk",
     "rep_nop",
-    "inb", "inw", "inl",
-    "insb", "insw", "insl",
     "outb", "outw", "outl",
     "outsb", "outsw", "outsl",
-    "inb_p", "inw_p", "inl_p",
     "outb_p", "outw_p", "outl_p",
-    "readb", "readw", "readl", "readq",
     "writeb", "writew", "writel", "writeq",
-    "__readb", "__readw", "__readl", "__readq",
     "__writeb", "__writew", "__writel", "__writeq",
 
     "mod_timer", "__mod_timer", "del_timer", "del_timer_sync",
