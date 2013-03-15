@@ -1,14 +1,15 @@
+#include "llvm/Attributes.h"
 #include "llvm/Constants.h"
 #include "llvm/Instructions.h"
 #include "llvm/Pass.h"
 #include "llvm/PassManager.h"
 #include "llvm/Module.h"
+#include "llvm/DataLayout.h"
+#include "llvm/TypeBuilder.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Support/InstIterator.h"
-#include "llvm/Support/TypeBuilder.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Target/TargetData.h"
 
 #include "Callgraph/Callgraph.h"
 #include "PointsTo/AlgoAndersen.h"
@@ -28,14 +29,14 @@ namespace {
 
     virtual void getAnalysisUsage(AnalysisUsage &AU) const {
       AU.setPreservesAll();
-      AU.addRequired<TargetData>();
+      AU.addRequired<DataLayout>();
     }
   };
 }
 
 class Kleerer {
 public:
-  Kleerer(ModulePass &modPass, Module &M, TargetData &TD,
+  Kleerer(ModulePass &modPass, Module &M, DataLayout &TD,
           callgraph::Callgraph &CG) : modPass(modPass),
       M(M), TD(TD), CG(CG), C(M.getContext()), intPtrTy(TD.getIntPtrType(C)),
       done(false) {
@@ -49,7 +50,7 @@ public:
 private:
   ModulePass &modPass;
   Module &M;
-  TargetData &TD;
+  DataLayout &TD;
   callgraph::Callgraph &CG;
   LLVMContext &C;
   IntegerType *intPtrTy;
@@ -106,7 +107,7 @@ static void check(Value *Func, ArrayRef<Value *> Args) {
   }
 }
 
-static unsigned getTypeSize(TargetData &TD, Type *type) {
+static unsigned getTypeSize(DataLayout &TD, Type *type) {
   if (type->isFunctionTy()) /* it is not sized, weird */
     return TD.getPointerSize();
 
@@ -191,8 +192,8 @@ void Kleerer::makeGlobalsSymbolic(Module &M, BasicBlock *BB) {
 Constant *Kleerer::get_assert_fail()
 {
   Type *constCharPtrTy = TypeBuilder<const char *, false>::get(C);
-  AttrListPtr attrs;
-  attrs = attrs.addAttr(~0, Attribute::NoReturn);
+  AttrListPtr attrs = AttrListPtr().addAttr(C, ~0,
+		  Attributes::get(C, Attributes::NoReturn));
   return M.getOrInsertFunction("__assert_fail", attrs, Type::getVoidTy(C),
                                constCharPtrTy, constCharPtrTy, uintType,
                                constCharPtrTy, NULL);
@@ -430,7 +431,7 @@ bool Kleerer::run() {
 }
 
 bool KleererPass::runOnModule(Module &M) {
-  TargetData &TD = getAnalysis<TargetData>();
+  DataLayout &TD = getAnalysis<DataLayout>();
   ptr::PointsToSets<ptr::ANDERSEN>::Type PS;
   {
     ptr::ProgramStructure P(M);

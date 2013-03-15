@@ -19,12 +19,12 @@
 #include "llvm/Instructions.h"
 #include "llvm/Module.h"
 #include "llvm/Pass.h"
+#include "llvm/TypeBuilder.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/Support/CFG.h"
 #include "llvm/Support/InstIterator.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/TypeBuilder.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
 #include "PostDominanceFrontier.h"
