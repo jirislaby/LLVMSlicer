@@ -64,6 +64,13 @@ public:
     return getInsInfo(I)->RC_end();
   }
 
+  ValSet::const_iterator REF_begin(const llvm::Instruction *I) const {
+    return getInsInfo(I)->REF_begin();
+  }
+  ValSet::const_iterator REF_end(const llvm::Instruction *I) const {
+    return getInsInfo(I)->REF_end();
+  }
+
   template<typename FwdValueIterator>
   bool addCriterion(const llvm::Instruction *ins, FwdValueIterator b,
 		    FwdValueIterator const e, bool desliceIfChanged = false) {

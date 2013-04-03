@@ -128,6 +128,10 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
       typedef std::vector<const llvm::Function *> CalledVec;
       CalledVec CV;
       getCalledFunctions(C, PS, std::back_inserter(CV));
+      const Value *callie = C->getCalledValue();
+
+      if (!isa<Function>(callie))
+	addREF(callie);
 
       for (CalledVec::const_iterator f = CV.begin(); f != CV.end(); ++f) {
         typename ModifiesSets::mapped_type const& M = getModSet(*f, MOD);

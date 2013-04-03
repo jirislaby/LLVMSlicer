@@ -201,13 +201,16 @@ namespace llvm { namespace slicing {
         for ( ; c != e; ++c) {
 	    const llvm::CallInst *CI = c->second;
 	    const llvm::Function *g = CI->getParent()->getParent();
+	    FunctionStaticSlicer *FSS = slicers[g];
             std::set<const llvm::Value *> R;
             detail::getRelevantVarsAtCall(c->second, f, relBgn, relEnd,
                                           std::inserter(R, R.end()));
-	    FunctionStaticSlicer *FSS = slicers[g];
-	    if (FSS->addCriterion(c->second, R.begin(), R.end(),
-				    !FSS->shouldSkipAssert(CI)))
+
+	    if (FSS->addCriterion(CI, R.begin(), R.end(),
+				    !FSS->shouldSkipAssert(CI))) {
+		FSS->addCriterion(CI, FSS->REF_begin(CI), FSS->REF_end(CI));
                 *out++ = g;
+	    }
         }
     }
 
