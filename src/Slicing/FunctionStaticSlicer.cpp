@@ -89,6 +89,12 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
     addDEF(i);
 
     addREF(gep->getPointerOperand());
+
+    for (unsigned i = 1, e = gep->getNumOperands(); i != e; ++i) {
+      Value *op = gep->getOperand(i);
+      if (!isa<ConstantInt>(op))
+	addREF(op);
+    }
   } else if (CallInst const* const C = dyn_cast<const CallInst>(i)) {
     const Value *cv = C->getCalledValue();
 
