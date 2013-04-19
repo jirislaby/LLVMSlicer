@@ -514,16 +514,18 @@ namespace llvm { namespace ptr { namespace detail {
 			      CallsMap::const_iterator b,
 			      CallsMap::const_iterator const e,
 			      OutIterator out) {
-    if (r->getNumOperands() == 0 || !llvm::isPointerValue(r->getOperand(0)))
+    const llvm::Value *retVal = r->getReturnValue();
+
+    if (!retVal || !llvm::isPointerValue(retVal))
       return;
 
     const llvm::Function * const f = r->getParent()->getParent();
     for ( ; b != e; ++b)
       if (const llvm::Function *g = b->second->getCalledFunction()) {
 	if (f == g)
-	  *out++ = detail::argPassRuleCode(b->second, r->getOperand(0));
+	  *out++ = detail::argPassRuleCode(b->second, retVal);
       } else
-	*out++ = detail::argPassRuleCode(b->second, r->getOperand(0));
+	*out++ = detail::argPassRuleCode(b->second, retVal);
   }
 
 }}}
