@@ -47,4 +47,16 @@ ProgramStructure::ProgramStructure(Module &M) : M(M) {
 		}
 	}
     }
+#ifdef PS_DEBUG
+    errs() << "==PS START\n";
+    for (const_iterator I = getContainer().begin(), E = getContainer().end();
+	    I != E; ++I) {
+	const RuleCode &rc = *I;
+	errs() << "\tTYPE=" << rc.getType() << "\n\tL=";
+	rc.getLvalue()->dump();
+	errs() << "\tR=";
+	rc.getRvalue()->dump();
+    }
+    errs() << "==PS END\n";
+#endif
 }
