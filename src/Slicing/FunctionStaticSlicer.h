@@ -109,6 +109,7 @@ private:
   InsInfoMap insInfoMap;
   llvm::SmallSetVector<const llvm::CallInst *, 10> skipAssert;
 
+  static bool sameValues(const Value *val1, const Value *val2);
   void crawlBasicBlock(const llvm::BasicBlock *bb);
   bool computeRCi(InsInfo *insInfoi, InsInfo *insInfoj);
   bool computeRCi(InsInfo *insInfoi);

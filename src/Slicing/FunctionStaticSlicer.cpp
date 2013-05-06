@@ -250,6 +250,11 @@ static SuccList getSuccList(const Instruction *i) {
   return succList;
 }
 
+bool FunctionStaticSlicer::sameValues(const Value *val1, const Value *val2)
+{
+  return val1 == val2;
+}
+
 /*
  * RC(i)=RC(i) \cup
  *   {v| v \in RC(j), v \notin DEF(i)} \cup
@@ -265,7 +270,7 @@ bool FunctionStaticSlicer::computeRCi(InsInfo *insInfoi, InsInfo *insInfoj) {
     bool in_DEF = false;
     for (ValSet::const_iterator II = insInfoi->DEF_begin(),
          EE = insInfoi->DEF_end(); II != EE; II++)
-      if (*II == RCj) {
+      if (sameValues(*II, RCj)) {
         in_DEF = true;
         break;
       }
@@ -280,7 +285,7 @@ bool FunctionStaticSlicer::computeRCi(InsInfo *insInfoi, InsInfo *insInfoj) {
     const Value *DEFi = *I;
     for (ValSet::const_iterator II = insInfoj->RC_begin(),
          EE = insInfoj->RC_end(); II != EE; II++) {
-      if (DEFi == *II) {
+      if (sameValues(DEFi, *II)) {
         isect_nonempty = true;
         break;
       }
@@ -360,7 +365,7 @@ void FunctionStaticSlicer::computeSCi(const Instruction *i, const Instruction *j
     const Value *DEFi = *I;
     for (ValSet::const_iterator II = insInfoj->RC_begin(),
          EE = insInfoj->RC_end(); II != EE; II++) {
-      if (DEFi == *II) {
+      if (sameValues(DEFi, *II)) {
         isect_nonempty = true;
         break;
       }
