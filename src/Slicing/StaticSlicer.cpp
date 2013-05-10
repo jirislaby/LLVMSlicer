@@ -12,18 +12,20 @@
 #include "../PointsTo/PointsTo.h"
 #include "StaticSlicer.h"
 
+using namespace llvm;
+
 namespace llvm { namespace slicing { namespace detail {
 
-    void fillParamsToArgs(llvm::CallInst const* const C,
-                          llvm::Function const* const F,
+    void fillParamsToArgs(CallInst const* const C,
+                          Function const* const F,
                           ParamsToArgs& toArgs)
     {
-        llvm::Function::const_arg_iterator p = F->arg_begin();
+        Function::const_arg_iterator p = F->arg_begin();
         std::size_t a = 0;
         for ( ; a < C->getNumArgOperands(); ++a, ++p)
         {
-            llvm::Value const* const P = &*p;
-            llvm::Value const* const A = C->getArgOperand(a);
+            Value const* const P = &*p;
+            Value const* const A = C->getArgOperand(a);
             if (!isConstantValue(A))
                 toArgs[P] = A;
         }
@@ -35,25 +37,25 @@ namespace llvm { namespace slicing {
 
     void StaticSlicer::buildDicts(const ptr::PointsToSets &PS)
     {
-        typedef llvm::Module::iterator FunctionsIter;
+        typedef Module::iterator FunctionsIter;
         for (FunctionsIter f = module.begin(); f != module.end(); ++f)
             if (!f->isDeclaration() && !memoryManStuff(&*f))
-                for (llvm::inst_iterator i = llvm::inst_begin(*f);
-                        i != llvm::inst_end(*f); i++)
-                    if (llvm::CallInst const* c =
-                            llvm::dyn_cast<llvm::CallInst const>(&*i)) {
+                for (inst_iterator i = inst_begin(*f);
+                        i != inst_end(*f); i++)
+                    if (CallInst const* c =
+                            dyn_cast<CallInst const>(&*i)) {
                         if (isInlineAssembly(c)) {
                             errs() << "ERROR: Inline assembler detected in " <<
                                 f->getName() << ", skipping\n";
                             continue;
                         }
-			typedef std::vector<const llvm::Function *> FunCon;
+			typedef std::vector<const Function *> FunCon;
 			FunCon G;
-			llvm::getCalledFunctions(c, PS, std::back_inserter(G));
+			getCalledFunctions(c, PS, std::back_inserter(G));
 
                         for (FunCon::const_iterator g = G.begin();
 					g != G.end(); ++g) {
-                            llvm::Function const* const h = *g;
+                            Function const* const h = *g;
                             if (!memoryManStuff(h) && !h->isDeclaration()) {
                                 funcsToCalls.insert(std::make_pair(h, c));
                                 callsToFuncs.insert(std::make_pair(c, h));
@@ -63,7 +65,7 @@ namespace llvm { namespace slicing {
     }
 
     void StaticSlicer::computeSlice() {
-        typedef llvm::SmallVector<const llvm::Function *, 20> WorkSet;
+        typedef SmallVector<const Function *, 20> WorkSet;
         WorkSet Q(initFuns);
 
         while (!Q.empty()) {
@@ -90,8 +92,6 @@ namespace llvm { namespace slicing {
       return modified;
     }
 }}
-
-using namespace llvm;
 
 namespace {
   class Slicer : public ModulePass {
