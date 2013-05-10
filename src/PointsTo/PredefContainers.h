@@ -99,65 +99,6 @@ namespace llvm { namespace ptr {
 
 namespace llvm { namespace ptr {
 
-  template<typename PointsToAlgorithmType>
-  class PointsToSetsAsSet {
-  public:
-    typedef PointsToAlgorithmType PointsToAlgorithm;
-    typedef const llvm::Value *MemoryLocation;
-    typedef std::set<MemoryLocation> PointsToSet;
-
-    typedef PointsToSet Container;
-    typedef typename Container::value_type value_type;
-    typedef typename Container::iterator iterator;
-    typedef typename Container::const_iterator const_iterator;
-    typedef std::pair<iterator, bool> insert_retval;
-
-    virtual ~PointsToSetsAsSet() {}
-
-    insert_retval insert(value_type const& val) { return C.insert(val); }
-    const_iterator find(value_type const& val) const { return C.find(val); }
-    iterator find(value_type const& val) { return C.find(val); }
-    const_iterator begin() const { return C.begin(); }
-    iterator begin() { return C.begin(); }
-    const_iterator end() const { return C.end(); }
-    iterator end() { return C.end(); }
-    Container const& getContainer() const { return C; }
-    Container& getContainer() { return C; }
-  private:
-    Container C;
-  };
-
-  template<typename PointsToAlgorithm>
-  typename PointsToSetsAsSet<PointsToAlgorithm>::PointsToSet const&
-  getPointsToSet(
-                 const llvm::Value *,
-                 PointsToSetsAsSet<PointsToAlgorithm> const& S) {
-      return S.getContainer();
-  }
-#if 0
-  template<typename Language,typename PointsToAlgorithm,typename OutuptStream>
-  OutuptStream& dump(OutuptStream& ostr,
-                     PointsToSetsAsSet<Language,PointsToAlgorithm> const& S)
-  {
-      using monty::codespy::dump;
-
-      ostr << "  <ANYTHING>\n";
-      typedef typename PointsToSetsAsSet<Language,PointsToAlgorithm>
-                  ::const_iterator
-              PointeeIteratorConst;
-      for (PointeeIteratorConst i = S.begin(); i != S.end(); ++i)
-      {
-          ostr << "    ";
-          dump(ostr,*i);
-          ostr << '\n';
-      }
-      return ostr;
-  }
-#endif
-}}
-
-namespace llvm { namespace ptr {
-
     struct ProgramStructure
     {
         typedef RuleCode Command;
