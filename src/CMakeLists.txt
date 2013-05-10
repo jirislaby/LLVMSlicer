@@ -5,7 +5,9 @@ add_llvm_loadable_module(LLVMSlicer
 	Slicing/PostDominanceFrontier.cpp
 	Slicing/Prepare.cpp
 	Slicing/StaticSlicer.cpp
+	Callgraph/Callgraph.cpp
 	Languages/LLVM.cpp
+	Modifies/Modifies.cpp
 	Modifies/PredefContainers.cpp
 	PointsTo/PointsTo.cpp
 	PointsTo/PredefContainers.cpp

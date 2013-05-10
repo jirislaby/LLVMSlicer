@@ -8,8 +8,7 @@
 
 using namespace llvm;
 
-template<typename PointsToSet>
-static void pointsTo(const StoreInst &SI, PointsToSet const &PS)
+static void pointsTo(const StoreInst &SI, const ptr::PointsToSets &PS)
 {
 	const Value *val = SI.getValueOperand();
 	const Value *ptr = SI.getPointerOperand();
@@ -24,10 +23,9 @@ static void pointsTo(const StoreInst &SI, PointsToSet const &PS)
 	errs() << "\tRIGHT ";
 	val->dump();
 
-	typename PointsToSet::PointsToSet const &S =
-		ptr::getPointsToSet(ptr, PS);
-	for (typename PointsToSet::PointsToSet::const_iterator I = S.begin(),
-			           E = S.end(); I != E; ++I) {
+	typedef ptr::PointsToSets::PointsToSet PTSet;
+	PTSet const &S = ptr::getPointsToSet(ptr, PS);
+	for (PTSet::const_iterator I = S.begin(), E = S.end(); I != E; ++I) {
 		errs() << "\t";
 		(*I)->dump();
 	}

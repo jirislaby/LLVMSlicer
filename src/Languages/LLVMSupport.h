@@ -11,18 +11,17 @@
 
 namespace llvm {
 
-  template<typename PointsToSets, typename OutIterator>
-  void getCalledFunctions(const CallInst *CI, const PointsToSets &PS,
+  template<typename OutIterator>
+  void getCalledFunctions(const CallInst *CI, const ptr::PointsToSets &PS,
 		  OutIterator out) {
     const Value *stripped = CI->getCalledValue()->stripPointerCasts();
 
     if (const Function *F = dyn_cast<Function>(stripped)) {
       *out++ = F;
     } else {
-      typename PointsToSets::PointsToSet const& S =
-	  getPointsToSet(stripped, PS);
-      for (typename PointsToSets::PointsToSet::const_iterator
-           I = S.begin(), E = S.end(); I != E; ++I)
+      typedef ptr::PointsToSets::PointsToSet PTSet;
+      const PTSet &S = getPointsToSet(stripped, PS);
+      for (PTSet::const_iterator I = S.begin(), E = S.end(); I != E; ++I)
         if (const Function *F = dyn_cast<Function>(*I))
 	  *out++ = F;
     }

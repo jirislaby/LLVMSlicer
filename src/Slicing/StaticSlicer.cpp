@@ -33,6 +33,35 @@ namespace llvm { namespace slicing { namespace detail {
 
 namespace llvm { namespace slicing {
 
+    void StaticSlicer::buildDicts(const ptr::PointsToSets &PS)
+    {
+        typedef llvm::Module::iterator FunctionsIter;
+        for (FunctionsIter f = module.begin(); f != module.end(); ++f)
+            if (!f->isDeclaration() && !memoryManStuff(&*f))
+                for (llvm::inst_iterator i = llvm::inst_begin(*f);
+                        i != llvm::inst_end(*f); i++)
+                    if (llvm::CallInst const* c =
+                            llvm::dyn_cast<llvm::CallInst const>(&*i)) {
+                        if (isInlineAssembly(c)) {
+                            errs() << "ERROR: Inline assembler detected in " <<
+                                f->getName() << ", skipping\n";
+                            continue;
+                        }
+			typedef std::vector<const llvm::Function *> FunCon;
+			FunCon G;
+			llvm::getCalledFunctions(c, PS, std::back_inserter(G));
+
+                        for (FunCon::const_iterator g = G.begin();
+					g != G.end(); ++g) {
+                            llvm::Function const* const h = *g;
+                            if (!memoryManStuff(h) && !h->isDeclaration()) {
+                                funcsToCalls.insert(std::make_pair(h, c));
+                                callsToFuncs.insert(std::make_pair(c, h));
+                            }
+                        }
+                    }
+    }
+
     void StaticSlicer::computeSlice() {
         typedef llvm::SmallVector<const llvm::Function *, 20> WorkSet;
         WorkSet Q(initFuns);

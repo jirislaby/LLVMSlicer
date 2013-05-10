@@ -298,11 +298,11 @@ static void getRulesOfCommand(RuleCode const& RC, Rules &R)
  * account bitcast instructions in the code.
  */
 static PointsToSets &pruneByType(PointsToSets &S) {
-  typedef typename PointsToSets::mapped_type PTSet;
+  typedef PointsToSets::mapped_type PTSet;
   for (PointsToSets::iterator s = S.begin(); s != S.end(); ) {
       const llvm::Value *first = s->first;
       if (llvm::isa<llvm::Function>(first)) {
-	PointsToSets::iterator const tmp = s++;
+	const PointsToSets::iterator tmp = s++;
 	S.getContainer().erase(tmp);
       } else {
 #if 0

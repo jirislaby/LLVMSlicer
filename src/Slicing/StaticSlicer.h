@@ -26,8 +26,9 @@ namespace llvm { namespace slicing {
         typedef std::multimap<llvm::CallInst const*,llvm::Function const*>
                 CallsToFuncs;
 
-        template<typename PointsToSets, typename ModifiesSets>
-        StaticSlicer(ModulePass *MP, Module &M, const PointsToSets &PS,
+        template<typename ModifiesSets>
+        StaticSlicer(ModulePass *MP, Module &M,
+		     const ptr::PointsToSets &PS,
                      const callgraph::Callgraph &CG,
                      const ModifiesSets &MOD);
 
@@ -39,8 +40,7 @@ namespace llvm { namespace slicing {
     private:
         typedef llvm::SmallVector<const llvm::Function *, 20> InitFuns;
 
-        template<typename PointsToSets>
-        void buildDicts(PointsToSets const& PS);
+        void buildDicts(const ptr::PointsToSets &PS);
 
         template<typename OutIterator>
         void emitToCalls(llvm::Function const* const f, OutIterator out);
@@ -48,8 +48,8 @@ namespace llvm { namespace slicing {
         template<typename OutIterator>
         void emitToExits(llvm::Function const* const f, OutIterator out);
 
-        template<typename PointsToSets, typename ModifiesSets>
-        void runFSS(Function &F, const PointsToSets &PS,
+        template<typename ModifiesSets>
+        void runFSS(Function &F, const ptr::PointsToSets &PS,
                     const callgraph::Callgraph &CG, const ModifiesSets &MOD);
 
         ModulePass *MP;
@@ -120,9 +120,9 @@ namespace llvm { namespace slicing { namespace detail {
 
 namespace llvm { namespace slicing {
 
-    template<typename PointsToSets, typename ModifiesSets>
+    template<typename ModifiesSets>
     StaticSlicer::StaticSlicer(ModulePass *MP, Module &M,
-                               PointsToSets const& PS,
+                               const ptr::PointsToSets &PS,
                                const callgraph::Callgraph &CG,
                                ModifiesSets const& MOD) : MP(MP), module(M),
                                slicers(), initFuns(), funcsToCalls(),
@@ -139,8 +139,8 @@ namespace llvm { namespace slicing {
         delete I->second;
     }
 
-  template<typename PointsToSets, typename ModifiesSets>
-  void StaticSlicer::runFSS(Function &F, const PointsToSets &PS,
+  template<typename ModifiesSets>
+  void StaticSlicer::runFSS(Function &F, const ptr::PointsToSets &PS,
                             const callgraph::Callgraph &CG,
                             const ModifiesSets &MOD) {
     callgraph::Callgraph::range_iterator callees = CG.callees(&F);
@@ -158,36 +158,6 @@ namespace llvm { namespace slicing {
 
     slicers.insert(Slicers::value_type(&F, FSS));
   }
-
-    template<typename PointsToSets>
-    void StaticSlicer::buildDicts(PointsToSets const& PS)
-    {
-        typedef llvm::Module::iterator FunctionsIter;
-        for (FunctionsIter f = module.begin(); f != module.end(); ++f)
-            if (!f->isDeclaration() && !memoryManStuff(&*f))
-                for (llvm::inst_iterator i = llvm::inst_begin(*f);
-                        i != llvm::inst_end(*f); i++)
-                    if (llvm::CallInst const* c =
-                            llvm::dyn_cast<llvm::CallInst const>(&*i)) {
-                        if (isInlineAssembly(c)) {
-                            errs() << "ERROR: Inline assembler detected in " <<
-                                f->getName() << ", skipping\n";
-                            continue;
-                        }
-			typedef std::vector<const llvm::Function *> FunCon;
-			FunCon G;
-			llvm::getCalledFunctions(c, PS, std::back_inserter(G));
-
-                        for (FunCon::const_iterator g = G.begin();
-					g != G.end(); ++g) {
-                            llvm::Function const* const h = *g;
-                            if (!memoryManStuff(h) && !h->isDeclaration()) {
-                                funcsToCalls.insert(std::make_pair(h, c));
-                                callsToFuncs.insert(std::make_pair(c, h));
-                            }
-                        }
-                    }
-    }
 
     template<typename OutIterator>
     void StaticSlicer::emitToCalls(llvm::Function const* const f,

@@ -4,6 +4,7 @@
 #ifndef MODIFIES_MODIFIES_H
 #define MODIFIES_MODIFIES_H
 
+#include "../PointsTo/PointsTo.h"
 #include "PredefContainers.h"
 
 namespace llvm { namespace mods {
@@ -13,10 +14,9 @@ namespace llvm { namespace mods {
         typedef ModifiesAsMap<Algorithm> Type;
     };
 
-    template<typename ProgramStructureType, typename Callgraph,
-             typename PointsToSets, typename ModifiesType>
-    void computeModifies(ProgramStructureType const& P, Callgraph const& CG,
-                         PointsToSets const& PS, ModifiesType& M)
+    template<typename Callgraph, typename ModifiesType>
+    void computeModifies(const ProgramStructure &P, Callgraph const& CG,
+                         const llvm::ptr::PointsToSets &PS, ModifiesType& M)
     {
         computeModifies(P, CG, PS, M, typename ModifiesType::Algorithm());
     }

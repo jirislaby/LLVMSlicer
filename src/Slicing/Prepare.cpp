@@ -42,8 +42,7 @@ namespace {
       static void deleteAsmBodies(Module &M);
       static bool runOnFunction(Function &F);
 
-      template<typename PointsToSets>
-      void findInitFuns(Module &M, const PointsToSets &PS);
+      void findInitFuns(Module &M, const ptr::PointsToSets &PS);
       template<typename Callgraph>
       bool addInitFun(const Callgraph &CG, SmallVector<Constant *, 10> &initFns,
 	  Type *ETy, Function &F, bool starting = false);
@@ -266,8 +265,7 @@ bool Prepare::addInitFun(const Callgraph &CG,
   return true;
 }
 
-template<typename PointsToSets>
-void Prepare::findInitFuns(Module &M, const PointsToSets &PS) {
+void Prepare::findInitFuns(Module &M, const ptr::PointsToSets &PS) {
   callgraph::Callgraph CG(M, PS);
 
   SmallVector<Constant *, 10> initFns;
