@@ -43,9 +43,9 @@ namespace {
       static bool runOnFunction(Function &F);
 
       void findInitFuns(Module &M, const ptr::PointsToSets &PS);
-      template<typename Callgraph>
-      bool addInitFun(const Callgraph &CG, SmallVector<Constant *, 10> &initFns,
-	  Type *ETy, Function &F, bool starting = false);
+      bool addInitFun(const callgraph::Callgraph &CG,
+	  SmallVector<Constant *, 10> &initFns, Type *ETy, Function &F,
+	  bool starting = false);
   };
 }
 
@@ -250,8 +250,7 @@ void Prepare::deleteAsmBodies(llvm::Module &M) {
   }
 }
 
-template<typename Callgraph>
-bool Prepare::addInitFun(const Callgraph &CG,
+bool Prepare::addInitFun(const callgraph::Callgraph &CG,
     SmallVector<Constant *, 10> &initFns, Type *ETy, Function &F, bool starting)
 {
   if (F.isDeclaration())

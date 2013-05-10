@@ -14,8 +14,9 @@ namespace llvm { namespace mods {
         typedef ModifiesAsMap<Algorithm> Type;
     };
 
-    template<typename Callgraph, typename ModifiesType>
-    void computeModifies(const ProgramStructure &P, Callgraph const& CG,
+    template<typename ModifiesType>
+    void computeModifies(const ProgramStructure &P,
+			 const callgraph::Callgraph &CG,
                          const llvm::ptr::PointsToSets &PS, ModifiesType& M)
     {
         computeModifies(P, CG, PS, M, typename ModifiesType::Algorithm());
