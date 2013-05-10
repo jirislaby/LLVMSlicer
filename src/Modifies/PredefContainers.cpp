@@ -22,4 +22,12 @@ namespace llvm { namespace mods {
           }
   }
 
+  const Modifies::ModSet &getModSet(const llvm::Function *const &f,
+	    const Modifies &S) {
+    static const Modifies::ModSet empty;
+    const Modifies::const_iterator it = S.find(f);
+
+    return (it == S.end()) ? empty : it->second;
+  }
+
 }}

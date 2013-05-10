@@ -8,7 +8,6 @@
 
 #include "../Callgraph/Callgraph.h"
 #include "../Modifies/Modifies.h"
-#include "../Modifies/AlgoDumbSpeedy.h"
 #include "../PointsTo/PointsTo.h"
 #include "StaticSlicer.h"
 
@@ -121,7 +120,7 @@ bool Slicer::runOnModule(Module &M) {
 
   callgraph::Callgraph CG(M, PS);
 
-  mods::Modifies<mods::DUMB_SPEEDY>::Type MOD;
+  mods::Modifies MOD;
   {
     mods::ProgramStructure P1(M);
     computeModifies(P1, CG, PS, MOD);

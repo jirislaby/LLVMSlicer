@@ -16,9 +16,7 @@
 
 namespace llvm { namespace mods {
 
-    template<typename AlgorithmType>
-    struct ModifiesAsMap {
-        typedef AlgorithmType Algorithm;
+    struct Modifies {
         typedef std::set<const llvm::Value *> ModSet;
         typedef std::map<const llvm::Function *, ModSet> Container;
         typedef typename Container::key_type key_type;
@@ -28,7 +26,7 @@ namespace llvm { namespace mods {
         typedef typename Container::const_iterator const_iterator;
         typedef std::pair<iterator, bool> insert_retval;
 
-        virtual ~ModifiesAsMap() {}
+        virtual ~Modifies() {}
 
         insert_retval insert(value_type const& val) { return C.insert(val); }
         mapped_type& operator[](key_type const& key) { return C[key]; }
@@ -44,16 +42,9 @@ namespace llvm { namespace mods {
         Container C;
     };
 
-    template<typename Algorithm>
-    typename ModifiesAsMap<Algorithm>::ModSet const&
-    getModSet(const llvm::Function *const& f,
-              ModifiesAsMap<Algorithm> const& S)
-    {
-        static typename ModifiesAsMap<Algorithm>::ModSet const empty;
-        typename ModifiesAsMap<Algorithm>::const_iterator const it =
-            S.find(f);
-        return (it == S.end()) ? empty : it->second;
-    }
+    const Modifies::ModSet &getModSet(const llvm::Function *const &f,
+              const Modifies &S);
+
 }}
 
 namespace llvm { namespace mods {

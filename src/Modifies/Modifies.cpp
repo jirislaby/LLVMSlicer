@@ -9,15 +9,13 @@
 #include "../Callgraph/Callgraph.h"
 #include "../PointsTo/PointsTo.h"
 #include "Modifies.h"
-#include "AlgoDumbSpeedy.h"
 
 using namespace llvm;
 using namespace llvm::mods;
 
 void llvm::mods::computeModifies(const ProgramStructure &P,
-      const callgraph::Callgraph &CG,
-      const ptr::PointsToSets &PS,
-      typename Modifies<DUMB_SPEEDY>::Type& MOD, DUMB_SPEEDY) {
+      const callgraph::Callgraph &CG, const ptr::PointsToSets &PS,
+      Modifies &MOD) {
 
   for (ProgramStructure::const_iterator f = P.begin(); f != P.end(); ++f)
     for (ProgramStructure::mapped_type::const_iterator c = f->second.begin();
@@ -36,9 +34,8 @@ void llvm::mods::computeModifies(const ProgramStructure &P,
   typedef callgraph::Callgraph Callgraph;
   for (Callgraph::const_iterator i = CG.begin_closure();
 	i != CG.end_closure(); ++i) {
-    typename Modifies<DUMB_SPEEDY>::Type::mapped_type const&
-	src = MOD[i->second];
-    typedef typename Modifies<DUMB_SPEEDY>::Type::mapped_type dst_t;
+    const Modifies::mapped_type &src = MOD[i->second];
+    typedef Modifies::mapped_type dst_t;
     dst_t &dst = MOD[i->first];
 
     std::copy(src.begin(), src.end(), std::inserter(dst, dst.end()));
@@ -50,7 +47,7 @@ void llvm::mods::computeModifies(const ProgramStructure &P,
 	      bind(&ProgramStructure::isLocalToFunction, cref(P), _1, i->first)),
 	      dst.end());
 #endif
-    for (typename dst_t::iterator I = dst.begin(), E = dst.end(); I != E; ) {
+    for (dst_t::iterator I = dst.begin(), E = dst.end(); I != E; ) {
       if (isLocalToFunction(*I, i->first))
 	dst.erase(I++);
       else
