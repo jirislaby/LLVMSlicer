@@ -9,14 +9,16 @@
 #include <set>
 #include <vector>
 
+#include "llvm/Value.h"
+
 #include "PredefContainers.h"
 #include "RuleExpressions.h"
 
 namespace llvm { namespace ptr {
 
-  template<typename MemoryLocationType, typename PointsToSetsType>
+  template<typename PointsToSetsType>
   typename PointsToSetsType::PointsToSet const&
-  getPointsToSet(MemoryLocationType memLoc, PointsToSetsType const& S) {
+  getPointsToSet(const llvm::Value *const &memLoc, PointsToSetsType const& S) {
     return getPointsToSet(memLoc, S, typename PointsToSetsType::PointsToAlgorithm());
   }
 
