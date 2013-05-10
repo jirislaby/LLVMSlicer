@@ -3,7 +3,6 @@
 
 #include <functional>
 
-#include "Fixpoint.h"
 #include "PredefContainers.h"
 #include "PointsTo.h"
 
@@ -14,10 +13,10 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>
 		    > const& E) {
     struct local {
-	static bool function(PointsToSets<ANDERSEN>::Type &S,
+	static bool function(PointsToSets &S,
 			     const llvm::Value *lval,
 			     const llvm::Value *rval) {
-	    typedef PointsToSets<ANDERSEN>::Type::PointsToSet PointsToSet;
+	    typedef PointsToSets::PointsToSet PointsToSet;
 	    PointsToSet& L = S[lval];
 	    PointsToSet const& R = S[rval];
 	    std::size_t const old_size = L.size();
@@ -39,11 +38,10 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    > const& E) {
     struct local
     {
-	static bool function(PointsToSets<ANDERSEN>::Type &S,
+	static bool function(PointsToSets &S,
 			     const llvm::Value *lval,
 			     const llvm::Value *rval) {
-	    typedef PointsToSets<ANDERSEN>::Type::PointsToSet PointsToSet;
-	    PointsToSet& L = S[lval];
+	    PointsToSets::PointsToSet& L = S[lval];
 	    std::size_t const old_size = L.size();
 	    L.insert(rval);
 	    return old_size != L.size();
@@ -63,10 +61,10 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 {
     struct local
     {
-	static bool function(PointsToSets<ANDERSEN>::Type &S,
+	static bool function(PointsToSets &S,
 			     const llvm::Value *lval,
 			     const llvm::Value *rval) {
-	    typedef PointsToSets<ANDERSEN>::Type::PointsToSet PointsToSet;
+	    typedef PointsToSets::PointsToSet PointsToSet;
 	    PointsToSet& L = S[lval];
 	    PointsToSet& R = S[rval];
 	    std::size_t const old_size = L.size();
@@ -91,10 +89,10 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 {
     struct local
     {
-	static bool function(PointsToSets<ANDERSEN>::Type &S,
+	static bool function(PointsToSets &S,
 			     const llvm::Value *lval,
 			     const llvm::Value *rval) {
-	    typedef PointsToSets<ANDERSEN>::Type::PointsToSet PointsToSet;
+	    typedef PointsToSets::PointsToSet PointsToSet;
 	    PointsToSet& L = S[lval];
 	    PointsToSet& R = S[rval];
 	    bool change = false;
@@ -123,12 +121,12 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 {
     struct local
     {
-	static bool function(PointsToSets<ANDERSEN>::Type &S,
+	static bool function(PointsToSets &S,
 			     const llvm::Value *lval,
 			     const llvm::Value *rval
 			     )
 	{
-	    typedef PointsToSets<ANDERSEN>::Type::PointsToSet PointsToSet;
+	    typedef PointsToSets::PointsToSet PointsToSet;
 	    PointsToSet& L = S[lval];
 	    bool change = false;
 	    for (PointsToSet::const_iterator i = L.begin(); i!=L.end(); ++i) {
@@ -155,10 +153,10 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    > const& E)
 {
     struct local {
-	static bool function(PointsToSets<ANDERSEN>::Type &S,
+	static bool function(PointsToSets &S,
 			     const llvm::Value *lval,
 			     const llvm::Value *rval) {
-	    typedef PointsToSets<ANDERSEN>::Type::PointsToSet PointsToSet;
+	    typedef PointsToSets::PointsToSet PointsToSet;
 	    PointsToSet& L = S[lval];
 	    bool change = false;
 	    for (PointsToSet::const_iterator i = L.begin(); i!=L.end(); ++i)
@@ -183,11 +181,10 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 {
     struct local
     {
-	static bool function(PointsToSets<ANDERSEN>::Type &S,
+	static bool function(PointsToSets &S,
 			     const llvm::Value *lval,
 			     const llvm::Value *rval) {
-	    typedef PointsToSets<ANDERSEN>::Type::PointsToSet PointsToSet;
-	    PointsToSet& L = S[lval];
+	    PointsToSets::PointsToSet& L = S[lval];
 	    std::size_t const old_size = L.size();
 	    L.insert(rval);
 	    return old_size != L.size();
@@ -207,11 +204,10 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 {
     struct local
     {
-	static bool function(PointsToSets<ANDERSEN>::Type &S,
+	static bool function(PointsToSets &S,
 			     const llvm::Value *lval,
 			     const llvm::Value *rval) {
-	    typedef PointsToSets<ANDERSEN>::Type::PointsToSet PointsToSet;
-	    PointsToSet& L = S[lval];
+	    PointsToSets::PointsToSet &L = S[lval];
 	    std::size_t const old_size = L.size();
 	    L.insert(rval);
 	    return old_size != L.size();
@@ -232,10 +228,10 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 {
     struct local
     {
-	static bool function(PointsToSets<ANDERSEN>::Type &S,
+	static bool function(PointsToSets &S,
 			     const llvm::Value *lval,
 			     const llvm::Value *rval) {
-	    typedef PointsToSets<ANDERSEN>::Type::PointsToSet PointsToSet;
+	    typedef PointsToSets::PointsToSet PointsToSet;
 	    PointsToSet& L = S[lval];
 	    bool change = false;
 	    for (PointsToSet::const_iterator i = L.begin(); i!=L.end(); ++i) {
@@ -258,7 +254,7 @@ RuleFunction::Type getRuleFunction(DEALLOC<const llvm::Value *>) {
     return typename RuleFunction::Type(&RuleFunction::identity);
 }
 
-void getRulesOfCommand(RuleCode const& RC, Rules &R)
+static void getRulesOfCommand(RuleCode const& RC, Rules &R)
 {
     switch (RC.getType())
     {
@@ -297,9 +293,91 @@ void getRulesOfCommand(RuleCode const& RC, Rules &R)
     }
 }
 
-PointsToSets<ANDERSEN>::Type &computePointsToSets(const ProgramStructure &P,
-		PointsToSets<ANDERSEN>::Type &S, ANDERSEN) {
-  return detail::pruneByType<ANDERSEN>(fixpoint<ANDERSEN>(P, S));
+/*
+ * It does not really work -- it prunes too much. Like it does not take into
+ * account bitcast instructions in the code.
+ */
+static PointsToSets &pruneByType(PointsToSets &S) {
+  typedef typename PointsToSets::mapped_type PTSet;
+  for (PointsToSets::iterator s = S.begin(); s != S.end(); ) {
+      const llvm::Value *first = s->first;
+      if (llvm::isa<llvm::Function>(first)) {
+	PointsToSets::iterator const tmp = s++;
+	S.getContainer().erase(tmp);
+      } else {
+#if 0
+	if (isPointerValue(first)) {
+	  const llvm::Type *firstTy;
+	  if (const llvm::BitCastInst *BC =
+		      llvm::dyn_cast<llvm::BitCastInst>(first))
+	    firstTy = getPointedType(BC->getSrcTy());
+	  else
+	    firstTy = getPointedType(first);
+
+	  for (typename PTSet::const_iterator v = s->second.begin();
+	       v != s->second.end(); ) {
+	    const llvm::Value *second = *v;
+	    const llvm::Type *secondTy = second->getType();
+
+	    if (hasExtraReference(second))
+		    secondTy = llvm::cast<llvm::PointerType>(secondTy)->
+			    getElementType();
+	    if (const llvm::ArrayType *AT =
+			    llvm::dyn_cast<llvm::ArrayType>(secondTy))
+		    secondTy = AT->getElementType();
+
+	    if (firstTy != secondTy) {
+	      typename PTSet::iterator const tmp = v++;
+	      s->second.erase(tmp);
+	    } else
+	      ++v;
+	  }
+	}
+#endif
+	++s;
+      }
+  }
+  return S;
+}
+
+static bool executeRules(ProgramStructure const& P, PointsToSets &S)
+{
+  bool change = false;
+
+  for (ProgramStructure::const_iterator i = P.begin(); i != P.end(); ++i) {
+    Rules rules;
+    getRulesOfCommand(*i, rules);
+    for (Rules::const_iterator j = rules.begin(); j != rules.end(); ++j) {
+      const bool modification = (*j)(S);
+      change = change || modification;
+    }
+  }
+
+  return change;
+}
+
+static PointsToSets &fixpoint(const ProgramStructure &P, PointsToSets &S)
+{
+  while (executeRules(P, S))
+      ;
+  return S;
+}
+
+PointsToSets &computePointsToSets(const ProgramStructure &P, PointsToSets &S) {
+  return pruneByType(fixpoint(P, S));
+}
+
+const PointsToSets::PointsToSet &
+getPointsToSet(const llvm::Value *const &memLoc, const PointsToSets &S) {
+  const PointsToSets::const_iterator it = S.find(memLoc);
+  if (it == S.end()) {
+    static const PointsToSets::PointsToSet emptySet;
+    errs() << "WARNING[PointsTo]: No points-to set has been found: ";
+    memLoc->print(errs());
+    errs() << '\n';
+    return emptySet;
+  }
+  return it->second;
 }
 
 }}

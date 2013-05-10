@@ -254,7 +254,7 @@ getFlags(const FunInfo *funInfo, bool nested = false) {
 }
 
 void StatsComputer::run() {
-  ptr::PointsToSets<ptr::ANDERSEN>::Type PS;
+  ptr::PointsToSets PS;
   {
     ptr::ProgramStructure P(M);
     computePointsToSets(P, PS);

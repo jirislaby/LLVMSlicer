@@ -39,8 +39,8 @@
 using namespace llvm;
 using namespace llvm::slicing;
 
-template<typename PointsToSets, typename ModifiesSets>
-InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
+template<typename ModifiesSets>
+InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
                  ModifiesSets const& MOD) : ins(i), sliced(true) {
   if (const LoadInst *LI = dyn_cast<const LoadInst>(i)) {
     addDEF(i);
@@ -54,9 +54,9 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
     } else {
       addREF(op);
       if (!hasExtraReference(op)) {
-      typename PointsToSets::PointsToSet const &S = getPointsToSet(op,PS);
-      for (typename PointsToSets::PointsToSet::const_iterator I = S.begin(),
-           E = S.end(); I != E; ++I)
+	ptr::PointsToSets::PointsToSet const &S = getPointsToSet(op,PS);
+	for (ptr::PointsToSets::PointsToSet::const_iterator I = S.begin(),
+	     E = S.end(); I != E; ++I)
         addREF(*I);
       }
     }
@@ -71,8 +71,8 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
       if (hasExtraReference(l)) {
         addDEF(l);
       } else {
-        typename PointsToSets::PointsToSet const& S = getPointsToSet(l,PS);
-        for (typename PointsToSets::PointsToSet::const_iterator I = S.begin(),
+        ptr::PointsToSets::PointsToSet const& S = getPointsToSet(l,PS);
+        for (ptr::PointsToSets::PointsToSet::const_iterator I = S.begin(),
              E = S.end(); I != E; ++I)
           addDEF(*I);
       }
@@ -106,8 +106,8 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
     } else if (isMemoryCopy(cv) || isMemoryMove(cv)) {
       const Value *l = elimConstExpr(C->getOperand(0));
       if (isPointerValue(l)) {
-          typename PointsToSets::PointsToSet const& L = getPointsToSet(l, PS);
-          for (typename PointsToSets::PointsToSet::const_iterator
+          ptr::PointsToSets::PointsToSet const& L = getPointsToSet(l, PS);
+          for (ptr::PointsToSets::PointsToSet::const_iterator
                   p = L.begin(); p != L.end(); ++p)
               addDEF(*p);
       }
@@ -118,8 +118,8 @@ InsInfo::InsInfo(const Instruction *i, PointsToSets const& PS,
       /* memcpy/memset wouldn't work with len being 'undef' */
       addREF(len);
       if (isPointerValue(r)) {
-          typename PointsToSets::PointsToSet const& R = getPointsToSet(r,PS);
-          for (typename PointsToSets::PointsToSet::const_iterator
+          ptr::PointsToSets::PointsToSet const& R = getPointsToSet(r,PS);
+          for (ptr::PointsToSets::PointsToSet::const_iterator
                   p = R.begin(); p != R.end(); ++p)
               addREF(*p);
       }
@@ -218,8 +218,8 @@ namespace {
         AU.addRequired<PostDominanceFrontier>();
       }
     private:
-      template<typename PointsToSets, typename ModifiesSets>
-      bool runOnFunction(Function &F, const PointsToSets &PS,
+      template<typename ModifiesSets>
+      bool runOnFunction(Function &F, const ptr::PointsToSets &PS,
                          const ModifiesSets &MOD);
   };
 }
@@ -727,8 +727,8 @@ bool llvm::slicing::findInitialCriterion(Function &F,
   return added;
 }
 
-template<typename PointsToSets, typename ModifiesSets>
-bool FunctionSlicer::runOnFunction(Function &F, const PointsToSets &PS,
+template<typename ModifiesSets>
+bool FunctionSlicer::runOnFunction(Function &F, const ptr::PointsToSets &PS,
                            const ModifiesSets &MOD) {
   FunctionStaticSlicer ss(F, this, PS, MOD);
 
@@ -744,7 +744,7 @@ bool FunctionSlicer::runOnFunction(Function &F, const PointsToSets &PS,
 }
 
 bool FunctionSlicer::runOnModule(Module &M) {
-  ptr::PointsToSets<ptr::ANDERSEN>::Type PS;
+  ptr::PointsToSets PS;
   {
     ptr::ProgramStructure P(M);
     computePointsToSets(P, PS);

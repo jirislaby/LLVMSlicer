@@ -84,7 +84,7 @@ static RegisterPass<Slicer> X("slice-inter", "Slices the code interprocedurally"
 char Slicer::ID;
 
 bool Slicer::runOnModule(Module &M) {
-  ptr::PointsToSets<ptr::ANDERSEN>::Type PS;
+  ptr::PointsToSets PS;
   {
     ptr::ProgramStructure P(M);
     computePointsToSets(P, PS);

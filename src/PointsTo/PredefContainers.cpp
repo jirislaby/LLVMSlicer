@@ -8,6 +8,7 @@
 #include "PredefContainers.h"
 #include "RuleExpressions.h"
 
+using namespace llvm;
 using namespace llvm::ptr;
 
 ProgramStructure::ProgramStructure(Module &M) : M(M) {

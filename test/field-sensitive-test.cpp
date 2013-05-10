@@ -35,7 +35,7 @@ static void pointsTo(const StoreInst &SI, PointsToSet const &PS)
 
 static void pointsTo(Module &M)
 {
-	ptr::PointsToSets<ptr::ANDERSEN>::Type PS;
+	ptr::PointsToSets PS;
 	{
 		ptr::ProgramStructure P(M);
 		computePointsToSets(P, PS);

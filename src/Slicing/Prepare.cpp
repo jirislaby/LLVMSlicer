@@ -289,7 +289,7 @@ void Prepare::findInitFuns(Module &M, const PointsToSets &PS) {
 }
 
 bool Prepare::runOnModule(Module &M) {
-  ptr::PointsToSets<ptr::ANDERSEN>::Type PS;
+  ptr::PointsToSets PS;
   {
     ptr::ProgramStructure P(M);
     computePointsToSets(P, PS);

@@ -431,7 +431,7 @@ bool Kleerer::run() {
 
 bool KleererPass::runOnModule(Module &M) {
   DataLayout &TD = getAnalysis<DataLayout>();
-  ptr::PointsToSets<ptr::ANDERSEN>::Type PS;
+  ptr::PointsToSets PS;
   {
     ptr::ProgramStructure P(M);
     computePointsToSets(P, PS);

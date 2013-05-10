@@ -12,10 +12,8 @@
 
 namespace llvm { namespace ptr {
 
-  template<typename PointsToAlgorithmType>
-  class PointsToSetsAsMap {
+  class PointsToSets {
   public:
-    typedef PointsToAlgorithmType PointsToAlgorithm;
     typedef const llvm::Value *MemoryLocation;
     typedef std::set<MemoryLocation> PointsToSet;
 
@@ -27,7 +25,7 @@ namespace llvm { namespace ptr {
     typedef typename Container::const_iterator const_iterator;
     typedef std::pair<iterator, bool> insert_retval;
 
-    virtual ~PointsToSetsAsMap() {}
+    virtual ~PointsToSets() {}
 
     insert_retval insert(value_type const& val) { return C.insert(val); }
     PointsToSet& operator[](key_type const& key) { return C[key]; }
@@ -43,27 +41,6 @@ namespace llvm { namespace ptr {
     Container C;
   };
 
-  template<typename PointsToAlgorithm>
-  struct PointsToSets {
-    typedef PointsToSetsAsMap<PointsToAlgorithm> Type;
-  };
-
-  template<typename PointsToAlgorithm>
-  typename PointsToSetsAsMap<PointsToAlgorithm>::PointsToSet const&
-  getPointsToSet(const llvm::Value *const& memLoc,
-      PointsToSetsAsMap<PointsToAlgorithm> const& S) {
-      typename PointsToSets<PointsToAlgorithm>::Type::const_iterator const it =
-        S.find(memLoc);
-      if (it == S.end()) {
-        static typename PointsToSets<PointsToAlgorithm>::Type::PointsToSet
-          const emptySet;
-        errs() << "WARNING[PointsTo]: No points-to set has been found: ";
-        memLoc->print(errs());
-        errs() << '\n';
-        return emptySet;
-      }
-      return it->second;
-  }
 #if 0
   template<typename Language,typename PointsToAlgorithm,typename OutuptStream>
   OutuptStream& dump(OutuptStream& ostr,
