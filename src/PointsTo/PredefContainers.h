@@ -41,37 +41,6 @@ namespace llvm { namespace ptr {
     Container C;
   };
 
-#if 0
-  template<typename Language,typename PointsToAlgorithm,typename OutuptStream>
-  OutuptStream& dump(OutuptStream& ostr,
-                     PointsToSetsAsMap<Language,PointsToAlgorithm> const& S)
-  {
-      using monty::codespy::dump;
-
-      typedef typename PointsToSetsAsMap<Language,PointsToAlgorithm>
-                  ::const_iterator
-              PointersIteratorConst;
-      for (PointersIteratorConst i = S.begin(); i != S.end(); ++i)
-      {
-          if (i->second.empty())
-              continue;
-          ostr << "  ";
-          dump(ostr,i->first);
-          ostr << '\n';
-          typedef typename PointsToSetsAsMap<Language,PointsToAlgorithm>
-                      ::PointsToSet::const_iterator
-                  PointeeIteratorConst;
-          for (PointeeIteratorConst j = i->second.begin();
-                  j != i->second.end(); ++j)
-          {
-              ostr << "    ";
-              dump(ostr,*j);
-              ostr << '\n';
-          }
-      }
-      return ostr;
-  }
-#endif
 }}
 
 namespace llvm { namespace ptr {
@@ -100,27 +69,7 @@ namespace llvm { namespace ptr {
         Container C;
         llvm::Module &M;
     };
-#if 0
-    template<typename Language, typename AnalysisProperties,
-             typename CommandType, typename OutuptStream>
-    OutuptStream& dump(OutuptStream& ostr,
-                       ProgramStructureAsVector<Language,AnalysisProperties,
-                                                CommandType> const& P)
-    {
-        using monty::codespy::dump;
 
-        typedef typename ProgramStructureAsVector<Language,AnalysisProperties,
-                                                  CommandType>::const_iterator
-                IteratorConst;
-        for (IteratorConst i = P.begin(); i != P.end(); ++i)
-        {
-            ostr << "  ";
-            dump(ostr,*i);
-            ostr << '\n';
-        }
-        return ostr;
-    }
-#endif
 }}
 
 #endif
