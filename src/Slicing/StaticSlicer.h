@@ -26,11 +26,10 @@ namespace llvm { namespace slicing {
         typedef std::multimap<llvm::CallInst const*,llvm::Function const*>
                 CallsToFuncs;
 
-        template<typename ModifiesSets>
         StaticSlicer(ModulePass *MP, Module &M,
 		     const ptr::PointsToSets &PS,
                      const callgraph::Callgraph &CG,
-                     const ModifiesSets &MOD);
+                     const mods::Modifies &MOD);
 
         ~StaticSlicer();
 
@@ -48,9 +47,8 @@ namespace llvm { namespace slicing {
         template<typename OutIterator>
         void emitToExits(llvm::Function const* const f, OutIterator out);
 
-        template<typename ModifiesSets>
         void runFSS(Function &F, const ptr::PointsToSets &PS,
-                    const callgraph::Callgraph &CG, const ModifiesSets &MOD);
+                    const callgraph::Callgraph &CG, const mods::Modifies &MOD);
 
         ModulePass *MP;
         Module &module;
@@ -119,45 +117,6 @@ namespace llvm { namespace slicing { namespace detail {
 }}}
 
 namespace llvm { namespace slicing {
-
-    template<typename ModifiesSets>
-    StaticSlicer::StaticSlicer(ModulePass *MP, Module &M,
-                               const ptr::PointsToSets &PS,
-                               const callgraph::Callgraph &CG,
-                               ModifiesSets const& MOD) : MP(MP), module(M),
-                               slicers(), initFuns(), funcsToCalls(),
-                               callsToFuncs() {
-        for (llvm::Module::iterator f = M.begin(); f != M.end(); ++f)
-          if (!f->isDeclaration() && !memoryManStuff(&*f))
-            runFSS(*f, PS, CG, MOD);
-        buildDicts(PS);
-    }
-
-    StaticSlicer::~StaticSlicer() {
-      for (Slicers::const_iterator I = slicers.begin(), E = slicers.end();
-           I != E; ++I)
-        delete I->second;
-    }
-
-  template<typename ModifiesSets>
-  void StaticSlicer::runFSS(Function &F, const ptr::PointsToSets &PS,
-                            const callgraph::Callgraph &CG,
-                            const ModifiesSets &MOD) {
-    callgraph::Callgraph::range_iterator callees = CG.callees(&F);
-    bool starting = std::distance(callees.first, callees.second) == 0;
-
-    FunctionStaticSlicer *FSS = new FunctionStaticSlicer(F, MP, PS, MOD);
-    bool hadAssert = llvm::slicing::findInitialCriterion(F, *FSS, starting);
-
-    /*
-     * Functions with an assert might not have a return and slicer wouldn't
-     * compute them at all in that case.
-     */
-    if (starting || hadAssert)
-      initFuns.push_back(&F);
-
-    slicers.insert(Slicers::value_type(&F, FSS));
-  }
 
     template<typename OutIterator>
     void StaticSlicer::emitToCalls(llvm::Function const* const f,

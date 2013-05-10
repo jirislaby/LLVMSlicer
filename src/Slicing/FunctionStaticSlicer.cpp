@@ -38,9 +38,8 @@
 using namespace llvm;
 using namespace llvm::slicing;
 
-template<typename ModifiesSets>
 InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
-                 ModifiesSets const& MOD) : ins(i), sliced(true) {
+                 const mods::Modifies &MOD) : ins(i), sliced(true) {
   if (const LoadInst *LI = dyn_cast<const LoadInst>(i)) {
     addDEF(i);
 
@@ -132,8 +131,8 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
 	addREF(callie);
 
       for (CalledVec::const_iterator f = CV.begin(); f != CV.end(); ++f) {
-        typename ModifiesSets::mapped_type const& M = getModSet(*f, MOD);
-        for (typename ModifiesSets::mapped_type::const_iterator v = M.begin();
+        mods::Modifies::mapped_type const& M = getModSet(*f, MOD);
+        for (mods::Modifies::mapped_type::const_iterator v = M.begin();
              v != M.end(); ++v)
           addDEF(*v);
       }
@@ -217,9 +216,8 @@ namespace {
         AU.addRequired<PostDominanceFrontier>();
       }
     private:
-      template<typename ModifiesSets>
       bool runOnFunction(Function &F, const ptr::PointsToSets &PS,
-                         const ModifiesSets &MOD);
+                         const mods::Modifies &MOD);
   };
 }
 
@@ -726,9 +724,8 @@ bool llvm::slicing::findInitialCriterion(Function &F,
   return added;
 }
 
-template<typename ModifiesSets>
 bool FunctionSlicer::runOnFunction(Function &F, const ptr::PointsToSets &PS,
-                           const ModifiesSets &MOD) {
+                           const mods::Modifies &MOD) {
   FunctionStaticSlicer ss(F, this, PS, MOD);
 
   findInitialCriterion(F, ss);

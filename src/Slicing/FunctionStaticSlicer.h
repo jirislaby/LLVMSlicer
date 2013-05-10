@@ -19,9 +19,8 @@ typedef llvm::SmallSetVector<const llvm::Value *, 10> ValSet;
 
 class InsInfo {
 public:
-  template<typename ModifiesSets>
   InsInfo(const llvm::Instruction *i, const llvm::ptr::PointsToSets &PS,
-                   ModifiesSets const& MOD);
+                   const llvm::mods::Modifies &MOD);
 
   const Instruction *getIns() const { return ins; }
 
@@ -49,10 +48,9 @@ class FunctionStaticSlicer {
 public:
   typedef std::map<const llvm::Instruction *, InsInfo *> InsInfoMap;
 
-  template<typename ModifiesSets>
   FunctionStaticSlicer(llvm::Function &F, llvm::ModulePass *MP,
                        const llvm::ptr::PointsToSets &PT,
-		       const ModifiesSets &mods) :
+		       const llvm::mods::Modifies &mods) :
 	  fun(F), MP(MP) {
     for (llvm::inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F);
 	 I != E; ++I)
