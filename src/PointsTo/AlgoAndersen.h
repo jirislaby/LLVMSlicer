@@ -89,6 +89,9 @@ namespace llvm { namespace ptr {
 		      > const& E,
 		  ANDERSEN);
 
+  RuleFunction<ANDERSEN>::Type
+  getRuleFunction(DEALLOC<const llvm::Value *>, ANDERSEN);
+
 }}
 
 #endif

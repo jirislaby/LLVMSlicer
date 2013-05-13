@@ -40,14 +40,6 @@ namespace llvm { namespace ptr {
       { return false; }
   };
 
-  template<typename ExprSort, typename PointsToAlgorithm>
-  typename RuleFunction<PointsToAlgorithm>::Type
-  getRuleFunction(ExprSort const& E, PointsToAlgorithm)
-  {
-      return typename RuleFunction<PointsToAlgorithm>::Type(
-                  &RuleFunction<PointsToAlgorithm>::identity);
-  }
-
   template<typename PointsToAlgorithm>
   class Rules {
   public:
