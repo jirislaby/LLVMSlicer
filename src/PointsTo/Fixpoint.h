@@ -15,11 +15,9 @@ namespace llvm { namespace ptr {
         bool change = false;
 
         for (ProgramStructure::const_iterator i = P.begin(); i != P.end(); ++i) {
-            Rules<PointsToAlgorithm> rules;
-            getRulesOfCommand(*i,rules);
-            typedef typename Rules<PointsToAlgorithm>::const_iterator
-                    RulesIterConst;
-            for (RulesIterConst j = rules.begin(); j != rules.end(); ++j) {
+            Rules rules;
+            getRulesOfCommand(*i, rules);
+            for (Rules::const_iterator j = rules.begin(); j != rules.end(); ++j) {
                 bool const modification = (*j)(S);
                 change = change || modification;
             }

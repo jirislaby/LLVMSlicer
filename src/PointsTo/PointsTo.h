@@ -36,29 +36,24 @@ namespace llvm { namespace ptr {
 		      typename PointsToSetsType::PointsToAlgorithm());
   }
 
-  template<typename PointsToAlgorithm>
   struct RuleFunction {
-      typedef std::function<bool(typename PointsToSets<PointsToAlgorithm>::Type&)>
+      typedef std::function<bool(typename PointsToSets<ANDERSEN>::Type&)>
               Type;
 
       static inline bool
-      identity(typename PointsToSets<PointsToAlgorithm>::Type)
+      identity(typename PointsToSets<ANDERSEN>::Type)
       { return false; }
   };
 
-  template<typename PointsToAlgorithm>
   class Rules {
   public:
-      typedef std::vector<
-                  typename RuleFunction<PointsToAlgorithm>::Type >
-              RuleFunctions;
+      typedef std::vector<RuleFunction::Type> RuleFunctions;
       typedef typename RuleFunctions::const_iterator const_iterator;
 
       template<typename Sort>
       void insert(RuleExpression<Sort> const& E)
       {
-          rules.push_back( getRuleFunction(E.getSort(),
-                                                     PointsToAlgorithm()) );
+          rules.push_back( getRuleFunction(E.getSort()) );
       }
 
       const_iterator begin() const { return rules.begin(); }
@@ -68,6 +63,8 @@ namespace llvm { namespace ptr {
       RuleFunctions rules;
   };
 
+  void getRulesOfCommand(RuleCode const& RC, Rules &R);
+
 }}
 
 namespace llvm { namespace ptr {
@@ -76,78 +73,6 @@ namespace llvm { namespace ptr {
   computePointsToSets(ProgramStructure const& P,
 			PointsToSets<ANDERSEN>::Type& S,
 			ANDERSEN);
-
-  RuleFunction<ANDERSEN>::Type
-  getRuleFunction(ASSIGNMENT<
-		      VARIABLE<const llvm::Value *>,
-		      VARIABLE<const llvm::Value *>
-		      > const& E,
-		  ANDERSEN);
-
-  RuleFunction<ANDERSEN>::Type getRuleFunction(
-	 ASSIGNMENT<
-		      VARIABLE<const llvm::Value *>,
-		      REFERENCE<
-			  VARIABLE<const llvm::Value *> >
-		      > const& E,
-		  ANDERSEN);
-
-  RuleFunction<ANDERSEN>::Type
-  getRuleFunction(ASSIGNMENT<
-		      VARIABLE<const llvm::Value *>,
-		      DEREFERENCE< VARIABLE<const llvm::Value *> >
-		      > const& E,
-		  ANDERSEN);
-
-  RuleFunction<ANDERSEN>::Type
-  getRuleFunction(ASSIGNMENT<
-		      DEREFERENCE< VARIABLE<const llvm::Value *> >,
-		      VARIABLE<const llvm::Value *>
-		      > const& E,
-		  ANDERSEN);
-
-  RuleFunction<ANDERSEN>::Type
-  getRuleFunction(ASSIGNMENT<
-		      DEREFERENCE<
-			  VARIABLE<const llvm::Value *> >,
-		      REFERENCE<
-			  VARIABLE<const llvm::Value *> >
-		      > const& E,
-		  ANDERSEN);
-
-  RuleFunction<ANDERSEN>::Type
-  getRuleFunction(ASSIGNMENT<
-		      DEREFERENCE<
-			  VARIABLE<const llvm::Value *> >,
-		      DEREFERENCE<
-			  VARIABLE<const llvm::Value *> >
-		      > const& E,
-		  ANDERSEN);
-
-  RuleFunction<ANDERSEN>::Type
-  getRuleFunction(ASSIGNMENT<
-		      VARIABLE<const llvm::Value *>,
-		      ALLOC<const llvm::Value *>
-		      > const& E,
-		  ANDERSEN);
-
-  RuleFunction<ANDERSEN>::Type
-  getRuleFunction(ASSIGNMENT<
-		      VARIABLE<const llvm::Value *>,
-		      NULLPTR<const llvm::Value *>
-		      > const& E,
-		  ANDERSEN);
-
-  RuleFunction<ANDERSEN>::Type
-  getRuleFunction(ASSIGNMENT<
-		      DEREFERENCE<
-			  VARIABLE<const llvm::Value *> >,
-		      NULLPTR<const llvm::Value *>
-		      > const& E,
-		  ANDERSEN);
-
-  RuleFunction<ANDERSEN>::Type
-  getRuleFunction(DEALLOC<const llvm::Value *>, ANDERSEN);
 
 }}
 

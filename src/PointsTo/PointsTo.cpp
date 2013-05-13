@@ -9,11 +9,10 @@
 
 namespace llvm { namespace ptr {
 
-RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
+RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    VARIABLE<const llvm::Value *>
-		    > const& E,
-		ANDERSEN) {
+		    > const& E) {
     struct local {
 	static bool function(PointsToSets<ANDERSEN>::Type &S,
 			     const llvm::Value *lval,
@@ -33,12 +32,11 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument());
 }
 
-RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
+RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    REFERENCE<
 			VARIABLE<const llvm::Value *> >
-		    > const& E,
-		ANDERSEN) {
+		    > const& E) {
     struct local
     {
 	static bool function(PointsToSets<ANDERSEN>::Type &S,
@@ -58,11 +56,11 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument().getArgument());
 }
 
-RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
+RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    DEREFERENCE< VARIABLE<const llvm::Value *> >
-		    > const& E,
-		ANDERSEN) {
+		    > const& E)
+{
     struct local
     {
 	static bool function(PointsToSets<ANDERSEN>::Type &S,
@@ -86,11 +84,11 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument().getArgument());
 }
 
-RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
+RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    DEREFERENCE< VARIABLE<const llvm::Value *> >,
 		    VARIABLE<const llvm::Value *>
-		    > const& E,
-		ANDERSEN) {
+		    > const& E)
+{
     struct local
     {
 	static bool function(PointsToSets<ANDERSEN>::Type &S,
@@ -116,13 +114,12 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument());
 }
 
-RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
+RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    DEREFERENCE<
 			VARIABLE<const llvm::Value *> >,
 		    REFERENCE<
 			VARIABLE<const llvm::Value *> >
-		    > const &E,
-		ANDERSEN)
+		    > const &E)
 {
     struct local
     {
@@ -150,13 +147,13 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument().getArgument());
 }
 
-RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
+RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    DEREFERENCE<
 			VARIABLE<const llvm::Value *> >,
 		    DEREFERENCE<
 			VARIABLE<const llvm::Value *> >
-		    > const& E,
-		ANDERSEN) {
+		    > const& E)
+{
     struct local {
 	static bool function(PointsToSets<ANDERSEN>::Type &S,
 			     const llvm::Value *lval,
@@ -166,7 +163,7 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 	    bool change = false;
 	    for (PointsToSet::const_iterator i = L.begin(); i!=L.end(); ++i)
 		if (getRuleFunction(
-			(ruleVar(*i) = *ruleVar(rval)).getSort(),ANDERSEN())
+			(ruleVar(*i) = *ruleVar(rval)).getSort())
 			(S))
 		    change = true;
 	    return change;
@@ -179,11 +176,10 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument().getArgument());
 }
 
-RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
+RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    ALLOC<const llvm::Value *>
-		    > const &E,
-		ANDERSEN)
+		    > const &E)
 {
     struct local
     {
@@ -204,11 +200,10 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument());
 }
 
-RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
+RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    NULLPTR<const llvm::Value *>
-		    > const &E,
-		ANDERSEN)
+		    > const &E)
 {
     struct local
     {
@@ -229,12 +224,11 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument());
 }
 
-RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
+RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    DEREFERENCE<
 			VARIABLE<const llvm::Value *> >,
 		    NULLPTR<const llvm::Value *>
-		    > const &E,
-		ANDERSEN)
+		    > const &E)
 {
     struct local
     {
@@ -260,10 +254,47 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument());
 }
 
-RuleFunction<ANDERSEN>::Type getRuleFunction(DEALLOC<const llvm::Value *>,
-		ANDERSEN) {
-    return typename RuleFunction<ANDERSEN>::Type(
-	    &RuleFunction<ANDERSEN>::identity);
+RuleFunction::Type getRuleFunction(DEALLOC<const llvm::Value *>) {
+    return typename RuleFunction::Type(&RuleFunction::identity);
+}
+
+void getRulesOfCommand(RuleCode const& RC, Rules &R)
+{
+    switch (RC.getType())
+    {
+	case RCT_VAR_ASGN_ALLOC:
+	    R.insert(ruleVar(RC.getLvalue())=ruleAllocSite(RC.getRvalue()));
+	    break;
+	case RCT_VAR_ASGN_NULL:
+	    R.insert(ruleVar(RC.getLvalue()) = ruleNull(RC.getRvalue()));
+	    break;
+	case RCT_VAR_ASGN_VAR:
+	    R.insert(ruleVar(RC.getLvalue()) = ruleVar(RC.getRvalue()));
+	    break;
+	case RCT_VAR_ASGN_REF_VAR:
+	    R.insert(ruleVar(RC.getLvalue()) = &ruleVar(RC.getRvalue()));
+	    break;
+	case RCT_VAR_ASGN_DREF_VAR:
+	    R.insert(ruleVar(RC.getLvalue()) = *ruleVar(RC.getRvalue()));
+	    break;
+	case RCT_DREF_VAR_ASGN_NULL:
+	    R.insert(*ruleVar(RC.getLvalue()) = ruleNull(RC.getRvalue()));
+	    break;
+	case RCT_DREF_VAR_ASGN_VAR:
+	    R.insert(*ruleVar(RC.getLvalue()) = ruleVar(RC.getRvalue()));
+	    break;
+	case RCT_DREF_VAR_ASGN_REF_VAR:
+	    R.insert(*ruleVar(RC.getLvalue()) = &ruleVar(RC.getRvalue()));
+	    break;
+	case RCT_DREF_VAR_ASGN_DREF_VAR:
+	    R.insert(*ruleVar(RC.getLvalue()) = *ruleVar(RC.getRvalue()));
+	    break;
+	case RCT_DEALLOC:
+	    R.insert(ruleDeallocSite(RC.getValue()));
+	    break;
+	default:
+	    break;
+    }
 }
 
 PointsToSets<ANDERSEN>::Type &computePointsToSets(const ProgramStructure &P,

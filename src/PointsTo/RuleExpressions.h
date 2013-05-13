@@ -14,11 +14,6 @@
 #include "../Languages/LLVM.h"
 
 namespace llvm { namespace ptr {
-    template<typename PointsToAlgorithm>
-    class Rules;
-}}
-
-namespace llvm { namespace ptr {
 
     struct Expression
     {
@@ -282,47 +277,6 @@ namespace llvm { namespace ptr {
     RuleCode ruleCode(RuleExpression<ExprSort> const& E)
     {
 	return RuleCode(E.getSort());
-    }
-
-    template<typename PointsToAlgorithm>
-    void getRulesOfCommand(RuleCode const& RC,
-	Rules<PointsToAlgorithm>& R)
-    {
-	switch (RC.getType())
-	{
-	    case RCT_VAR_ASGN_ALLOC:
-		R.insert(ruleVar(RC.getLvalue())=ruleAllocSite(RC.getRvalue()));
-		break;
-	    case RCT_VAR_ASGN_NULL:
-		R.insert(ruleVar(RC.getLvalue()) = ruleNull(RC.getRvalue()));
-		break;
-	    case RCT_VAR_ASGN_VAR:
-		R.insert(ruleVar(RC.getLvalue()) = ruleVar(RC.getRvalue()));
-		break;
-	    case RCT_VAR_ASGN_REF_VAR:
-		R.insert(ruleVar(RC.getLvalue()) = &ruleVar(RC.getRvalue()));
-		break;
-	    case RCT_VAR_ASGN_DREF_VAR:
-		R.insert(ruleVar(RC.getLvalue()) = *ruleVar(RC.getRvalue()));
-		break;
-	    case RCT_DREF_VAR_ASGN_NULL:
-		R.insert(*ruleVar(RC.getLvalue()) = ruleNull(RC.getRvalue()));
-		break;
-	    case RCT_DREF_VAR_ASGN_VAR:
-		R.insert(*ruleVar(RC.getLvalue()) = ruleVar(RC.getRvalue()));
-		break;
-	    case RCT_DREF_VAR_ASGN_REF_VAR:
-		R.insert(*ruleVar(RC.getLvalue()) = &ruleVar(RC.getRvalue()));
-		break;
-	    case RCT_DREF_VAR_ASGN_DREF_VAR:
-		R.insert(*ruleVar(RC.getLvalue()) = *ruleVar(RC.getRvalue()));
-		break;
-	    case RCT_DEALLOC:
-		R.insert(ruleDeallocSite(RC.getValue()));
-		break;
-	    default:
-		break;
-	}
     }
 
 }}
