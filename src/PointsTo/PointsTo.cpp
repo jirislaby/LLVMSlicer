@@ -5,10 +5,35 @@
 
 #include "PredefContainers.h"
 #include "PointsTo.h"
+#include "RuleExpressions.h"
 
 namespace llvm { namespace ptr {
 
-RuleFunction::Type getRuleFunction(ASSIGNMENT<
+struct RuleFunction {
+    typedef std::function<bool(PointsToSets &)> Type;
+
+    static inline bool identity(PointsToSets) { return false; }
+};
+
+class Rules {
+public:
+    typedef std::vector<RuleFunction::Type> RuleFunctions;
+    typedef typename RuleFunctions::const_iterator const_iterator;
+
+    template<typename Sort>
+    void insert(RuleExpression<Sort> const& E)
+    {
+	rules.push_back( getRuleFunction(E.getSort()) );
+    }
+
+    const_iterator begin() const { return rules.begin(); }
+    const_iterator end() const { return rules.end(); }
+
+private:
+    RuleFunctions rules;
+};
+
+static RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    VARIABLE<const llvm::Value *>
 		    > const& E) {
@@ -31,7 +56,7 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument());
 }
 
-RuleFunction::Type getRuleFunction(ASSIGNMENT<
+static RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    REFERENCE<
 			VARIABLE<const llvm::Value *> >
@@ -54,7 +79,7 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument().getArgument());
 }
 
-RuleFunction::Type getRuleFunction(ASSIGNMENT<
+static RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    DEREFERENCE< VARIABLE<const llvm::Value *> >
 		    > const& E)
@@ -82,7 +107,7 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument().getArgument());
 }
 
-RuleFunction::Type getRuleFunction(ASSIGNMENT<
+static RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    DEREFERENCE< VARIABLE<const llvm::Value *> >,
 		    VARIABLE<const llvm::Value *>
 		    > const& E)
@@ -112,7 +137,7 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument());
 }
 
-RuleFunction::Type getRuleFunction(ASSIGNMENT<
+static RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    DEREFERENCE<
 			VARIABLE<const llvm::Value *> >,
 		    REFERENCE<
@@ -145,7 +170,7 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument().getArgument());
 }
 
-RuleFunction::Type getRuleFunction(ASSIGNMENT<
+static RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    DEREFERENCE<
 			VARIABLE<const llvm::Value *> >,
 		    DEREFERENCE<
@@ -174,7 +199,7 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument().getArgument());
 }
 
-RuleFunction::Type getRuleFunction(ASSIGNMENT<
+static RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    ALLOC<const llvm::Value *>
 		    > const &E)
@@ -197,7 +222,7 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument());
 }
 
-RuleFunction::Type getRuleFunction(ASSIGNMENT<
+static RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    NULLPTR<const llvm::Value *>
 		    > const &E)
@@ -220,7 +245,7 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument());
 }
 
-RuleFunction::Type getRuleFunction(ASSIGNMENT<
+static RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		    DEREFERENCE<
 			VARIABLE<const llvm::Value *> >,
 		    NULLPTR<const llvm::Value *>
@@ -250,7 +275,7 @@ RuleFunction::Type getRuleFunction(ASSIGNMENT<
 		E.getArgument2().getArgument());
 }
 
-RuleFunction::Type getRuleFunction(DEALLOC<const llvm::Value *>) {
+static RuleFunction::Type getRuleFunction(DEALLOC<const llvm::Value *>) {
     return typename RuleFunction::Type(&RuleFunction::identity);
 }
 
