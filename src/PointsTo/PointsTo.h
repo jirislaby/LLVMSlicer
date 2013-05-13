@@ -28,13 +28,6 @@ namespace llvm { namespace ptr {
 		      typename PointsToSetsType::PointsToAlgorithm());
   }
 
-  template<typename RawProgram, typename ProgramStructureType>
-  void loadProgramStructure(RawProgram const& RP, ProgramStructureType& P)
-  {
-      loadProgramStructure(RP,P,
-              typename ProgramStructureType::AnalysisProperties());
-  }
-
   template<typename PointsToAlgorithm>
   struct RuleFunction {
       typedef std::function<bool(typename PointsToSets<PointsToAlgorithm>::Type&)>
