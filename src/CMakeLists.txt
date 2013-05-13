@@ -10,6 +10,5 @@ add_llvm_loadable_module(LLVMSlicer
 	Modifies/Modifies.cpp
 	Modifies/PredefContainers.cpp
 	PointsTo/PointsTo.cpp
-	PointsTo/PredefContainers.cpp
 	PointsTo/RuleExpressions.cpp
 )
