@@ -8,7 +8,6 @@ add_llvm_loadable_module(LLVMSlicer
 	Callgraph/Callgraph.cpp
 	Languages/LLVM.cpp
 	Modifies/Modifies.cpp
-	Modifies/PredefContainers.cpp
 	PointsTo/PointsTo.cpp
 	PointsTo/RuleExpressions.cpp
 )
