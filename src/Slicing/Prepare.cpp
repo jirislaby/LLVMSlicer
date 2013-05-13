@@ -21,7 +21,6 @@
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
 #include "../Callgraph/Callgraph.h"
-#include "../PointsTo/AlgoAndersen.h"
 #include "../PointsTo/PointsTo.h"
 
 using namespace llvm;

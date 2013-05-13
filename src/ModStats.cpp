@@ -9,7 +9,6 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include "Callgraph/Callgraph.h"
-#include "PointsTo/AlgoAndersen.h"
 #include "PointsTo/PointsTo.h"
 #include "Slicing/Prepare.h"
 

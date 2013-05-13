@@ -9,7 +9,6 @@
 #include "../Callgraph/Callgraph.h"
 #include "../Modifies/Modifies.h"
 #include "../Modifies/AlgoDumbSpeedy.h"
-#include "../PointsTo/AlgoAndersen.h"
 #include "../PointsTo/PointsTo.h"
 #include "StaticSlicer.h"
 

@@ -3,17 +3,11 @@
 
 #include <functional>
 
-#include "AlgoAndersen.h"
 #include "Fixpoint.h"
 #include "PredefContainers.h"
 #include "PointsTo.h"
 
 namespace llvm { namespace ptr {
-
-PointsToSets<ANDERSEN>::Type &computePointsToSets(const ProgramStructure &P,
-		PointsToSets<ANDERSEN>::Type &S, ANDERSEN) {
-  return detail::pruneByType<ANDERSEN>(fixpoint<ANDERSEN>(P, S));
-}
 
 RuleFunction<ANDERSEN>::Type getRuleFunction(ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
@@ -270,6 +264,11 @@ RuleFunction<ANDERSEN>::Type getRuleFunction(DEALLOC<const llvm::Value *>,
 		ANDERSEN) {
     return typename RuleFunction<ANDERSEN>::Type(
 	    &RuleFunction<ANDERSEN>::identity);
+}
+
+PointsToSets<ANDERSEN>::Type &computePointsToSets(const ProgramStructure &P,
+		PointsToSets<ANDERSEN>::Type &S, ANDERSEN) {
+  return detail::pruneByType<ANDERSEN>(fixpoint<ANDERSEN>(P, S));
 }
 
 }}

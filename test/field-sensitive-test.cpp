@@ -4,7 +4,6 @@
 #include <llvm/Support/IRReader.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include "../src/PointsTo/AlgoAndersen.h"
 #include "../src/PointsTo/PointsTo.h"
 
 using namespace llvm;
