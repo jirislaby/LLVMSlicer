@@ -40,6 +40,8 @@ using namespace llvm::slicing;
 
 InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
                  const mods::Modifies &MOD) : ins(i), sliced(true) {
+  typedef ptr::PointsToSets::PointsToSet PTSet;
+
   if (const LoadInst *LI = dyn_cast<const LoadInst>(i)) {
     addDEF(i);
 
@@ -52,10 +54,9 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
     } else {
       addREF(op);
       if (!hasExtraReference(op)) {
-	ptr::PointsToSets::PointsToSet const &S = getPointsToSet(op,PS);
-	for (ptr::PointsToSets::PointsToSet::const_iterator I = S.begin(),
-	     E = S.end(); I != E; ++I)
-        addREF(*I);
+	const PTSet &S = getPointsToSet(op,PS);
+	for (PTSet::const_iterator I = S.begin(), E = S.end(); I != E; ++I)
+	  addREF(*I);
       }
     }
   } else if (const StoreInst *SI = dyn_cast<const StoreInst>(i)) {
@@ -69,9 +70,9 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
       if (hasExtraReference(l)) {
         addDEF(l);
       } else {
-        ptr::PointsToSets::PointsToSet const& S = getPointsToSet(l,PS);
-        for (ptr::PointsToSets::PointsToSet::const_iterator I = S.begin(),
-             E = S.end(); I != E; ++I)
+        const PTSet &S = getPointsToSet(l, PS);
+
+        for (PTSet::const_iterator I = S.begin(), E = S.end(); I != E; ++I)
           addDEF(*I);
       }
 
@@ -104,10 +105,9 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
     } else if (isMemoryCopy(cv) || isMemoryMove(cv)) {
       const Value *l = elimConstExpr(C->getOperand(0));
       if (isPointerValue(l)) {
-          ptr::PointsToSets::PointsToSet const& L = getPointsToSet(l, PS);
-          for (ptr::PointsToSets::PointsToSet::const_iterator
-                  p = L.begin(); p != L.end(); ++p)
-              addDEF(*p);
+	const PTSet &L = getPointsToSet(l, PS);
+	for (PTSet::const_iterator p = L.begin(); p != L.end(); ++p)
+	  addDEF(*p);
       }
       const Value *r = elimConstExpr(C->getOperand(1));
       const Value *len = elimConstExpr(C->getOperand(2));
@@ -116,10 +116,9 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
       /* memcpy/memset wouldn't work with len being 'undef' */
       addREF(len);
       if (isPointerValue(r)) {
-          ptr::PointsToSets::PointsToSet const& R = getPointsToSet(r,PS);
-          for (ptr::PointsToSets::PointsToSet::const_iterator
-                  p = R.begin(); p != R.end(); ++p)
-              addREF(*p);
+	const PTSet &R = getPointsToSet(r, PS);
+	for (PTSet::const_iterator p = R.begin(); p != R.end(); ++p)
+	  addREF(*p);
       }
     } else if (!memoryManStuff(C)) {
       typedef std::vector<const llvm::Function *> CalledVec;
