@@ -257,20 +257,17 @@ static PointsToSets &pruneByType(PointsToSets &S) {
   return S;
 }
 
-static bool executeRules(ProgramStructure const& P, PointsToSets &S)
-{
-  bool change = false;
-
-  for (ProgramStructure::const_iterator i = P.begin(); i != P.end(); ++i)
-    change = change || applyRules(*i, S);
-
-  return change;
-}
-
 static PointsToSets &fixpoint(const ProgramStructure &P, PointsToSets &S)
 {
-  while (executeRules(P, S))
-      ;
+  bool change;
+
+  do {
+    change = false;
+
+    for (ProgramStructure::const_iterator i = P.begin(); i != P.end(); ++i)
+      change = change || applyRules(*i, S);
+  } while (change);
+
   return S;
 }
 
