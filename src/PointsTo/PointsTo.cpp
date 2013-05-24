@@ -1,8 +1,6 @@
 // This file is distributed under the University of Illinois Open Source
 // License. See LICENSE.TXT for details.
 
-#include <functional>
-
 #include "llvm/BasicBlock.h"
 #include "llvm/Instruction.h"
 #include "llvm/Module.h"
@@ -12,312 +10,203 @@
 
 namespace llvm { namespace ptr {
 
-struct RuleFunction {
-    typedef std::function<bool(PointsToSets &)> Type;
-
-    static inline bool identity(PointsToSets) { return false; }
-};
-
-class Rules {
-public:
-    typedef std::vector<RuleFunction::Type> RuleFunctions;
-    typedef typename RuleFunctions::const_iterator const_iterator;
-
-    template<typename Sort>
-    void insert(RuleExpression<Sort> const& E)
-    {
-	rules.push_back( getRuleFunction(E.getSort()) );
-    }
-
-    const_iterator begin() const { return rules.begin(); }
-    const_iterator end() const { return rules.end(); }
-
-private:
-    RuleFunctions rules;
-};
-
-static RuleFunction::Type getRuleFunction(ASSIGNMENT<
+static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    VARIABLE<const llvm::Value *>
 		    > const& E) {
-    struct local {
-	static bool function(PointsToSets &S,
-			     const llvm::Value *lval,
-			     const llvm::Value *rval) {
-	    typedef PointsToSets::PointsToSet PointsToSet;
-	    PointsToSet& L = S[lval];
-	    PointsToSet const& R = S[rval];
-	    std::size_t const old_size = L.size();
-	    std::copy(R.begin(),R.end(),std::inserter(L,L.end()));
-	    return old_size != L.size();
-	}
-    };
-    using std::bind;
-    using std::placeholders::_1;
-    return bind(&local::function,_1,
-		E.getArgument1().getArgument(),
-		E.getArgument2().getArgument());
+    typedef PointsToSets::PointsToSet PTSet;
+    const llvm::Value *lval = E.getArgument1().getArgument();
+    const llvm::Value *rval = E.getArgument2().getArgument();
+    PTSet &L = S[lval];
+    const PTSet &R = S[rval];
+    const std::size_t old_size = L.size();
+
+    std::copy(R.begin(), R.end(), std::inserter(L, L.end()));
+
+    return old_size != L.size();
 }
 
-static RuleFunction::Type getRuleFunction(ASSIGNMENT<
+static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
-		    REFERENCE<
-			VARIABLE<const llvm::Value *> >
+		    REFERENCE<VARIABLE<const llvm::Value *> >
 		    > const& E) {
-    struct local
-    {
-	static bool function(PointsToSets &S,
-			     const llvm::Value *lval,
-			     const llvm::Value *rval) {
-	    PointsToSets::PointsToSet& L = S[lval];
-	    std::size_t const old_size = L.size();
-	    L.insert(rval);
-	    return old_size != L.size();
-	}
-    };
-    using std::bind;
-    using std::placeholders::_1;
-    return bind(&local::function,_1,
-		E.getArgument1().getArgument(),
-		E.getArgument2().getArgument().getArgument());
+    const llvm::Value *lval = E.getArgument1().getArgument();
+    const llvm::Value *rval = E.getArgument2().getArgument().getArgument();
+    PointsToSets::PointsToSet &L = S[lval];
+    const std::size_t old_size = L.size();
+
+    L.insert(rval);
+
+    return old_size != L.size();
 }
 
-static RuleFunction::Type getRuleFunction(ASSIGNMENT<
+static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    DEREFERENCE< VARIABLE<const llvm::Value *> >
 		    > const& E)
 {
-    struct local
-    {
-	static bool function(PointsToSets &S,
-			     const llvm::Value *lval,
-			     const llvm::Value *rval) {
-	    typedef PointsToSets::PointsToSet PointsToSet;
-	    PointsToSet& L = S[lval];
-	    PointsToSet& R = S[rval];
-	    std::size_t const old_size = L.size();
-	    for (PointsToSet::const_iterator i = R.begin(); i!=R.end(); ++i) {
-		PointsToSet& X = S[*i];
-		std::copy(X.begin(),X.end(),std::inserter(L,L.end()));
-	    }
-	    return old_size != L.size();
-	}
-    };
-    using std::bind;
-    using std::placeholders::_1;
-    return bind(&local::function,_1,
-		E.getArgument1().getArgument(),
-		E.getArgument2().getArgument().getArgument());
+    typedef PointsToSets::PointsToSet PTSet;
+    const llvm::Value *lval = E.getArgument1().getArgument();
+    const llvm::Value *rval = E.getArgument2().getArgument().getArgument();
+    PTSet &L = S[lval];
+    PTSet &R = S[rval];
+    const std::size_t old_size = L.size();
+
+    for (PTSet::const_iterator i = R.begin(); i!=R.end(); ++i) {
+	PTSet &X = S[*i];
+	std::copy(X.begin(), X.end(), std::inserter(L, L.end()));
+    }
+
+    return old_size != L.size();
 }
 
-static RuleFunction::Type getRuleFunction(ASSIGNMENT<
-		    DEREFERENCE< VARIABLE<const llvm::Value *> >,
+static bool applyRule(PointsToSets &S, ASSIGNMENT<
+		    DEREFERENCE<VARIABLE<const llvm::Value *> >,
 		    VARIABLE<const llvm::Value *>
 		    > const& E)
 {
-    struct local
-    {
-	static bool function(PointsToSets &S,
-			     const llvm::Value *lval,
-			     const llvm::Value *rval) {
-	    typedef PointsToSets::PointsToSet PointsToSet;
-	    PointsToSet& L = S[lval];
-	    PointsToSet& R = S[rval];
-	    bool change = false;
-	    for (PointsToSet::const_iterator i = L.begin(); i!=L.end(); ++i) {
-		PointsToSet& X = S[*i];
-		std::size_t const old_size = X.size();
-		std::copy(R.begin(),R.end(),std::inserter(X,X.end()));
-		change = change || X.size() != old_size;
-	    }
-	    return change;
-	}
-    };
-    using std::bind;
-    using std::placeholders::_1;
-    return bind(&local::function,_1,
-		E.getArgument1().getArgument().getArgument(),
-		E.getArgument2().getArgument());
+    typedef PointsToSets::PointsToSet PTSet;
+    const llvm::Value *lval = E.getArgument1().getArgument().getArgument();
+    const llvm::Value *rval = E.getArgument2().getArgument();
+    PTSet &L = S[lval];
+    PTSet &R = S[rval];
+    bool change = false;
+
+    for (PTSet::const_iterator i = L.begin(); i != L.end(); ++i) {
+	PTSet &X = S[*i];
+	const std::size_t old_size = X.size();
+
+	std::copy(R.begin(), R.end(), std::inserter(X, X.end()));
+	change = change || X.size() != old_size;
+    }
+
+    return change;
 }
 
-static RuleFunction::Type getRuleFunction(ASSIGNMENT<
-		    DEREFERENCE<
-			VARIABLE<const llvm::Value *> >,
-		    REFERENCE<
-			VARIABLE<const llvm::Value *> >
+static bool applyRule(PointsToSets &S, ASSIGNMENT<
+		    DEREFERENCE<VARIABLE<const llvm::Value *> >,
+		    REFERENCE<VARIABLE<const llvm::Value *> >
 		    > const &E)
 {
-    struct local
-    {
-	static bool function(PointsToSets &S,
-			     const llvm::Value *lval,
-			     const llvm::Value *rval
-			     )
-	{
-	    typedef PointsToSets::PointsToSet PointsToSet;
-	    PointsToSet& L = S[lval];
-	    bool change = false;
-	    for (PointsToSet::const_iterator i = L.begin(); i!=L.end(); ++i) {
-		PointsToSet& X = S[*i];
-		std::size_t const old_size = X.size();
-		X.insert(rval);
-		change = change || X.size() != old_size;
-	    }
-	    return change;
-	}
-    };
-    using std::bind;
-    using std::placeholders::_1;
-    return bind(&local::function,_1,
-		E.getArgument1().getArgument().getArgument(),
-		E.getArgument2().getArgument().getArgument());
+    typedef PointsToSets::PointsToSet PTSet;
+    const llvm::Value *lval = E.getArgument1().getArgument().getArgument();
+    const llvm::Value *rval = E.getArgument2().getArgument().getArgument();
+    PTSet &L = S[lval];
+    bool change = false;
+
+    for (PTSet::const_iterator i = L.begin(); i != L.end(); ++i) {
+	PTSet &X = S[*i];
+	const std::size_t old_size = X.size();
+
+	X.insert(rval);
+	change = change || X.size() != old_size;
+    }
+
+    return change;
 }
 
-static RuleFunction::Type getRuleFunction(ASSIGNMENT<
-		    DEREFERENCE<
-			VARIABLE<const llvm::Value *> >,
-		    DEREFERENCE<
-			VARIABLE<const llvm::Value *> >
+static bool applyRule(PointsToSets &S, ASSIGNMENT<
+		    DEREFERENCE<VARIABLE<const llvm::Value *> >,
+		    DEREFERENCE<VARIABLE<const llvm::Value *> >
 		    > const& E)
 {
-    struct local {
-	static bool function(PointsToSets &S,
-			     const llvm::Value *lval,
-			     const llvm::Value *rval) {
-	    typedef PointsToSets::PointsToSet PointsToSet;
-	    PointsToSet& L = S[lval];
-	    bool change = false;
-	    for (PointsToSet::const_iterator i = L.begin(); i!=L.end(); ++i)
-		if (getRuleFunction(
-			(ruleVar(*i) = *ruleVar(rval)).getSort())
-			(S))
-		    change = true;
-	    return change;
-	}
-    };
-    using std::bind;
-    using std::placeholders::_1;
-    return bind(&local::function,_1,
-		E.getArgument1().getArgument().getArgument(),
-		E.getArgument2().getArgument().getArgument());
+    typedef PointsToSets::PointsToSet PTSet;
+    const llvm::Value *lval = E.getArgument1().getArgument().getArgument();
+    const llvm::Value *rval = E.getArgument2().getArgument().getArgument();
+    PTSet &L = S[lval];
+    bool change = false;
+
+    for (PTSet::const_iterator i = L.begin(); i != L.end(); ++i)
+	if (applyRule(S, (ruleVar(*i) = *ruleVar(rval)).getSort()))
+	    change = true;
+
+    return change;
 }
 
-static RuleFunction::Type getRuleFunction(ASSIGNMENT<
+static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    ALLOC<const llvm::Value *>
 		    > const &E)
 {
-    struct local
-    {
-	static bool function(PointsToSets &S,
-			     const llvm::Value *lval,
-			     const llvm::Value *rval) {
-	    PointsToSets::PointsToSet& L = S[lval];
-	    std::size_t const old_size = L.size();
-	    L.insert(rval);
-	    return old_size != L.size();
-	}
-    };
-    using std::bind;
-    using std::placeholders::_1;
-    return bind(&local::function,_1,
-		E.getArgument1().getArgument(),
-		E.getArgument2().getArgument());
+    const llvm::Value *lval = E.getArgument1().getArgument();
+    const llvm::Value *rval = E.getArgument2().getArgument();
+    PointsToSets::PointsToSet &L = S[lval];
+    const std::size_t old_size = L.size();
+
+    L.insert(rval);
+
+    return old_size != L.size();
 }
 
-static RuleFunction::Type getRuleFunction(ASSIGNMENT<
+static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    NULLPTR<const llvm::Value *>
 		    > const &E)
 {
-    struct local
-    {
-	static bool function(PointsToSets &S,
-			     const llvm::Value *lval,
-			     const llvm::Value *rval) {
-	    PointsToSets::PointsToSet &L = S[lval];
-	    std::size_t const old_size = L.size();
-	    L.insert(rval);
-	    return old_size != L.size();
-	}
-    };
-    using std::bind;
-    using std::placeholders::_1;
-    return bind(&local::function,_1,
-		E.getArgument1().getArgument(),
-		E.getArgument2().getArgument());
+    const llvm::Value *lval = E.getArgument1().getArgument();
+    const llvm::Value *rval = E.getArgument2().getArgument();
+    PointsToSets::PointsToSet &L = S[lval];
+    const std::size_t old_size = L.size();
+
+    L.insert(rval);
+
+    return old_size != L.size();
 }
 
-static RuleFunction::Type getRuleFunction(ASSIGNMENT<
-		    DEREFERENCE<
-			VARIABLE<const llvm::Value *> >,
+static bool applyRule(PointsToSets &S, ASSIGNMENT<
+		    DEREFERENCE<VARIABLE<const llvm::Value *> >,
 		    NULLPTR<const llvm::Value *>
 		    > const &E)
 {
-    struct local
-    {
-	static bool function(PointsToSets &S,
-			     const llvm::Value *lval,
-			     const llvm::Value *rval) {
-	    typedef PointsToSets::PointsToSet PointsToSet;
-	    PointsToSet& L = S[lval];
-	    bool change = false;
-	    for (PointsToSet::const_iterator i = L.begin(); i!=L.end(); ++i) {
-		PointsToSet& X = S[*i];
-		std::size_t const old_size = X.size();
-		L.insert(rval);
-		change = change || X.size() != old_size;
-	    }
-	    return change;
-	}
-    };
-    using std::bind;
-    using std::placeholders::_1;
-    return bind(&local::function,_1,
-		E.getArgument1().getArgument().getArgument(),
-		E.getArgument2().getArgument());
+    typedef PointsToSets::PointsToSet PTSet;
+    const llvm::Value *lval = E.getArgument1().getArgument().getArgument();
+    const llvm::Value *rval = E.getArgument2().getArgument();
+    PTSet &L = S[lval];
+    bool change = false;
+
+    for (PTSet::const_iterator i = L.begin(); i != L.end(); ++i) {
+	PTSet &X = S[*i];
+	const std::size_t old_size = X.size();
+
+	L.insert(rval);
+	change = change || X.size() != old_size;
+    }
+
+    return change;
 }
 
-static RuleFunction::Type getRuleFunction(DEALLOC<const llvm::Value *>) {
-    return typename RuleFunction::Type(&RuleFunction::identity);
+static bool applyRule(PointsToSets &S, DEALLOC<const llvm::Value *>) {
+    return false;
 }
 
-static void getRulesOfCommand(RuleCode const& RC, Rules &R)
+static bool applyRules(const RuleCode &RC, PointsToSets &S)
 {
-    switch (RC.getType())
-    {
-	case RCT_VAR_ASGN_ALLOC:
-	    R.insert(ruleVar(RC.getLvalue())=ruleAllocSite(RC.getRvalue()));
-	    break;
-	case RCT_VAR_ASGN_NULL:
-	    R.insert(ruleVar(RC.getLvalue()) = ruleNull(RC.getRvalue()));
-	    break;
-	case RCT_VAR_ASGN_VAR:
-	    R.insert(ruleVar(RC.getLvalue()) = ruleVar(RC.getRvalue()));
-	    break;
-	case RCT_VAR_ASGN_REF_VAR:
-	    R.insert(ruleVar(RC.getLvalue()) = &ruleVar(RC.getRvalue()));
-	    break;
-	case RCT_VAR_ASGN_DREF_VAR:
-	    R.insert(ruleVar(RC.getLvalue()) = *ruleVar(RC.getRvalue()));
-	    break;
-	case RCT_DREF_VAR_ASGN_NULL:
-	    R.insert(*ruleVar(RC.getLvalue()) = ruleNull(RC.getRvalue()));
-	    break;
-	case RCT_DREF_VAR_ASGN_VAR:
-	    R.insert(*ruleVar(RC.getLvalue()) = ruleVar(RC.getRvalue()));
-	    break;
-	case RCT_DREF_VAR_ASGN_REF_VAR:
-	    R.insert(*ruleVar(RC.getLvalue()) = &ruleVar(RC.getRvalue()));
-	    break;
-	case RCT_DREF_VAR_ASGN_DREF_VAR:
-	    R.insert(*ruleVar(RC.getLvalue()) = *ruleVar(RC.getRvalue()));
-	    break;
-	case RCT_DEALLOC:
-	    R.insert(ruleDeallocSite(RC.getValue()));
-	    break;
-	default:
-	    break;
+    const llvm::Value *lval = RC.getLvalue();
+    const llvm::Value *rval = RC.getRvalue();
+
+    switch (RC.getType()) {
+    case RCT_VAR_ASGN_ALLOC:
+	return applyRule(S, (ruleVar(lval) = ruleAllocSite(rval)).getSort());
+    case RCT_VAR_ASGN_NULL:
+	return applyRule(S, (ruleVar(lval) = ruleNull(rval)).getSort());
+    case RCT_VAR_ASGN_VAR:
+	return applyRule(S, (ruleVar(lval) = ruleVar(rval)).getSort());
+    case RCT_VAR_ASGN_REF_VAR:
+	return applyRule(S, (ruleVar(lval) = &ruleVar(rval)).getSort());
+    case RCT_VAR_ASGN_DREF_VAR:
+	return applyRule(S, (ruleVar(lval) = *ruleVar(rval)).getSort());
+    case RCT_DREF_VAR_ASGN_NULL:
+	return applyRule(S, (*ruleVar(lval) = ruleNull(rval)).getSort());
+    case RCT_DREF_VAR_ASGN_VAR:
+	return applyRule(S, (*ruleVar(lval) = ruleVar(rval)).getSort());
+    case RCT_DREF_VAR_ASGN_REF_VAR:
+	return applyRule(S, (*ruleVar(lval) = &ruleVar(rval)).getSort());
+    case RCT_DREF_VAR_ASGN_DREF_VAR:
+	return applyRule(S, (*ruleVar(lval) = *ruleVar(rval)).getSort());
+    case RCT_DEALLOC:
+	return applyRule(S, ruleDeallocSite(RC.getValue()).getSort());
+    default:
+	assert(0);
     }
 }
 
@@ -372,14 +261,8 @@ static bool executeRules(ProgramStructure const& P, PointsToSets &S)
 {
   bool change = false;
 
-  for (ProgramStructure::const_iterator i = P.begin(); i != P.end(); ++i) {
-    Rules rules;
-    getRulesOfCommand(*i, rules);
-    for (Rules::const_iterator j = rules.begin(); j != rules.end(); ++j) {
-      const bool modification = (*j)(S);
-      change = change || modification;
-    }
-  }
+  for (ProgramStructure::const_iterator i = P.begin(); i != P.end(); ++i)
+    change = change || applyRules(*i, S);
 
   return change;
 }
