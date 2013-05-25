@@ -265,7 +265,7 @@ static PointsToSets &fixpoint(const ProgramStructure &P, PointsToSets &S)
     change = false;
 
     for (ProgramStructure::const_iterator i = P.begin(); i != P.end(); ++i)
-      change = change || applyRules(*i, S);
+      change |= applyRules(*i, S);
   } while (change);
 
   return S;
