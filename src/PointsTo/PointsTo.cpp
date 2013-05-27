@@ -28,6 +28,29 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 
 static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
+		    GEP<VARIABLE<const llvm::Value *> >
+		    > const& E) {
+    typedef PointsToSets::PointsToSet PTSet;
+    const llvm::Value *lval = E.getArgument1().getArgument();
+    const llvm::Value *rval = E.getArgument2().getArgument().getArgument();
+    PTSet &L = S[lval];
+    const std::size_t old_size = L.size();
+
+    const GetElementPtrInst *gep = dyn_cast<GetElementPtrInst>(rval);
+    const llvm::Value *op = elimConstExpr(gep->getPointerOperand());
+
+    if (hasExtraReference(op)) {
+	L.insert(op); /* VAR = REF */
+    } else {
+	const PTSet &R = S[op];
+	std::copy(R.begin(), R.end(), std::inserter(L, L.end())); /* V = V */
+    }
+
+    return old_size != L.size();
+}
+
+static bool applyRule(PointsToSets &S, ASSIGNMENT<
+		    VARIABLE<const llvm::Value *>,
 		    REFERENCE<VARIABLE<const llvm::Value *> >
 		    > const& E) {
     const llvm::Value *lval = E.getArgument1().getArgument();
@@ -191,6 +214,8 @@ static bool applyRules(const RuleCode &RC, PointsToSets &S)
 	return applyRule(S, (ruleVar(lval) = ruleNull(rval)).getSort());
     case RCT_VAR_ASGN_VAR:
 	return applyRule(S, (ruleVar(lval) = ruleVar(rval)).getSort());
+    case RCT_VAR_ASGN_GEP:
+	return applyRule(S, (ruleVar(lval) = ruleVar(rval).gep()).getSort());
     case RCT_VAR_ASGN_REF_VAR:
 	return applyRule(S, (ruleVar(lval) = &ruleVar(rval)).getSort());
     case RCT_VAR_ASGN_DREF_VAR:

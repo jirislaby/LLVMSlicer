@@ -74,6 +74,11 @@ namespace llvm { namespace ptr {
 	DEALLOC(MemLoc const ml) : RuleUnaryExpression<MemLoc>(ml) {}
     };
 
+    template<typename SubExpr>
+    struct GEP : public RuleUnaryExpression<SubExpr> {
+	GEP(SubExpr const sub) : RuleUnaryExpression<SubExpr>(sub) {}
+    };
+
     template<typename MemLoc>
     struct NULLPTR : public RuleUnaryExpression<MemLoc> {
 	NULLPTR(MemLoc const ml) : RuleUnaryExpression<MemLoc>(ml) {}
@@ -130,6 +135,12 @@ namespace llvm { namespace ptr {
 	{
 	    return RuleExpression< DEREFERENCE<Sort> >(DEREFERENCE<Sort>(sort));
 	}
+
+	RuleExpression< GEP<Sort> >gep() const
+	{
+	    return RuleExpression< GEP<Sort> >(GEP<Sort>(sort));
+	}
+
     private:
 	template<typename RSort>
 	RuleExpression< ASSIGNMENT<Sort,RSort> >
@@ -176,6 +187,7 @@ namespace llvm { namespace ptr {
 	RCT_VAR_ASGN_ALLOC,
 	RCT_VAR_ASGN_NULL,
 	RCT_VAR_ASGN_VAR,
+	RCT_VAR_ASGN_GEP,
 	RCT_VAR_ASGN_REF_VAR,
 	RCT_VAR_ASGN_DREF_VAR,
 	RCT_DREF_VAR_ASGN_NULL,
@@ -212,6 +224,13 @@ namespace llvm { namespace ptr {
 	    : type(RCT_VAR_ASGN_VAR)
 	    , lvalue(E.getArgument1().getArgument())
 	    , rvalue(E.getArgument2().getArgument())
+	{}
+
+	RuleCode(ASSIGNMENT<VARIABLE<MemoryLocation>,
+			    GEP<VARIABLE<MemoryLocation> > > const& E)
+	    : type(RCT_VAR_ASGN_GEP)
+	    , lvalue(E.getArgument1().getArgument())
+	    , rvalue(E.getArgument2().getArgument().getArgument())
 	{}
 
 	RuleCode(ASSIGNMENT<VARIABLE<MemoryLocation>,
@@ -337,12 +356,9 @@ namespace llvm { namespace ptr { namespace detail {
 	  *out++ = ruleCode(ruleVar(V) = ruleVar(op));
       } else if (const llvm::GetElementPtrInst *gep =
 		 llvm::dyn_cast<llvm::GetElementPtrInst>(I)) {
-	const llvm::Value *op = elimConstExpr(gep->getPointerOperand());
+	const llvm::Value *op = gep;
 
-	if (hasExtraReference(op))
-	  *out++ = ruleCode(ruleVar(V) = &ruleVar(op));
-	else
-	  *out++ = ruleCode(ruleVar(V) = ruleVar(op));
+	*out++ = ruleCode(ruleVar(V) = ruleVar(op).gep());
       } else if (const llvm::CallInst *C =
 		 llvm::dyn_cast<llvm::CallInst>(I)) {
 	if (isInlineAssembly(C)) {
