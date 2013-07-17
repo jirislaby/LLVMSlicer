@@ -11,6 +11,7 @@
 namespace llvm { namespace ptr {
 
 typedef PointsToSets::PointsToSet PTSet;
+typedef PointsToSets::Pointer Ptr;
 
 static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
@@ -18,8 +19,8 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    > const& E) {
     const llvm::Value *lval = E.getArgument1().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument();
-    PTSet &L = S[lval];
-    const PTSet &R = S[rval];
+    PTSet &L = S[Ptr(lval, -1)];
+    const PTSet &R = S[Ptr(rval, -1)];
     const std::size_t old_size = L.size();
 
     std::copy(R.begin(), R.end(), std::inserter(L, L.end()));
@@ -33,16 +34,16 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    > const& E) {
     const llvm::Value *lval = E.getArgument1().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument().getArgument();
-    PTSet &L = S[lval];
+    PTSet &L = S[Ptr(lval, -1)];
     const std::size_t old_size = L.size();
 
     const GetElementPtrInst *gep = dyn_cast<GetElementPtrInst>(rval);
     const llvm::Value *op = elimConstExpr(gep->getPointerOperand());
 
     if (hasExtraReference(op)) {
-	L.insert(op); /* VAR = REF */
+	L.insert(Ptr(op, 0)); /* VAR = REF */
     } else {
-	const PTSet &R = S[op];
+	const PTSet &R = S[Ptr(op, -1)];
 	std::copy(R.begin(), R.end(), std::inserter(L, L.end())); /* V = V */
     }
 
@@ -55,10 +56,10 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    > const& E) {
     const llvm::Value *lval = E.getArgument1().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument().getArgument();
-    PTSet &L = S[lval];
+    PTSet &L = S[Ptr(lval, -1)];
     const std::size_t old_size = L.size();
 
-    L.insert(rval);
+    L.insert(Ptr(rval, 0));
 
     return old_size != L.size();
 }
@@ -66,12 +67,12 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    DEREFERENCE< VARIABLE<const llvm::Value *> >
-		    > const& E)
+		    > const& E, const int idx = -1)
 {
     const llvm::Value *lval = E.getArgument1().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument().getArgument();
-    PTSet &L = S[lval];
-    PTSet &R = S[rval];
+    PTSet &L = S[Ptr(lval, idx)];
+    PTSet &R = S[Ptr(rval, -1)];
     const std::size_t old_size = L.size();
 
     for (PTSet::const_iterator i = R.begin(); i!=R.end(); ++i) {
@@ -89,8 +90,8 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 {
     const llvm::Value *lval = E.getArgument1().getArgument().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument();
-    PTSet &L = S[lval];
-    PTSet &R = S[rval];
+    PTSet &L = S[Ptr(lval, -1)];
+    PTSet &R = S[Ptr(rval, -1)];
     bool change = false;
 
     for (PTSet::const_iterator i = L.begin(); i != L.end(); ++i) {
@@ -111,14 +112,14 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 {
     const llvm::Value *lval = E.getArgument1().getArgument().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument().getArgument();
-    PTSet &L = S[lval];
+    PTSet &L = S[Ptr(lval, -1)];
     bool change = false;
 
     for (PTSet::const_iterator i = L.begin(); i != L.end(); ++i) {
 	PTSet &X = S[*i];
 	const std::size_t old_size = X.size();
 
-	X.insert(rval);
+	X.insert(Ptr(rval, 0));
 	change = change || X.size() != old_size;
     }
 
@@ -132,11 +133,12 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 {
     const llvm::Value *lval = E.getArgument1().getArgument().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument().getArgument();
-    PTSet &L = S[lval];
+    PTSet &L = S[Ptr(lval, -1)];
     bool change = false;
 
     for (PTSet::const_iterator i = L.begin(); i != L.end(); ++i)
-	if (applyRule(S, (ruleVar(*i) = *ruleVar(rval)).getSort()))
+	if (applyRule(S, (ruleVar(i->first) = *ruleVar(rval)).getSort(),
+				i->second))
 	    change = true;
 
     return change;
@@ -149,10 +151,10 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 {
     const llvm::Value *lval = E.getArgument1().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument();
-    PTSet &L = S[lval];
+    PTSet &L = S[Ptr(lval, -1)];
     const std::size_t old_size = L.size();
 
-    L.insert(rval);
+    L.insert(Ptr(rval, 0));
 
     return old_size != L.size();
 }
@@ -164,10 +166,10 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 {
     const llvm::Value *lval = E.getArgument1().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument();
-    PTSet &L = S[lval];
+    PTSet &L = S[Ptr(lval, -1)];
     const std::size_t old_size = L.size();
 
-    L.insert(rval);
+    L.insert(Ptr(rval, 0));
 
     return old_size != L.size();
 }
@@ -179,14 +181,14 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 {
     const llvm::Value *lval = E.getArgument1().getArgument().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument();
-    PTSet &L = S[lval];
+    PTSet &L = S[Ptr(lval, -1)];
     bool change = false;
 
     for (PTSet::const_iterator i = L.begin(); i != L.end(); ++i) {
 	PTSet &X = S[*i];
 	const std::size_t old_size = X.size();
 
-	L.insert(rval);
+	L.insert(Ptr(rval, 0));
 	change = change || X.size() != old_size;
     }
 
@@ -237,7 +239,7 @@ static bool applyRules(const RuleCode &RC, PointsToSets &S)
 static PointsToSets &pruneByType(PointsToSets &S) {
   typedef PointsToSets::mapped_type PTSet;
   for (PointsToSets::iterator s = S.begin(); s != S.end(); ) {
-      const llvm::Value *first = s->first;
+      const llvm::Value *first = s->first.first;
       if (llvm::isa<llvm::Function>(first)) {
 	const PointsToSets::iterator tmp = s++;
 	S.getContainer().erase(tmp);
@@ -296,8 +298,9 @@ PointsToSets &computePointsToSets(const ProgramStructure &P, PointsToSets &S) {
 }
 
 const PTSet &
-getPointsToSet(const llvm::Value *const &memLoc, const PointsToSets &S) {
-  const PointsToSets::const_iterator it = S.find(memLoc);
+getPointsToSet(const llvm::Value *const &memLoc, const PointsToSets &S,
+		const int idx) {
+  const PointsToSets::const_iterator it = S.find(Ptr(memLoc, idx));
   if (it == S.end()) {
     static const PTSet emptySet;
     errs() << "WARNING[PointsTo]: No points-to set has been found: ";

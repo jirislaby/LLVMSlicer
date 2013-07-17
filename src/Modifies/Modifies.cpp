@@ -51,10 +51,11 @@ void llvm::mods::computeModifies(const ProgramStructure &P,
 	    MOD[f->first].insert(c->getVar());
       } else if (c->getType() == CMD_DREF_VAR) {
 	typedef ptr::PointsToSets::PointsToSet PTSet;
-	const PTSet &S = ptr::getPointsToSet(c->getVar(),PS);
+	const PTSet &S = ptr::getPointsToSet(c->getVar(), PS);
 	for (PTSet::const_iterator p = S.begin(); p != S.end(); ++p)
-	  if (!isLocalToFunction(*p,f->first) && !isConstantValue(*p))
-	    MOD[f->first].insert(*p);
+	  if (p->second == -1 && !isLocalToFunction(p->first, f->first) &&
+			  !isConstantValue(p->first))
+	    MOD[f->first].insert(p->first);
       }
 
   typedef callgraph::Callgraph Callgraph;

@@ -22,7 +22,7 @@ namespace llvm {
       typedef ptr::PointsToSets::PointsToSet PTSet;
       const PTSet &S = getPointsToSet(stripped, PS);
       for (PTSet::const_iterator I = S.begin(), E = S.end(); I != E; ++I)
-        if (const Function *F = dyn_cast<Function>(*I))
+        if (const Function *F = dyn_cast<Function>(I->first))
 	  *out++ = F;
     }
   }

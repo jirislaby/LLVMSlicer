@@ -26,8 +26,8 @@ static void pointsTo(const StoreInst &SI, const ptr::PointsToSets &PS)
 	typedef ptr::PointsToSets::PointsToSet PTSet;
 	PTSet const &S = ptr::getPointsToSet(ptr, PS);
 	for (PTSet::const_iterator I = S.begin(), E = S.end(); I != E; ++I) {
-		errs() << "\t";
-		(*I)->dump();
+		errs() << "\t " << I->second;
+		I->first->dump();
 	}
 }
 

@@ -17,9 +17,24 @@ namespace llvm { namespace ptr {
   class PointsToSets {
   public:
     typedef const llvm::Value *MemoryLocation;
-    typedef std::set<MemoryLocation> PointsToSet;
+    /*
+     * pointer is a pair <location, offset> such that the location is:
+     * a) variable, offset is -1
+     * b) alloc,    offset is <0,infty) -- structure members can point too
+     *
+     * Note that in LLVM, both a variable and an alloc (CallInst to malloc)
+     * are llvm::Value.
+     */
+    typedef std::pair<MemoryLocation, int> Pointer;
+    /*
+     * Points-to set contains against pairs <location, offset>, where location
+     * can be only an alloc companied by an offset (we can point to the
+     * middle).
+     */
+    typedef std::pair<MemoryLocation, int> Pointee;
+    typedef std::set<Pointee> PointsToSet;
 
-    typedef std::map<MemoryLocation,PointsToSet> Container;
+    typedef std::map<Pointer, PointsToSet> Container;
     typedef typename Container::key_type key_type;
     typedef typename Container::mapped_type mapped_type;
     typedef typename Container::value_type value_type;
@@ -77,7 +92,8 @@ namespace llvm { namespace ptr {
 namespace llvm { namespace ptr {
 
   const PointsToSets::PointsToSet &
-  getPointsToSet(const llvm::Value *const &memLoc, const PointsToSets &S);
+  getPointsToSet(const llvm::Value *const &memLoc, const PointsToSets &S,
+		  const int offset = -1);
 
   PointsToSets &computePointsToSets(const ProgramStructure &P, PointsToSets &S);
 

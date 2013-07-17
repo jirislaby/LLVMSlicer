@@ -56,7 +56,7 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
       if (!hasExtraReference(op)) {
 	const PTSet &S = getPointsToSet(op,PS);
 	for (PTSet::const_iterator I = S.begin(), E = S.end(); I != E; ++I)
-	  addREF(Pointee(*I, 0));
+	  addREF(*I);
       }
     }
   } else if (const StoreInst *SI = dyn_cast<const StoreInst>(i)) {
@@ -73,7 +73,7 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
         const PTSet &S = getPointsToSet(l, PS);
 
         for (PTSet::const_iterator I = S.begin(), E = S.end(); I != E; ++I)
-          addDEF(Pointee(*I, 0));
+          addDEF(*I);
       }
 
       if (!l->getType()->isIntegerTy())
@@ -107,7 +107,7 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
       if (isPointerValue(l)) {
 	const PTSet &L = getPointsToSet(l, PS);
 	for (PTSet::const_iterator p = L.begin(); p != L.end(); ++p)
-	  addDEF(Pointee(*p, 0));
+	  addDEF(*p);
       }
       const Value *r = elimConstExpr(C->getOperand(1));
       const Value *len = elimConstExpr(C->getOperand(2));
@@ -118,7 +118,7 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
       if (isPointerValue(r)) {
 	const PTSet &R = getPointsToSet(r, PS);
 	for (PTSet::const_iterator p = R.begin(); p != R.end(); ++p)
-	  addREF(Pointee(*p, 0));
+	  addREF(*p);
       }
     } else if (!memoryManStuff(C)) {
       typedef std::vector<const llvm::Function *> CalledVec;
