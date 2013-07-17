@@ -10,11 +10,12 @@
 
 namespace llvm { namespace ptr {
 
+typedef PointsToSets::PointsToSet PTSet;
+
 static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    VARIABLE<const llvm::Value *>
 		    > const& E) {
-    typedef PointsToSets::PointsToSet PTSet;
     const llvm::Value *lval = E.getArgument1().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument();
     PTSet &L = S[lval];
@@ -30,7 +31,6 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    GEP<VARIABLE<const llvm::Value *> >
 		    > const& E) {
-    typedef PointsToSets::PointsToSet PTSet;
     const llvm::Value *lval = E.getArgument1().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument().getArgument();
     PTSet &L = S[lval];
@@ -55,7 +55,7 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    > const& E) {
     const llvm::Value *lval = E.getArgument1().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument().getArgument();
-    PointsToSets::PointsToSet &L = S[lval];
+    PTSet &L = S[lval];
     const std::size_t old_size = L.size();
 
     L.insert(rval);
@@ -68,7 +68,6 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    DEREFERENCE< VARIABLE<const llvm::Value *> >
 		    > const& E)
 {
-    typedef PointsToSets::PointsToSet PTSet;
     const llvm::Value *lval = E.getArgument1().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument().getArgument();
     PTSet &L = S[lval];
@@ -88,7 +87,6 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>
 		    > const& E)
 {
-    typedef PointsToSets::PointsToSet PTSet;
     const llvm::Value *lval = E.getArgument1().getArgument().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument();
     PTSet &L = S[lval];
@@ -111,7 +109,6 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    REFERENCE<VARIABLE<const llvm::Value *> >
 		    > const &E)
 {
-    typedef PointsToSets::PointsToSet PTSet;
     const llvm::Value *lval = E.getArgument1().getArgument().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument().getArgument();
     PTSet &L = S[lval];
@@ -133,7 +130,6 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    DEREFERENCE<VARIABLE<const llvm::Value *> >
 		    > const& E)
 {
-    typedef PointsToSets::PointsToSet PTSet;
     const llvm::Value *lval = E.getArgument1().getArgument().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument().getArgument();
     PTSet &L = S[lval];
@@ -153,7 +149,7 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 {
     const llvm::Value *lval = E.getArgument1().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument();
-    PointsToSets::PointsToSet &L = S[lval];
+    PTSet &L = S[lval];
     const std::size_t old_size = L.size();
 
     L.insert(rval);
@@ -168,7 +164,7 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 {
     const llvm::Value *lval = E.getArgument1().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument();
-    PointsToSets::PointsToSet &L = S[lval];
+    PTSet &L = S[lval];
     const std::size_t old_size = L.size();
 
     L.insert(rval);
@@ -181,7 +177,6 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 		    NULLPTR<const llvm::Value *>
 		    > const &E)
 {
-    typedef PointsToSets::PointsToSet PTSet;
     const llvm::Value *lval = E.getArgument1().getArgument().getArgument();
     const llvm::Value *rval = E.getArgument2().getArgument();
     PTSet &L = S[lval];
@@ -300,11 +295,11 @@ PointsToSets &computePointsToSets(const ProgramStructure &P, PointsToSets &S) {
   return pruneByType(fixpoint(P, S));
 }
 
-const PointsToSets::PointsToSet &
+const PTSet &
 getPointsToSet(const llvm::Value *const &memLoc, const PointsToSets &S) {
   const PointsToSets::const_iterator it = S.find(memLoc);
   if (it == S.end()) {
-    static const PointsToSets::PointsToSet emptySet;
+    static const PTSet emptySet;
     errs() << "WARNING[PointsTo]: No points-to set has been found: ";
     memLoc->print(errs());
     errs() << '\n';
