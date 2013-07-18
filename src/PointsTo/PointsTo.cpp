@@ -2,7 +2,10 @@
 // License. See LICENSE.TXT for details.
 
 #include "llvm/BasicBlock.h"
+#include "llvm/DataLayout.h"
+#include "llvm/Support/GetElementPtrTypeIterator.h"
 #include "llvm/Instruction.h"
+#include "llvm/Instructions.h"
 #include "llvm/Module.h"
 
 #include "PointsTo.h"
@@ -28,7 +31,34 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
     return old_size != L.size();
 }
 
-static bool applyRule(PointsToSets &S, ASSIGNMENT<
+static unsigned long accumulateConstantOffset(const GetElementPtrInst *gep,
+	const DataLayout &DL) {
+    unsigned long off = 0;
+
+    for (gep_type_iterator GTI = gep_type_begin(gep), GTE = gep_type_end(gep);
+	    GTI != GTE; ++GTI) {
+	ConstantInt *OpC = dyn_cast<ConstantInt>(GTI.getOperand());
+	if (!OpC) /* skip non-const array indices */
+	    continue;
+	if (OpC->isZero())
+	    continue;
+
+	// Handle a struct index, which adds its field offset to the pointer.
+	if (StructType *STy = dyn_cast<StructType>(*GTI)) {
+	    unsigned ElementIdx = OpC->getZExtValue();
+	    const StructLayout *SL = DL.getStructLayout(STy);
+	    off += SL->getElementOffset(ElementIdx);
+	    continue;
+	}
+
+	errs() << "skipping " << OpC->getValue() << " in";
+	gep->dump();
+    }
+
+    return off;
+}
+
+static bool applyRule(PointsToSets &S, const llvm::DataLayout &DL, ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    GEP<VARIABLE<const llvm::Value *> >
 		    > const& E) {
@@ -39,12 +69,16 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 
     const GetElementPtrInst *gep = dyn_cast<GetElementPtrInst>(rval);
     const llvm::Value *op = elimConstExpr(gep->getPointerOperand());
+    unsigned long off = accumulateConstantOffset(gep, DL);
 
     if (hasExtraReference(op)) {
-	L.insert(Ptr(op, 0)); /* VAR = REF */
+	L.insert(Ptr(op, off)); /* VAR = REF */
     } else {
 	const PTSet &R = S[Ptr(op, -1)];
-	std::copy(R.begin(), R.end(), std::inserter(L, L.end())); /* V = V */
+	for (PTSet::const_iterator I = R.begin(), E = R.end(); I != E; ++I) {
+	    assert(I->second >= 0);
+	    L.insert(Ptr(I->first, I->second + off)); /* V = V */
+	}
     }
 
     return old_size != L.size();
@@ -199,7 +233,8 @@ static bool applyRule(PointsToSets &S, DEALLOC<const llvm::Value *>) {
     return false;
 }
 
-static bool applyRules(const RuleCode &RC, PointsToSets &S)
+static bool applyRules(const RuleCode &RC, PointsToSets &S,
+		const llvm::DataLayout &DL)
 {
     const llvm::Value *lval = RC.getLvalue();
     const llvm::Value *rval = RC.getRvalue();
@@ -212,7 +247,8 @@ static bool applyRules(const RuleCode &RC, PointsToSets &S)
     case RCT_VAR_ASGN_VAR:
 	return applyRule(S, (ruleVar(lval) = ruleVar(rval)).getSort());
     case RCT_VAR_ASGN_GEP:
-	return applyRule(S, (ruleVar(lval) = ruleVar(rval).gep()).getSort());
+	return applyRule(S, DL,
+			(ruleVar(lval) = ruleVar(rval).gep()).getSort());
     case RCT_VAR_ASGN_REF_VAR:
 	return applyRule(S, (ruleVar(lval) = &ruleVar(rval)).getSort());
     case RCT_VAR_ASGN_DREF_VAR:
@@ -283,11 +319,13 @@ static PointsToSets &fixpoint(const ProgramStructure &P, PointsToSets &S)
 {
   bool change;
 
+  DataLayout DL(&P.getModule());
+
   do {
     change = false;
 
     for (ProgramStructure::const_iterator i = P.begin(); i != P.end(); ++i)
-      change |= applyRules(*i, S);
+      change |= applyRules(*i, S, DL);
   } while (change);
 
   return S;
