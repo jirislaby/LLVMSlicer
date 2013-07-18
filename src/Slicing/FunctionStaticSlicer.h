@@ -5,6 +5,7 @@
 #define SLICING_FUNCTIONSTATICSLICER_H
 
 #include <map>
+#include <utility> /* pair */
 
 #include "llvm/Value.h"
 #include "llvm/ADT/SetVector.h"
@@ -15,7 +16,8 @@
 
 namespace llvm { namespace slicing {
 
-typedef llvm::SmallSetVector<const llvm::Value *, 10> ValSet;
+typedef std::pair<const llvm::Value *, int> Pointee;
+typedef llvm::SmallSetVector<Pointee, 10> ValSet;
 
 class InsInfo {
 public:
@@ -24,9 +26,9 @@ public:
 
   const Instruction *getIns() const { return ins; }
 
-  bool addRC(const llvm::Value *var) { return RC.insert(var); }
-  bool addDEF(const llvm::Value *var) { return DEF.insert(var); }
-  bool addREF(const llvm::Value *var) { return REF.insert(var); }
+  bool addRC(const Pointee &var) { return RC.insert(var); }
+  bool addDEF(const Pointee &var) { return DEF.insert(var); }
+  bool addREF(const Pointee &var) { return REF.insert(var); }
   void deslice() { sliced = false; }
 
   ValSet::const_iterator RC_begin() const { return RC.begin(); }
@@ -86,9 +88,10 @@ public:
   }
 
   void addInitialCriterion(const llvm::Instruction *ins,
-			   const llvm::Value *cond = 0, bool deslice = true) {
+			   const Pointee &cond = Pointee(0, 0),
+			   bool deslice = true) {
     InsInfo *ii = getInsInfo(ins);
-    if (cond)
+    if (cond.first)
       ii->addRC(cond);
     ii->deslice();
   }
@@ -110,7 +113,7 @@ private:
   InsInfoMap insInfoMap;
   llvm::SmallSetVector<const llvm::CallInst *, 10> skipAssert;
 
-  static bool sameValues(const Value *val1, const Value *val2);
+  static bool sameValues(const Pointee &val1, const Pointee &val2);
   void crawlBasicBlock(const llvm::BasicBlock *bb);
   bool computeRCi(InsInfo *insInfoi, InsInfo *insInfoj);
   bool computeRCi(InsInfo *insInfoi);

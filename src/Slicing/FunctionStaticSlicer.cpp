@@ -43,7 +43,7 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
   typedef ptr::PointsToSets::PointsToSet PTSet;
 
   if (const LoadInst *LI = dyn_cast<const LoadInst>(i)) {
-    addDEF(i);
+    addDEF(Pointee(i, -1));
 
     const Value *op = elimConstExpr(LI->getPointerOperand());
     if (isa<ConstantPointerNull>(op)) {
@@ -52,11 +52,11 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
       i->print(errs());
     } else if (isa<ConstantInt>(op)) {
     } else {
-      addREF(op);
+      addREF(Pointee(op, -1));
       if (!hasExtraReference(op)) {
 	const PTSet &S = getPointsToSet(op,PS);
 	for (PTSet::const_iterator I = S.begin(), E = S.end(); I != E; ++I)
-	  addREF(*I);
+	  addREF(Pointee(*I, 0));
       }
     }
   } else if (const StoreInst *SI = dyn_cast<const StoreInst>(i)) {
@@ -68,30 +68,30 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
     } else if (isa<ConstantInt>(l)) {
     } else {
       if (hasExtraReference(l)) {
-        addDEF(l);
+        addDEF(Pointee(l, -1));
       } else {
         const PTSet &S = getPointsToSet(l, PS);
 
         for (PTSet::const_iterator I = S.begin(), E = S.end(); I != E; ++I)
-          addDEF(*I);
+          addDEF(Pointee(*I, 0));
       }
 
       if (!l->getType()->isIntegerTy())
-        addREF(l);
+        addREF(Pointee(l, -1));
       const Value *r = elimConstExpr(SI->getValueOperand());
       if (!hasExtraReference(r) && !isConstantValue(r))
-        addREF(r);
+        addREF(Pointee(r, -1));
     }
   } else if (const GetElementPtrInst *gep =
              dyn_cast<const GetElementPtrInst>(i)) {
-    addDEF(i);
+    addDEF(Pointee(i, -1));
 
-    addREF(gep->getPointerOperand());
+    addREF(Pointee(gep->getPointerOperand(), -1));
 
     for (unsigned i = 1, e = gep->getNumOperands(); i != e; ++i) {
       Value *op = gep->getOperand(i);
       if (!isa<ConstantInt>(op))
-	addREF(op);
+	addREF(Pointee(op, -1));
     }
   } else if (CallInst const* const C = dyn_cast<const CallInst>(i)) {
     const Value *cv = C->getCalledValue();
@@ -100,25 +100,25 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
      errs() << "ERROR: Inline assembler detected in " <<
           i->getParent()->getParent()->getName() << ", ignoring\n";
     } else if (isMemoryAllocation(cv)) {
-      addDEF(i);
+      addDEF(Pointee(i, -1));
     } else if (isMemoryDeallocation(cv)) {
     } else if (isMemoryCopy(cv) || isMemoryMove(cv)) {
       const Value *l = elimConstExpr(C->getOperand(0));
       if (isPointerValue(l)) {
 	const PTSet &L = getPointsToSet(l, PS);
 	for (PTSet::const_iterator p = L.begin(); p != L.end(); ++p)
-	  addDEF(*p);
+	  addDEF(Pointee(*p, 0));
       }
       const Value *r = elimConstExpr(C->getOperand(1));
       const Value *len = elimConstExpr(C->getOperand(2));
-      addREF(l);
-      addREF(r);
+      addREF(Pointee(l, -1));
+      addREF(Pointee(r, -1));
       /* memcpy/memset wouldn't work with len being 'undef' */
-      addREF(len);
+      addREF(Pointee(len, -1));
       if (isPointerValue(r)) {
 	const PTSet &R = getPointsToSet(r, PS);
 	for (PTSet::const_iterator p = R.begin(); p != R.end(); ++p)
-	  addREF(*p);
+	  addREF(Pointee(*p, 0));
       }
     } else if (!memoryManStuff(C)) {
       typedef std::vector<const llvm::Function *> CalledVec;
@@ -127,74 +127,74 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
       const Value *callie = C->getCalledValue();
 
       if (!isa<Function>(callie))
-	addREF(callie);
+	addREF(Pointee(callie, -1));
 
       for (CalledVec::const_iterator f = CV.begin(); f != CV.end(); ++f) {
         mods::Modifies::mapped_type const& M = getModSet(*f, MOD);
         for (mods::Modifies::mapped_type::const_iterator v = M.begin();
              v != M.end(); ++v)
-          addDEF(*v);
+          addDEF(Pointee(*v, -1));
       }
 
       if (!callToVoidFunction(C))
-          addDEF(C);
+          addDEF(Pointee(C, -1));
     }
   } else if (isa<const ReturnInst>(i)) {
   } else if (const BinaryOperator *BO = dyn_cast<const BinaryOperator>(i)) {
-    addDEF(i);
+    addDEF(Pointee(i, -1));
 
     if (!isConstantValue(BO->getOperand(0)))
-      addREF(BO->getOperand(0));
+      addREF(Pointee(BO->getOperand(0), -1));
     if (!isConstantValue(BO->getOperand(1)))
-      addREF(BO->getOperand(1));
+      addREF(Pointee(BO->getOperand(1), -1));
   } else if (const CastInst *CI = dyn_cast<const CastInst>(i)) {
-    addDEF(i);
+    addDEF(Pointee(i, -1));
 
     if (!hasExtraReference(CI->getOperand(0)))
-      addREF(CI->getOperand(0));
+      addREF(Pointee(CI->getOperand(0), -1));
   } else if (const AllocaInst *AI = dyn_cast<const AllocaInst>(i)) {
-      addDEF(AI);
+      addDEF(Pointee(AI, -1));
   } else if (const CmpInst *CI = dyn_cast<const CmpInst>(i)) {
-    addDEF(i);
+    addDEF(Pointee(i, -1));
 
     if (!isConstantValue(CI->getOperand(0)))
-      addREF(CI->getOperand(0));
+      addREF(Pointee(CI->getOperand(0), -1));
     if (!isConstantValue(CI->getOperand(1)))
-      addREF(CI->getOperand(1));
+      addREF(Pointee(CI->getOperand(1), -1));
   } else if (const BranchInst *BI = dyn_cast<const BranchInst>(i)) {
     if (BI->isConditional() && !isConstantValue(BI->getCondition()))
-      addREF(BI->getCondition());
+      addREF(Pointee(BI->getCondition(), -1));
   } else if (const PHINode *phi = dyn_cast<const PHINode>(i)) {
-    addDEF(i);
+    addDEF(Pointee(i, -1));
 
     for (unsigned k = 0; k < phi->getNumIncomingValues(); ++k)
       if (!isConstantValue(phi->getIncomingValue(k)))
-        addREF(phi->getIncomingValue(k));
+        addREF(Pointee(phi->getIncomingValue(k), -1));
   } else if (const SwitchInst *SI = dyn_cast<SwitchInst>(i)) {
     if (!isConstantValue(SI->getCondition()))
-      addREF(SI->getCondition());
+      addREF(Pointee(SI->getCondition(), -1));
   } else if (const SelectInst *SI = dyn_cast<const SelectInst>(i)) {
       // TODO: THE FOLLOWING CODE HAS NOT BEEN TESTED YET
 
-    addDEF(i);
+    addDEF(Pointee(i, -1));
 
     if (!isConstantValue(SI->getCondition()))
-      addREF(SI->getCondition());
+      addREF(Pointee(SI->getCondition(), -1));
     if (!isConstantValue(SI->getTrueValue()))
-      addREF(SI->getTrueValue());
+      addREF(Pointee(SI->getTrueValue(), -1));
     if (!isConstantValue(SI->getFalseValue()))
-      addREF(SI->getFalseValue());
+      addREF(Pointee(SI->getFalseValue(), -1));
   } else if (isa<const UnreachableInst>(i)) {
   } else if (const ExtractValueInst *EV = dyn_cast<const ExtractValueInst>(i)) {
-      addDEF(i);
-      addREF(EV->getAggregateOperand());
+      addDEF(Pointee(i, -1));
+      addREF(Pointee(EV->getAggregateOperand(), -1));
   } else if (const InsertValueInst *IV = dyn_cast<const InsertValueInst>(i)) {
 //      TODO THE FOLLOWING CODE HAS NOT BEEN TESTED YET
 
       const Value *r = IV->getInsertedValueOperand();
-      addDEF(IV->getAggregateOperand());
+      addDEF(Pointee(IV->getAggregateOperand(), -1));
       if (!isConstantValue(r))
-	addREF(r);
+	addREF(Pointee(r, -1));
   } else {
     errs() << "ERROR: Unsupported instruction reached\n";
     i->print(errs());
@@ -245,9 +245,9 @@ static SuccList getSuccList(const Instruction *i) {
   return succList;
 }
 
-bool FunctionStaticSlicer::sameValues(const Value *val1, const Value *val2)
+bool FunctionStaticSlicer::sameValues(const Pointee &val1, const Pointee &val2)
 {
-  return val1 == val2;
+  return val1.first == val2.first && val1.second == val2.second;
 }
 
 /*
@@ -261,7 +261,7 @@ bool FunctionStaticSlicer::computeRCi(InsInfo *insInfoi, InsInfo *insInfoj) {
   /* {v| v \in RC(j), v \notin DEF(i)} */
   for (ValSet::const_iterator I = insInfoj->RC_begin(),
        E = insInfoj->RC_end(); I != E; I++) {
-    const Value *RCj = *I;
+    const Pointee &RCj = *I;
     bool in_DEF = false;
     for (ValSet::const_iterator II = insInfoi->DEF_begin(),
          EE = insInfoi->DEF_end(); II != EE; II++)
@@ -277,7 +277,7 @@ bool FunctionStaticSlicer::computeRCi(InsInfo *insInfoi, InsInfo *insInfoj) {
   bool isect_nonempty = false;
   for (ValSet::const_iterator I = insInfoi->DEF_begin(),
        E = insInfoi->DEF_end(); I != E && !isect_nonempty; I++) {
-    const Value *DEFi = *I;
+    const Pointee &DEFi = *I;
     for (ValSet::const_iterator II = insInfoj->RC_begin(),
          EE = insInfoj->RC_end(); II != EE; II++) {
       if (sameValues(DEFi, *II)) {
@@ -357,7 +357,7 @@ void FunctionStaticSlicer::computeSCi(const Instruction *i, const Instruction *j
   bool isect_nonempty = false;
   for (ValSet::const_iterator I = insInfoi->DEF_begin(),
        E = insInfoi->DEF_end(); I != E && !isect_nonempty; I++) {
-    const Value *DEFi = *I;
+    const Pointee &DEFi = *I;
     for (ValSet::const_iterator II = insInfoj->RC_begin(),
          EE = insInfoj->RC_end(); II != EE; II++) {
       if (sameValues(DEFi, *II)) {
@@ -474,20 +474,20 @@ void FunctionStaticSlicer::dump() {
     errs() << "SLICED\n    DEF:\n";
     for (ValSet::const_iterator II = ii->DEF_begin(), EE = ii->DEF_end();
          II != EE; II++) {
-      errs() << "      ";
-      (*II)->dump();
+      errs() << "      OFF=" << II->second;
+      II->first->dump();
     }
     errs() << "    REF:\n";
     for (ValSet::const_iterator II = ii->REF_begin(), EE = ii->REF_end();
          II != EE; II++) {
-      errs() << "      ";
-      (*II)->dump();
+      errs() << "      OFF=" << II->second;
+      II->first->dump();
     }
     errs() << "    RC:\n";
     for (ValSet::const_iterator II = ii->RC_begin(), EE = ii->RC_end();
          II != EE; II++) {
-      errs() << "      ";
-      (*II)->dump();
+      errs() << "      OFF=" << II->second;
+      II->first->dump();
     }
   }
 #endif
@@ -669,7 +669,7 @@ count:
         errs() << "    adding\n";
 #endif
   ss.addInitialCriterion(CI,
-      F.getParent()->getGlobalVariable("__ai_init_functions", true));
+      Pointee(F.getParent()->getGlobalVariable("__ai_init_functions", true), -1));
   return true;
 }
 
@@ -692,7 +692,7 @@ bool llvm::slicing::findInitialCriterion(Function &F,
 #ifdef DEBUG_INITCRIT
         errs() << "    adding\n";
 #endif
-        ss.addInitialCriterion(SI, LHS);
+        ss.addInitialCriterion(SI, Pointee(LHS, -1));
      }
     } else if (const CallInst *CI = dyn_cast<CallInst>(i)) {
       Function *callie = CI->getCalledFunction();
@@ -712,7 +712,7 @@ bool llvm::slicing::findInitialCriterion(Function &F,
               " to \n";
           RI->dump();
 #endif
-          ss.addInitialCriterion(RI, &GV, false);
+          ss.addInitialCriterion(RI, Pointee(&GV, -1), false);
         }
       }
     }

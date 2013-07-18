@@ -23,10 +23,11 @@ namespace llvm { namespace slicing { namespace detail {
         std::size_t a = 0;
         for ( ; a < C->getNumArgOperands(); ++a, ++p)
         {
-            Value const* const P = &*p;
-            Value const* const A = C->getArgOperand(a);
+            const Value *P = &*p;
+            const Value *A = C->getArgOperand(a);
             if (!isConstantValue(A))
-                toArgs[P] = A;
+                toArgs.insert(ParamsToArgs::value_type(Pointee(P, -1),
+					Pointee(A, -1)));
         }
     }
 
@@ -44,7 +45,7 @@ namespace llvm { namespace slicing { namespace detail {
 	    ParamsToArgs::const_iterator it = toArgs.find(*b);
 	    if (it != toArgs.end())
 		out.insert(it->second);
-	    else if (!isLocalToFunction(*b,F))
+	    else if (!isLocalToFunction(b->first, F))
 		out.insert(*b);
 	}
     }
@@ -62,7 +63,7 @@ namespace llvm { namespace slicing { namespace detail {
 	}
 
 	for ( ; b != e; ++b)
-	    if (*b == C) {
+	    if (b->first == C) {
 		    Value *ret = R->getReturnValue();
 		    if (!ret) {
 /*			    C->dump();
@@ -71,7 +72,7 @@ namespace llvm { namespace slicing { namespace detail {
 //			    abort();
 				return;
 		    }
-		out.insert(R->getReturnValue());
+		out.insert(Pointee(R->getReturnValue(), -1));
 	    } else
 		out.insert(*b);
     }

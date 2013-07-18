@@ -63,14 +63,13 @@ namespace llvm { namespace slicing {
 
 namespace llvm { namespace slicing { namespace detail {
 
-    typedef std::map<llvm::Value const*,llvm::Value const*>
-            ParamsToArgs;
+    typedef std::map<const Pointee, const Pointee> ParamsToArgs;
 
     void fillParamsToArgs(llvm::CallInst const* const C,
                           llvm::Function const* const F,
                           ParamsToArgs& toArgs);
 
-    typedef std::set<const llvm::Value *> RelevantSet;
+    typedef std::set<Pointee> RelevantSet;
 
     void getRelevantVarsAtCall(llvm::CallInst const* const C,
                                llvm::Function const* const F,
