@@ -1,4 +1,7 @@
+#include <assert.h>
+
 struct X {
+	char x;
 	int a;
 	int b;
 };
@@ -6,10 +9,11 @@ struct X {
 int main()
 {
 	struct X x;
-	int *Xa, *Xb;
+	int *Xa = &x.a, *Xb = &x.b;
 
-	Xa = &x.a;
-	Xb = &x.b;
+	*Xa = 1;
+
+	assert(*Xb);
 
 	return 0;
 }
