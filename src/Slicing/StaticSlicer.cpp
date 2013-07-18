@@ -30,6 +30,52 @@ namespace llvm { namespace slicing { namespace detail {
         }
     }
 
+    void getRelevantVarsAtCall(llvm::CallInst const* const C,
+			       llvm::Function const* const F,
+			       const ValSet::const_iterator &_b,
+			       const ValSet::const_iterator &e,
+			       RelevantSet &out) {
+	assert(!isInlineAssembly(C) && "Inline assembly is not supported!");
+
+	ParamsToArgs toArgs;
+	fillParamsToArgs(C, F, toArgs);
+
+	for (ValSet::const_iterator b(_b); b != e; ++b) {
+	    ParamsToArgs::const_iterator it = toArgs.find(*b);
+	    if (it != toArgs.end())
+		out.insert(it->second);
+	    else if (!isLocalToFunction(*b,F))
+		out.insert(*b);
+	}
+    }
+
+    void getRelevantVarsAtExit(const llvm::CallInst *const C,
+			       const llvm::ReturnInst *const R,
+			       ValSet::const_iterator &b,
+			       const ValSet::const_iterator &e,
+			       RelevantSet &out) {
+	assert(!isInlineAssembly(C) && "Inline assembly is not supported!");
+
+	if (callToVoidFunction(C)) {
+	    std::copy(b, e, std::inserter(out, out.begin()));
+	    return;
+	}
+
+	for ( ; b != e; ++b)
+	    if (*b == C) {
+		    Value *ret = R->getReturnValue();
+		    if (!ret) {
+/*			    C->dump();
+			    C->getCalledValue()->dump();
+			    R->dump();*/
+//			    abort();
+				return;
+		    }
+		out.insert(R->getReturnValue());
+	    } else
+		out.insert(*b);
+    }
+
 }}}
 
 namespace llvm { namespace slicing {

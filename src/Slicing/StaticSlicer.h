@@ -70,49 +70,19 @@ namespace llvm { namespace slicing { namespace detail {
                           llvm::Function const* const F,
                           ParamsToArgs& toArgs);
 
-    template<typename RelevantsIterator, typename OutIterator>
+    typedef std::set<const llvm::Value *> RelevantSet;
+
     void getRelevantVarsAtCall(llvm::CallInst const* const C,
                                llvm::Function const* const F,
-                               RelevantsIterator b, RelevantsIterator const e,
-                               //PointsToSets const& PS,
-                               OutIterator out) {
-	assert(!isInlineAssembly(C) && "Inline assembly is not supported!");
-        ParamsToArgs toArgs;
-        fillParamsToArgs(C,F,toArgs);
-        for ( ; b != e; ++b)
-        {
-            ParamsToArgs::const_iterator it = toArgs.find(*b);
-            if (it != toArgs.end())
-                *out++ = it->second;
-            else if (!isLocalToFunction(*b,F))
-                *out++ = *b;
-        }
-    }
+			       const ValSet::const_iterator &b,
+			       const ValSet::const_iterator &e,
+			       RelevantSet &out);
 
-    template<typename RelevantsIterator, typename OutIterator>
     void getRelevantVarsAtExit(llvm::CallInst const* const C,
                                llvm::ReturnInst const* const R,
-                               RelevantsIterator b, RelevantsIterator const e,
-                               OutIterator out) {
-        assert(!isInlineAssembly(C) && "Inline assembly is not supported!");
-        if (callToVoidFunction(C)) {
-            std::copy(b, e, out);
-            return;
-        }
-        for ( ; b != e; ++b)
-	    if (*b == C) {
-		    Value *ret = R->getReturnValue();
-		    if (!ret) {
-/*			    C->dump();
-			    C->getCalledValue()->dump();
-			    R->dump();*/
-//			    abort();
-				return;
-		    }
-		*out++ = R->getReturnValue();
-	    } else
-                *out++ = *b;
-    }
+			       ValSet::const_iterator &b,
+			       const ValSet::const_iterator &e,
+			       RelevantSet &out);
 
 }}}
 
@@ -121,7 +91,7 @@ namespace llvm { namespace slicing {
     template<typename OutIterator>
     void StaticSlicer::emitToCalls(llvm::Function const* const f,
                                    OutIterator out) {
-        const ValSet::const_iterator relBgn =
+	const ValSet::const_iterator relBgn =
             slicers[f]->relevant_begin(getFunctionEntry(f));
         const ValSet::const_iterator relEnd =
             slicers[f]->relevant_end(getFunctionEntry(f));
@@ -131,9 +101,8 @@ namespace llvm { namespace slicing {
 	    const llvm::CallInst *CI = c->second;
 	    const llvm::Function *g = CI->getParent()->getParent();
 	    FunctionStaticSlicer *FSS = slicers[g];
-            std::set<const llvm::Value *> R;
-            detail::getRelevantVarsAtCall(c->second, f, relBgn, relEnd,
-                                          std::inserter(R, R.end()));
+	    detail::RelevantSet R;
+	    detail::getRelevantVarsAtCall(c->second, f, relBgn, relEnd, R);
 
 	    if (FSS->addCriterion(CI, R.begin(), R.end(),
 				    !FSS->shouldSkipAssert(CI))) {
@@ -150,7 +119,7 @@ namespace llvm { namespace slicing {
         CallsVec C;
         getFunctionCalls(f, std::back_inserter(C));
         for (CallsVec::const_iterator c = C.begin(); c != C.end(); ++c) {
-            const ValSet::const_iterator relBgn =
+	    ValSet::const_iterator relBgn =
                 slicers[f]->relevant_begin(getSuccInBlock(*c));
             const ValSet::const_iterator relEnd =
                 slicers[f]->relevant_end(getSuccInBlock(*c));
@@ -162,9 +131,8 @@ namespace llvm { namespace slicing {
                 ExitsVec E;
                 getFunctionExits(callie, std::back_inserter(E));
                 for (ExitsVec::const_iterator e = E.begin(); e != E.end(); ++e) {
-                    std::set<const llvm::Value *> R;
-                    detail::getRelevantVarsAtExit(*c, *e, relBgn, relEnd,
-                                                  std::inserter(R, R.end()));
+		    detail::RelevantSet R;
+		    detail::getRelevantVarsAtExit(*c, *e, relBgn, relEnd, R);
                     if (slicers[g->second]->addCriterion(*e, R.begin(),R .end()))
                         *out++ = g->second;
                 }
