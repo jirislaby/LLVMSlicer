@@ -23,5 +23,7 @@ if (LLVM_BUILD_PATH)
   link_directories(${LLVM_BUILD_PATH}/lib)
 endif(LLVM_BUILD_PATH)
 
+enable_testing()
+
 add_subdirectory(src)
 add_subdirectory(test)
