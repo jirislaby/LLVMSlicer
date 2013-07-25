@@ -57,13 +57,11 @@ namespace llvm { namespace mods {
     };
 
     struct WriteCommand {
-        typedef const llvm::Value *Variable;
-
         WriteCommand()
             : type(CMD_UNKNOWN)
         {}
 
-        WriteCommand(WriteType const t, Variable const& v)
+        WriteCommand(WriteType const t, const llvm::Value *v)
             : type(t)
             , var(v)
         {}
@@ -72,10 +70,10 @@ namespace llvm { namespace mods {
         {}
 
         WriteType getType() const { return type; }
-        Variable const& getVar() const { return var; }
+        const llvm::Value *getVar() const { return var; }
     private:
         WriteType type;
-        Variable var;
+        const llvm::Value *var;
     };
 }}
 
