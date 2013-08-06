@@ -4,9 +4,6 @@
 #ifndef POINTSTO_RULEEXPRESSIONS_H
 #define POINTSTO_RULEEXPRESSIONS_H
 
-#include <map>
-#include <iterator>
-
 #include "llvm/Constants.h"
 #include "llvm/Function.h"
 #include "llvm/Instructions.h"
@@ -302,16 +299,6 @@ namespace llvm { namespace ptr {
 
 namespace llvm { namespace ptr { namespace detail {
 
-    typedef std::multimap<llvm::FunctionType const*,llvm::Function const*>
-	    FunctionsMap;
-
-    typedef std::multimap<llvm::FunctionType const*,llvm::CallInst const*>
-	    CallsMap;
-
-    void buildCallMaps(llvm::Module const& M, FunctionsMap& F, CallsMap& C);
-    RuleCode argPassRuleCode(llvm::Value const* const l,
-						 llvm::Value const* const r);
-
   template<typename OutIterator>
   void toRuleCode(const Value *V, OutIterator out) {
     if (const llvm::Instruction *I = llvm::dyn_cast<llvm::Instruction>(V)) {
@@ -444,58 +431,6 @@ namespace llvm { namespace ptr { namespace detail {
 
       *out++ = ruleCode(ruleVar(V) = &ruleVar(op));
     }
-  }
-
-  template<typename OutIterator>
-  void collectCallRuleCodes(const llvm::CallInst *const c,
-			    const llvm::Function *f, OutIterator out) {
-    assert(!isInlineAssembly(c) && "Inline assembly is not supported!");
-
-    if (memoryManStuff(f) && !llvm::isMemoryAllocation(f))
-      return;
-
-    if (llvm::isMemoryAllocation(f)) {
-      const llvm::Value *const V = c;
-      *out++ = ruleCode(ruleVar(V) = ruleAllocSite(V));
-    } else {
-      llvm::Function::const_arg_iterator fit = f->arg_begin();
-
-      for (std::size_t i = 0; fit != f->arg_end(); ++fit, ++i)
-	if (llvm::isPointerValue(&*fit))
-	  *out++ = detail::argPassRuleCode(&*fit,
-				  elimConstExpr(c->getOperand(i)));
-    }
-  }
-
-  template<typename OutIterator>
-  void collectCallRuleCodes(llvm::CallInst const* const c,
-			    FunctionsMap::const_iterator b,
-			    FunctionsMap::const_iterator const e,
-			    OutIterator out) {
-      if (const llvm::Function *f = c->getCalledFunction())
-	collectCallRuleCodes(c,f,out);
-      else
-	for ( ; b != e; ++b)
-	  collectCallRuleCodes(c,b->second,out);
-  }
-
-  template<typename OutIterator>
-  void collectReturnRuleCodes(llvm::ReturnInst const* const r,
-			      CallsMap::const_iterator b,
-			      CallsMap::const_iterator const e,
-			      OutIterator out) {
-    const llvm::Value *retVal = r->getReturnValue();
-
-    if (!retVal || !llvm::isPointerValue(retVal))
-      return;
-
-    const llvm::Function * const f = r->getParent()->getParent();
-    for ( ; b != e; ++b)
-      if (const llvm::Function *g = b->second->getCalledFunction()) {
-	if (f == g)
-	  *out++ = detail::argPassRuleCode(b->second, retVal);
-      } else
-	*out++ = detail::argPassRuleCode(b->second, retVal);
   }
 
 }}}

@@ -9,5 +9,4 @@ add_llvm_loadable_module(LLVMSlicer
 	Languages/LLVM.cpp
 	Modifies/Modifies.cpp
 	PointsTo/PointsTo.cpp
-	PointsTo/RuleExpressions.cpp
 )

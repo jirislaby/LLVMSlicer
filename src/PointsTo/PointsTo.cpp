@@ -1,6 +1,8 @@
 // This file is distributed under the University of Illinois Open Source
 // License. See LICENSE.TXT for details.
 
+#include <map>
+
 #include "llvm/BasicBlock.h"
 #include "llvm/DataLayout.h"
 #include "llvm/Support/GetElementPtrTypeIterator.h"
@@ -10,6 +12,107 @@
 
 #include "PointsTo.h"
 #include "RuleExpressions.h"
+
+#include "../Languages/LLVM.h"
+
+namespace llvm { namespace ptr { namespace detail {
+
+typedef std::multimap<const FunctionType *, const Function *> FunctionsMap;
+typedef std::multimap<const FunctionType *, const CallInst *> CallsMap;
+
+static RuleCode argPassRuleCode(const Value *l, const Value *r)
+{
+    if (isa<ConstantPointerNull const>(r))
+	return ruleCode(ruleVar(l) = ruleNull(r));
+    if (hasExtraReference(l))
+	if (hasExtraReference(r))
+	    return ruleCode(ruleVar(l) = ruleVar(r));
+	else
+	    return ruleCode(ruleVar(l) = *ruleVar(r));
+    else
+	if (hasExtraReference(r))
+	    return ruleCode(ruleVar(l) = &ruleVar(r));
+	else
+	    return ruleCode(ruleVar(l) = ruleVar(r));
+}
+
+template<typename OutIterator>
+static void collectCallRuleCodes(const CallInst *c, const Function *f,
+    OutIterator out) {
+  assert(!isInlineAssembly(c) && "Inline assembly is not supported!");
+
+  if (memoryManStuff(f) && !isMemoryAllocation(f))
+    return;
+
+  if (isMemoryAllocation(f)) {
+    const Value *V = c;
+    *out++ = ruleCode(ruleVar(V) = ruleAllocSite(V));
+  } else {
+    Function::const_arg_iterator fit = f->arg_begin();
+
+    for (size_t i = 0; fit != f->arg_end(); ++fit, ++i)
+      if (isPointerValue(&*fit))
+	*out++ = argPassRuleCode(&*fit, elimConstExpr(c->getOperand(i)));
+  }
+}
+
+template<typename OutIterator>
+static void collectCallRuleCodes(const CallInst *c,
+			  FunctionsMap::const_iterator b,
+			  FunctionsMap::const_iterator const e,
+			  OutIterator out) {
+    if (const Function *f = c->getCalledFunction())
+      collectCallRuleCodes(c, f, out);
+    else
+      for ( ; b != e; ++b)
+	collectCallRuleCodes(c, b->second, out);
+}
+
+template<typename OutIterator>
+static void collectReturnRuleCodes(const ReturnInst *r,
+			    CallsMap::const_iterator b,
+			    CallsMap::const_iterator const e,
+			    OutIterator out) {
+  const Value *retVal = r->getReturnValue();
+
+  if (!retVal || !isPointerValue(retVal))
+    return;
+
+  const Function *f = r->getParent()->getParent();
+
+  for ( ; b != e; ++b)
+    if (const Function *g = b->second->getCalledFunction()) {
+      if (f == g)
+	*out++ = argPassRuleCode(b->second, retVal);
+    } else
+      *out++ = argPassRuleCode(b->second, retVal);
+}
+
+static void buildCallMaps(Module const& M, FunctionsMap& F,
+		CallsMap& C) {
+    for (Module::const_iterator f = M.begin(); f != M.end(); ++f) {
+	if (!f->isDeclaration())
+	    F.insert(std::make_pair(f->getFunctionType(), &*f));
+
+	for (const_inst_iterator i = inst_begin(f), E = inst_end(f);
+		i != E; ++i) {
+	    if (const CallInst *CI = dyn_cast<CallInst>(&*i)) {
+		if (!isInlineAssembly(CI) && !callToMemoryManStuff(CI))
+		    C.insert(std::make_pair(getCalleePrototype(CI), CI));
+	    } else if (const StoreInst *SI = dyn_cast<StoreInst>(&*i)) {
+		const Value *r = SI->getValueOperand();
+
+		if (hasExtraReference(r) && memoryManStuff(r)) {
+		    const Function *fn = dyn_cast<Function>(r);
+
+		    F.insert(std::make_pair(fn->getFunctionType(), fn));
+		}
+	    }
+	}
+    }
+}
+
+}}}
 
 namespace llvm { namespace ptr {
 
