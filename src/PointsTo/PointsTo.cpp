@@ -350,40 +350,34 @@ getPointsToSet(const llvm::Value *const &memLoc, const PointsToSets &S,
 }
 
 ProgramStructure::ProgramStructure(Module &M) : M(M) {
-    typedef llvm::Module::const_global_iterator GlobalsIter;
-    for (GlobalsIter g = M.global_begin(); g != M.global_end(); ++g)
-      if (llvm::isGlobalPointerInitialization(&*g))
+    for (Module::const_global_iterator g = M.global_begin(), E = M.global_end();
+	    g != E; ++g)
+      if (isGlobalPointerInitialization(&*g))
 	detail::toRuleCode(&*g,std::back_inserter(this->getContainer()));
 
     detail::FunctionsMap FM;
     detail::CallsMap CM;
     detail::buildCallMaps(M,FM,CM);
 
-    typedef llvm::Module::const_iterator FunctionsIter;
-    for (FunctionsIter f = M.begin(); f != M.end(); ++f) {
-	typedef llvm::Function::const_iterator BasicBlocksIter;
-	for (BasicBlocksIter b = f->begin(); b != f->end(); ++b)
-	{
-	    typedef llvm::BasicBlock::const_iterator InstructionsIter;
-	    for (InstructionsIter i = b->begin(); i != b->end(); ++i)
-		if (llvm::isPointerManipulation(&*i))
-		    detail::toRuleCode(&*i,
-				std::back_inserter(this->getContainer()));
-		else if (llvm::CallInst const* const c =
-			    llvm::dyn_cast<llvm::CallInst>(&*i)) {
-		    if (!isInlineAssembly(c))
-			detail::collectCallRuleCodes(c,
-			    FM.lower_bound(llvm::getCalleePrototype(c)),
-			    FM.upper_bound(llvm::getCalleePrototype(c)),
+    for (Module::const_iterator f = M.begin(); f != M.end(); ++f) {
+	for (const_inst_iterator i = inst_begin(f), E = inst_end(f);
+		i != E; ++i) {
+	    if (isPointerManipulation(&*i))
+		detail::toRuleCode(&*i,
 			    std::back_inserter(this->getContainer()));
-		} else if (llvm::ReturnInst const* const r =
-			    llvm::dyn_cast<llvm::ReturnInst>(&*i)) {
-		    llvm::FunctionType const* const t =
-			r->getParent()->getParent()->getFunctionType();
-		    detail::collectReturnRuleCodes(r,CM.lower_bound(t),
-			    CM.upper_bound(t),
-			    std::back_inserter(this->getContainer()));
-		}
+	    else if (const CallInst *c = dyn_cast<CallInst>(&*i)) {
+		if (!isInlineAssembly(c))
+		    detail::collectCallRuleCodes(c,
+			FM.lower_bound(getCalleePrototype(c)),
+			FM.upper_bound(getCalleePrototype(c)),
+			std::back_inserter(this->getContainer()));
+	    } else if (const ReturnInst *r = dyn_cast<ReturnInst>(&*i)) {
+		const Function *fun = r->getParent()->getParent();
+		const FunctionType *t = fun->getFunctionType();
+		detail::collectReturnRuleCodes(r, CM.lower_bound(t),
+			CM.upper_bound(t),
+			std::back_inserter(this->getContainer()));
+	    }
 	}
     }
 #ifdef PS_DEBUG
