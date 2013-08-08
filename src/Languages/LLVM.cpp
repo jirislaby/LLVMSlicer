@@ -127,20 +127,18 @@ namespace llvm {
                     );
     }
 
-    llvm::FunctionType const* getCalleePrototype(const CallInst *C) {
+    const FunctionType *getCalleePrototype(const CallInst *C) {
 	assert(!isInlineAssembly(C) && "Inline assembly is not supported!");
 
-        if (llvm::Function const* const fn =
-                llvm::dyn_cast<llvm::Function const>(C->getCalledValue()))
+	const Value *callie = C->getCalledValue();
+
+        if (const Function *fn = dyn_cast<Function>(callie))
             return fn->getFunctionType();
-        else
-        {
-            llvm::Type const* const fnT =
-                llvm::dyn_cast<llvm::PointerType const>(
-                    C->getCalledValue()->getType())
-                        ->getElementType();
-            return llvm::dyn_cast<llvm::FunctionType const>(fnT);
-        }
+        else if (const PointerType *ptrType =
+		dyn_cast<PointerType>(callie->getType()))
+            return dyn_cast<FunctionType>(ptrType->getElementType());
+
+	assert(0 && "Invalid callie type");
     }
 
     bool isMemoryAllocation(llvm::Value const* const V)
