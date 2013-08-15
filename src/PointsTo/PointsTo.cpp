@@ -17,10 +17,35 @@
 
 namespace llvm { namespace ptr { namespace detail {
 
-typedef std::multimap<const FunctionType *, const Function *> FunctionsMap;
-typedef std::multimap<const FunctionType *, const CallInst *> CallsMap;
+class CallMaps {
+private:
+  typedef std::multimap<const FunctionType *, const Function *> FunctionsMap;
+  typedef std::multimap<const FunctionType *, const CallInst *> CallsMap;
 
-static RuleCode argPassRuleCode(const Value *l, const Value *r)
+public:
+  CallMaps(const Module &M) {
+    buildCallMaps(M);
+  }
+
+  template <typename OutIterator>
+  void collectCallRuleCodes(const CallInst *c, const Function *f,
+      OutIterator out);
+
+  template <typename OutIterator>
+  void collectCallRuleCodes(const CallInst *c, OutIterator out);
+
+  template <typename OutIterator>
+  void collectReturnRuleCodes(const ReturnInst *r, OutIterator out);
+
+private:
+  FunctionsMap FM;
+  CallsMap CM;
+
+  static RuleCode argPassRuleCode(const Value *l, const Value *r);
+  void buildCallMaps(const Module &M);
+};
+
+RuleCode CallMaps::argPassRuleCode(const Value *l, const Value *r)
 {
     if (isa<ConstantPointerNull const>(r))
 	return ruleCode(ruleVar(l) = ruleNull(r));
@@ -36,8 +61,8 @@ static RuleCode argPassRuleCode(const Value *l, const Value *r)
 	    return ruleCode(ruleVar(l) = ruleVar(r));
 }
 
-template<typename OutIterator>
-static void collectCallRuleCodes(const CallInst *c, const Function *f,
+template <typename OutIterator>
+void CallMaps::collectCallRuleCodes(const CallInst *c, const Function *f,
     OutIterator out) {
   assert(!isInlineAssembly(c) && "Inline assembly is not supported!");
 
@@ -57,9 +82,7 @@ static void collectCallRuleCodes(const CallInst *c, const Function *f,
 }
 
 template<typename OutIterator>
-static void collectCallRuleCodes(const CallInst *c,
-			  const FunctionsMap &FM,
-			  OutIterator out) {
+void CallMaps::collectCallRuleCodes(const CallInst *c, OutIterator out) {
     if (const Function *f = c->getCalledFunction())
       collectCallRuleCodes(c, f, out);
     else {
@@ -71,8 +94,7 @@ static void collectCallRuleCodes(const CallInst *c,
 }
 
 template<typename OutIterator>
-static void collectReturnRuleCodes(const ReturnInst *r, const CallsMap &CM,
-		OutIterator out) {
+void CallMaps::collectReturnRuleCodes(const ReturnInst *r, OutIterator out) {
   const Value *retVal = r->getReturnValue();
 
   if (!retVal || !isPointerValue(retVal))
@@ -90,24 +112,23 @@ static void collectReturnRuleCodes(const ReturnInst *r, const CallsMap &CM,
       *out++ = argPassRuleCode(b->second, retVal);
 }
 
-static void buildCallMaps(Module const& M, FunctionsMap& F,
-		CallsMap& C) {
+void CallMaps::buildCallMaps(const Module &M) {
     for (Module::const_iterator f = M.begin(); f != M.end(); ++f) {
 	if (!f->isDeclaration())
-	    F.insert(std::make_pair(f->getFunctionType(), &*f));
+	    FM.insert(std::make_pair(f->getFunctionType(), &*f));
 
 	for (const_inst_iterator i = inst_begin(f), E = inst_end(f);
 		i != E; ++i) {
 	    if (const CallInst *CI = dyn_cast<CallInst>(&*i)) {
 		if (!isInlineAssembly(CI) && !callToMemoryManStuff(CI))
-		    C.insert(std::make_pair(getCalleePrototype(CI), CI));
+		    CM.insert(std::make_pair(getCalleePrototype(CI), CI));
 	    } else if (const StoreInst *SI = dyn_cast<StoreInst>(&*i)) {
 		const Value *r = SI->getValueOperand();
 
 		if (hasExtraReference(r) && memoryManStuff(r)) {
 		    const Function *fn = dyn_cast<Function>(r);
 
-		    F.insert(std::make_pair(fn->getFunctionType(), fn));
+		    FM.insert(std::make_pair(fn->getFunctionType(), fn));
 		}
 	    }
 	}
@@ -460,9 +481,7 @@ ProgramStructure::ProgramStructure(Module &M) : M(M) {
       if (isGlobalPointerInitialization(&*g))
 	detail::toRuleCode(&*g,std::back_inserter(this->getContainer()));
 
-    detail::FunctionsMap FM;
-    detail::CallsMap CM;
-    detail::buildCallMaps(M,FM,CM);
+    detail::CallMaps CM(M);
 
     for (Module::const_iterator f = M.begin(); f != M.end(); ++f) {
 	for (const_inst_iterator i = inst_begin(f), E = inst_end(f);
@@ -472,10 +491,10 @@ ProgramStructure::ProgramStructure(Module &M) : M(M) {
 			    std::back_inserter(this->getContainer()));
 	    else if (const CallInst *c = dyn_cast<CallInst>(&*i)) {
 		if (!isInlineAssembly(c))
-		    detail::collectCallRuleCodes(c, FM,
+		    CM.collectCallRuleCodes(c,
 			std::back_inserter(this->getContainer()));
 	    } else if (const ReturnInst *r = dyn_cast<ReturnInst>(&*i)) {
-		detail::collectReturnRuleCodes(r, CM,
+		CM.collectReturnRuleCodes(r,
 			std::back_inserter(this->getContainer()));
 	    }
 	}
