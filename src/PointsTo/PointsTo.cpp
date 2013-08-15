@@ -58,29 +58,31 @@ static void collectCallRuleCodes(const CallInst *c, const Function *f,
 
 template<typename OutIterator>
 static void collectCallRuleCodes(const CallInst *c,
-			  FunctionsMap::const_iterator b,
-			  FunctionsMap::const_iterator const e,
+			  const FunctionsMap &FM,
 			  OutIterator out) {
     if (const Function *f = c->getCalledFunction())
       collectCallRuleCodes(c, f, out);
-    else
-      for ( ; b != e; ++b)
+    else {
+      const FunctionType *funTy = getCalleePrototype(c);
+      for (FunctionsMap::const_iterator b = FM.lower_bound(funTy),
+	  e = FM.upper_bound(funTy); b != e; ++b)
 	collectCallRuleCodes(c, b->second, out);
+    }
 }
 
 template<typename OutIterator>
-static void collectReturnRuleCodes(const ReturnInst *r,
-			    CallsMap::const_iterator b,
-			    CallsMap::const_iterator const e,
-			    OutIterator out) {
+static void collectReturnRuleCodes(const ReturnInst *r, const CallsMap &CM,
+		OutIterator out) {
   const Value *retVal = r->getReturnValue();
 
   if (!retVal || !isPointerValue(retVal))
     return;
 
   const Function *f = r->getParent()->getParent();
+  const FunctionType *fTy = f->getFunctionType();
 
-  for ( ; b != e; ++b)
+  for (CallsMap::const_iterator b = CM.lower_bound(fTy),
+      e = CM.upper_bound(fTy); b != e; ++b)
     if (const Function *g = b->second->getCalledFunction()) {
       if (f == g)
 	*out++ = argPassRuleCode(b->second, retVal);
@@ -470,15 +472,10 @@ ProgramStructure::ProgramStructure(Module &M) : M(M) {
 			    std::back_inserter(this->getContainer()));
 	    else if (const CallInst *c = dyn_cast<CallInst>(&*i)) {
 		if (!isInlineAssembly(c))
-		    detail::collectCallRuleCodes(c,
-			FM.lower_bound(getCalleePrototype(c)),
-			FM.upper_bound(getCalleePrototype(c)),
+		    detail::collectCallRuleCodes(c, FM,
 			std::back_inserter(this->getContainer()));
 	    } else if (const ReturnInst *r = dyn_cast<ReturnInst>(&*i)) {
-		const Function *fun = r->getParent()->getParent();
-		const FunctionType *t = fun->getFunctionType();
-		detail::collectReturnRuleCodes(r, CM.lower_bound(t),
-			CM.upper_bound(t),
+		detail::collectReturnRuleCodes(r, CM,
 			std::back_inserter(this->getContainer()));
 	    }
 	}
