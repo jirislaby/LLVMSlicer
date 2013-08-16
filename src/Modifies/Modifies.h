@@ -18,7 +18,7 @@
 namespace llvm { namespace mods {
 
     struct Modifies {
-        typedef std::set<const llvm::Value *> ModSet;
+        typedef std::set<llvm::ptr::PointsToSets::Pointee> ModSet;
         typedef std::map<const llvm::Function *, ModSet> Container;
         typedef typename Container::key_type key_type;
         typedef typename Container::mapped_type mapped_type;

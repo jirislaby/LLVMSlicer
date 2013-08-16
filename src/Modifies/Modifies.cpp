@@ -40,13 +40,14 @@ namespace llvm { namespace mods {
   void computeModifies(const ProgramStructure &P,
 	const callgraph::Callgraph &CG, const ptr::PointsToSets &PS,
 	Modifies &MOD) {
+    typedef ptr::PointsToSets::Pointee Pointee;
 
     for (ProgramStructure::const_iterator f = P.begin(); f != P.end(); ++f)
       for (ProgramStructure::mapped_type::const_iterator c = f->second.begin();
 	   c != f->second.end(); ++c)
 	if (c->getType() == CMD_VAR) {
 	  if (!isLocalToFunction(c->getVar(), f->first))
-	      MOD[f->first].insert(c->getVar());
+	      MOD[f->first].insert(Pointee(c->getVar(), -1));
 	} else if (c->getType() == CMD_DREF_VAR) {
 	  typedef ptr::PointsToSets::PointsToSet PTSet;
 	  const PTSet &S = ptr::getPointsToSet(c->getVar(), PS);
@@ -54,7 +55,7 @@ namespace llvm { namespace mods {
 	  for (PTSet::const_iterator p = S.begin(); p != S.end(); ++p)
 	    if (!isLocalToFunction(p->first, f->first) &&
 			    !isConstantValue(p->first))
-	      MOD[f->first].insert(p->first);
+	      MOD[f->first].insert(*p);
 	}
 
     typedef callgraph::Callgraph Callgraph;
@@ -74,7 +75,7 @@ namespace llvm { namespace mods {
 		dst.end());
 #endif
       for (dst_t::iterator I = dst.begin(), E = dst.end(); I != E; ) {
-	if (isLocalToFunction(*I, i->first))
+	if (isLocalToFunction(I->first, i->first))
 	  dst.erase(I++);
 	else
 	  ++I;

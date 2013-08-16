@@ -133,7 +133,7 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
         mods::Modifies::mapped_type const& M = getModSet(*f, MOD);
         for (mods::Modifies::mapped_type::const_iterator v = M.begin();
              v != M.end(); ++v)
-          addDEF(Pointee(*v, -1));
+          addDEF(*v);
       }
 
       if (!callToVoidFunction(C))
