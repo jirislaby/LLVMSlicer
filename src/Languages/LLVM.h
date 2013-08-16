@@ -40,54 +40,31 @@ namespace llvm {
     bool isInlineAssemblyWithSideEffect(const llvm::Value *V);
     bool callToMemoryManStuff(llvm::CallInst const* const C);
     llvm::Instruction const *getFunctionEntry(const llvm::Function *F);
-    template<typename OutIterator>
-    void getFunctionCalls(llvm::Function const* const F, OutIterator out);
-    template<typename OutIterator>
-    void getFunctionCalls(llvm::Function* const F, OutIterator out);
-    template<typename OutIterator>
-    void getFunctionExits(llvm::Function const* const F, OutIterator out);
-    template<typename OutIterator>
-    void getFunctionExits(llvm::Function const* const F, OutIterator out);
     bool isLocalToFunction(llvm::Value const* const V,
                            llvm::Function const* const F);
     bool callToVoidFunction(llvm::CallInst const* const C);
     llvm::Instruction const* getSuccInBlock(llvm::Instruction const* const);
     const llvm::Value *elimConstExpr(const llvm::Value *V);
-}
-
-namespace llvm {
 
     template<typename OutIterator>
-    void getFunctionCalls(llvm::Function* const F, OutIterator out)
+    void getFunctionCalls(const llvm::Function *F, OutIterator out)
     {
-        for (llvm::inst_iterator i = llvm::inst_begin(F);
+        for (llvm::const_inst_iterator i = llvm::inst_begin(F);
                 i != llvm::inst_end(F); i++)
-            if (llvm::CallInst const* c =
-                    llvm::dyn_cast<llvm::CallInst const>(&*i))
+            if (const llvm::CallInst *c =
+                    llvm::dyn_cast<llvm::CallInst>(&*i))
 		if (!isInlineAssembly(c))
 		    *out++ = c;
     }
 
     template<typename OutIterator>
-    void getFunctionCalls(llvm::Function const* const F, OutIterator out)
+    void getFunctionExits(const llvm::Function *F, OutIterator out)
     {
-        getFunctionCalls(const_cast<llvm::Function*>(F),out);
-    }
-
-    template<typename OutIterator>
-    void getFunctionExits(llvm::Function* const F, OutIterator out)
-    {
-        for (llvm::inst_iterator i = llvm::inst_begin(F);
+        for (llvm::const_inst_iterator i = llvm::inst_begin(F);
                 i != llvm::inst_end(F); i++)
-            if (llvm::ReturnInst const* r =
-                    llvm::dyn_cast<llvm::ReturnInst const>(&*i))
+            if (const llvm::ReturnInst *r =
+                    llvm::dyn_cast<llvm::ReturnInst>(&*i))
                 *out++ = r;
-    }
-
-    template<typename OutIterator>
-    void getFunctionExits(llvm::Function const* const F, OutIterator out)
-    {
-        getFunctionExits(const_cast<llvm::Function*>(F),out);
     }
 
 }
