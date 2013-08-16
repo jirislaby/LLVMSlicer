@@ -474,19 +474,19 @@ void FunctionStaticSlicer::dump() {
     errs() << "SLICED\n    DEF:\n";
     for (ValSet::const_iterator II = ii->DEF_begin(), EE = ii->DEF_end();
          II != EE; II++) {
-      errs() << "      OFF=" << II->second;
+      errs() << "      OFF=" << II->second << " ";
       II->first->dump();
     }
     errs() << "    REF:\n";
     for (ValSet::const_iterator II = ii->REF_begin(), EE = ii->REF_end();
          II != EE; II++) {
-      errs() << "      OFF=" << II->second;
+      errs() << "      OFF=" << II->second << " ";
       II->first->dump();
     }
     errs() << "    RC:\n";
     for (ValSet::const_iterator II = ii->RC_begin(), EE = ii->RC_end();
          II != EE; II++) {
-      errs() << "      OFF=" << II->second;
+      errs() << "      OFF=" << II->second << " ";
       II->first->dump();
     }
   }
