@@ -53,7 +53,9 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
     } else if (isa<ConstantInt>(op)) {
     } else {
       addREF(Pointee(op, -1));
-      if (!hasExtraReference(op)) {
+      if (hasExtraReference(op)) {
+	addREF(Pointee(op, 0));
+      } else {
 	const PTSet &S = getPointsToSet(op,PS);
 	for (PTSet::const_iterator I = S.begin(), E = S.end(); I != E; ++I)
 	  addREF(*I);
