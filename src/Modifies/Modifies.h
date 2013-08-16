@@ -13,6 +13,7 @@
 
 #include "../Languages/LLVM.h"
 #include "../PointsTo/PointsTo.h"
+#include "../Callgraph/Callgraph.h"
 
 namespace llvm { namespace mods {
 

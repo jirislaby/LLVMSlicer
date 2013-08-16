@@ -6,80 +6,175 @@
 #include "llvm/Pass.h"
 #include "llvm/Value.h"
 
+#include "FunctionStaticSlicer.h"
 #include "../Callgraph/Callgraph.h"
 #include "../Modifies/Modifies.h"
 #include "../PointsTo/PointsTo.h"
-#include "StaticSlicer.h"
 
 using namespace llvm;
 
 namespace llvm { namespace slicing { namespace detail {
 
-    void fillParamsToArgs(CallInst const* const C,
-                          Function const* const F,
-                          ParamsToArgs& toArgs)
+typedef std::map<const Pointee, const Pointee> ParamsToArgs;
+typedef std::set<Pointee> RelevantSet;
+
+static void fillParamsToArgs(CallInst const* const C,
+		      Function const* const F,
+		      ParamsToArgs& toArgs)
+{
+    Function::const_arg_iterator p = F->arg_begin();
+    std::size_t a = 0;
+    for ( ; a < C->getNumArgOperands(); ++a, ++p)
     {
-        Function::const_arg_iterator p = F->arg_begin();
-        std::size_t a = 0;
-        for ( ; a < C->getNumArgOperands(); ++a, ++p)
-        {
-            const Value *P = &*p;
-            const Value *A = C->getArgOperand(a);
-            if (!isConstantValue(A))
-                toArgs.insert(ParamsToArgs::value_type(Pointee(P, -1),
-					Pointee(A, -1)));
-        }
+	const Value *P = &*p;
+	const Value *A = C->getArgOperand(a);
+	if (!isConstantValue(A))
+	    toArgs.insert(ParamsToArgs::value_type(Pointee(P, -1),
+				    Pointee(A, -1)));
+    }
+}
+
+static void getRelevantVarsAtCall(llvm::CallInst const* const C,
+			   llvm::Function const* const F,
+			   const ValSet::const_iterator &_b,
+			   const ValSet::const_iterator &e,
+			   RelevantSet &out) {
+    assert(!isInlineAssembly(C) && "Inline assembly is not supported!");
+
+    ParamsToArgs toArgs;
+    fillParamsToArgs(C, F, toArgs);
+
+    for (ValSet::const_iterator b(_b); b != e; ++b) {
+	ParamsToArgs::const_iterator it = toArgs.find(*b);
+	if (it != toArgs.end())
+	    out.insert(it->second);
+	else if (!isLocalToFunction(b->first, F))
+	    out.insert(*b);
+    }
+}
+
+static void getRelevantVarsAtExit(const llvm::CallInst *const C,
+			   const llvm::ReturnInst *const R,
+			   ValSet::const_iterator &b,
+			   const ValSet::const_iterator &e,
+			   RelevantSet &out) {
+    assert(!isInlineAssembly(C) && "Inline assembly is not supported!");
+
+    if (callToVoidFunction(C)) {
+	std::copy(b, e, std::inserter(out, out.begin()));
+	return;
     }
 
-    void getRelevantVarsAtCall(llvm::CallInst const* const C,
-			       llvm::Function const* const F,
-			       const ValSet::const_iterator &_b,
-			       const ValSet::const_iterator &e,
-			       RelevantSet &out) {
-	assert(!isInlineAssembly(C) && "Inline assembly is not supported!");
-
-	ParamsToArgs toArgs;
-	fillParamsToArgs(C, F, toArgs);
-
-	for (ValSet::const_iterator b(_b); b != e; ++b) {
-	    ParamsToArgs::const_iterator it = toArgs.find(*b);
-	    if (it != toArgs.end())
-		out.insert(it->second);
-	    else if (!isLocalToFunction(b->first, F))
-		out.insert(*b);
-	}
-    }
-
-    void getRelevantVarsAtExit(const llvm::CallInst *const C,
-			       const llvm::ReturnInst *const R,
-			       ValSet::const_iterator &b,
-			       const ValSet::const_iterator &e,
-			       RelevantSet &out) {
-	assert(!isInlineAssembly(C) && "Inline assembly is not supported!");
-
-	if (callToVoidFunction(C)) {
-	    std::copy(b, e, std::inserter(out, out.begin()));
-	    return;
-	}
-
-	for ( ; b != e; ++b)
-	    if (b->first == C) {
-		    Value *ret = R->getReturnValue();
-		    if (!ret) {
-/*			    C->dump();
-			    C->getCalledValue()->dump();
-			    R->dump();*/
-//			    abort();
-				return;
-		    }
-		out.insert(Pointee(R->getReturnValue(), -1));
-	    } else
-		out.insert(*b);
-    }
+    for ( ; b != e; ++b)
+	if (b->first == C) {
+		Value *ret = R->getReturnValue();
+		if (!ret) {
+/*			C->dump();
+			C->getCalledValue()->dump();
+			R->dump();*/
+//			abort();
+			return;
+		}
+	    out.insert(Pointee(R->getReturnValue(), -1));
+	} else
+	    out.insert(*b);
+}
 
 }}}
 
 namespace llvm { namespace slicing {
+
+    class StaticSlicer {
+    public:
+        typedef std::map<llvm::Function const*, FunctionStaticSlicer *> Slicers;
+        typedef std::multimap<llvm::Function const*,llvm::CallInst const*>
+                FuncsToCalls;
+        typedef std::multimap<llvm::CallInst const*,llvm::Function const*>
+                CallsToFuncs;
+
+        StaticSlicer(ModulePass *MP, Module &M,
+		     const ptr::PointsToSets &PS,
+                     const callgraph::Callgraph &CG,
+                     const mods::Modifies &MOD);
+
+        ~StaticSlicer();
+
+        void computeSlice();
+        bool sliceModule();
+
+    private:
+        typedef llvm::SmallVector<const llvm::Function *, 20> InitFuns;
+
+        void buildDicts(const ptr::PointsToSets &PS);
+
+        template<typename OutIterator>
+        void emitToCalls(llvm::Function const* const f, OutIterator out);
+
+        template<typename OutIterator>
+        void emitToExits(llvm::Function const* const f, OutIterator out);
+
+        void runFSS(Function &F, const ptr::PointsToSets &PS,
+                    const callgraph::Callgraph &CG, const mods::Modifies &MOD);
+
+        ModulePass *MP;
+        Module &module;
+        Slicers slicers;
+        InitFuns initFuns;
+        FuncsToCalls funcsToCalls;
+        CallsToFuncs callsToFuncs;
+    };
+
+    template<typename OutIterator>
+    void StaticSlicer::emitToCalls(llvm::Function const* const f,
+                                   OutIterator out) {
+	const ValSet::const_iterator relBgn =
+            slicers[f]->relevant_begin(getFunctionEntry(f));
+        const ValSet::const_iterator relEnd =
+            slicers[f]->relevant_end(getFunctionEntry(f));
+        FuncsToCalls::const_iterator c, e;
+        llvm::tie(c,e) = funcsToCalls.equal_range(f);
+        for ( ; c != e; ++c) {
+	    const llvm::CallInst *CI = c->second;
+	    const llvm::Function *g = CI->getParent()->getParent();
+	    FunctionStaticSlicer *FSS = slicers[g];
+	    detail::RelevantSet R;
+	    detail::getRelevantVarsAtCall(c->second, f, relBgn, relEnd, R);
+
+	    if (FSS->addCriterion(CI, R.begin(), R.end(),
+				    !FSS->shouldSkipAssert(CI))) {
+		FSS->addCriterion(CI, FSS->REF_begin(CI), FSS->REF_end(CI));
+                *out++ = g;
+	    }
+        }
+    }
+
+    template<typename OutIterator>
+    void StaticSlicer::emitToExits(llvm::Function const* const f,
+                                   OutIterator out) {
+        typedef std::vector<const llvm::CallInst *> CallsVec;
+        CallsVec C;
+        getFunctionCalls(f, std::back_inserter(C));
+        for (CallsVec::const_iterator c = C.begin(); c != C.end(); ++c) {
+	    ValSet::const_iterator relBgn =
+                slicers[f]->relevant_begin(getSuccInBlock(*c));
+            const ValSet::const_iterator relEnd =
+                slicers[f]->relevant_end(getSuccInBlock(*c));
+            CallsToFuncs::const_iterator g, e;
+            llvm::tie(g, e) = callsToFuncs.equal_range(*c);
+            for ( ; g != e; ++g) {
+                typedef std::vector<const llvm::ReturnInst *> ExitsVec;
+		const Function *callie = g->second;
+                ExitsVec E;
+                getFunctionExits(callie, std::back_inserter(E));
+                for (ExitsVec::const_iterator e = E.begin(); e != E.end(); ++e) {
+		    detail::RelevantSet R;
+		    detail::getRelevantVarsAtExit(*c, *e, relBgn, relEnd, R);
+                    if (slicers[g->second]->addCriterion(*e, R.begin(),R .end()))
+                        *out++ = g->second;
+                }
+            }
+        }
+    }
 
     void StaticSlicer::buildDicts(const ptr::PointsToSets &PS)
     {

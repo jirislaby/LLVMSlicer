@@ -12,6 +12,7 @@
 #include "llvm/Support/InstIterator.h"
 
 #include "../PointsTo/PointsTo.h"
+#include "../Modifies/Modifies.h"
 #include "PostDominanceFrontier.h"
 
 namespace llvm { namespace slicing {
