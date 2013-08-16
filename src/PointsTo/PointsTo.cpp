@@ -19,7 +19,8 @@ namespace llvm { namespace ptr { namespace detail {
 
 class CallMaps {
 private:
-  typedef std::multimap<const FunctionType *, const Function *> FunctionsMap;
+  /* return type -> function */
+  typedef std::multimap<const Type *, const Function *> FunctionsMap;
   typedef std::multimap<const FunctionType *, const CallInst *> CallsMap;
 
 public:
@@ -41,6 +42,8 @@ private:
   FunctionsMap FM;
   CallsMap CM;
 
+  static bool compatibleFunTypes(const FunctionType *f1,
+      const FunctionType *f2);
   static RuleCode argPassRuleCode(const Value *l, const Value *r);
   void buildCallMaps(const Module &M);
 };
@@ -81,15 +84,39 @@ void CallMaps::collectCallRuleCodes(const CallInst *c, const Function *f,
   }
 }
 
+bool CallMaps::compatibleFunTypes(const FunctionType *f1,
+		const FunctionType *f2) {
+
+  if (!f1->isVarArg() && !f2->isVarArg())
+    return f1 == f2;
+
+  if (f1->getReturnType() != f2->getReturnType())
+    return false;
+
+  for (int i = 0; i < f1->getNumParams() && i < f2->getNumParams(); i++)
+    if (f1->getParamType(i) != f2->getParamType(i))
+      return false;
+
+  return true;
+}
+
 template<typename OutIterator>
 void CallMaps::collectCallRuleCodes(const CallInst *c, OutIterator out) {
-    if (const Function *f = c->getCalledFunction())
+
+    if (const Function *f = c->getCalledFunction()) {
       collectCallRuleCodes(c, f, out);
-    else {
-      const FunctionType *funTy = getCalleePrototype(c);
-      for (FunctionsMap::const_iterator b = FM.lower_bound(funTy),
-	  e = FM.upper_bound(funTy); b != e; ++b)
-	collectCallRuleCodes(c, b->second, out);
+      return;
+    }
+
+    const FunctionType *funTy = getCalleePrototype(c);
+    const Type *retTy = funTy->getReturnType();
+
+    for (FunctionsMap::const_iterator I = FM.lower_bound(retTy),
+	E = FM.upper_bound(retTy); I != E; ++I) {
+      const Function *fun = I->second;
+
+      if (compatibleFunTypes(funTy, fun->getFunctionType()))
+	collectCallRuleCodes(c, fun, out);
     }
 }
 
@@ -114,21 +141,28 @@ void CallMaps::collectReturnRuleCodes(const ReturnInst *r, OutIterator out) {
 
 void CallMaps::buildCallMaps(const Module &M) {
     for (Module::const_iterator f = M.begin(); f != M.end(); ++f) {
-	if (!f->isDeclaration())
-	    FM.insert(std::make_pair(f->getFunctionType(), &*f));
+	if (!f->isDeclaration()) {
+	    const FunctionType *funTy = f->getFunctionType();
+
+	    FM.insert(std::make_pair(funTy->getReturnType(), &*f));
+	}
 
 	for (const_inst_iterator i = inst_begin(f), E = inst_end(f);
 		i != E; ++i) {
 	    if (const CallInst *CI = dyn_cast<CallInst>(&*i)) {
-		if (!isInlineAssembly(CI) && !callToMemoryManStuff(CI))
-		    CM.insert(std::make_pair(getCalleePrototype(CI), CI));
+		if (!isInlineAssembly(CI) && !callToMemoryManStuff(CI)) {
+		    const FunctionType *funTy = getCalleePrototype(CI);
+
+		    CM.insert(std::make_pair(funTy, CI));
+		}
 	    } else if (const StoreInst *SI = dyn_cast<StoreInst>(&*i)) {
 		const Value *r = SI->getValueOperand();
 
 		if (hasExtraReference(r) && memoryManStuff(r)) {
 		    const Function *fn = dyn_cast<Function>(r);
+		    const FunctionType *funTy = fn->getFunctionType();
 
-		    FM.insert(std::make_pair(fn->getFunctionType(), fn));
+		    FM.insert(std::make_pair(funTy->getReturnType(), fn));
 		}
 	    }
 	}
