@@ -53,7 +53,7 @@ void llvm::mods::computeModifies(const ProgramStructure &P,
 	typedef ptr::PointsToSets::PointsToSet PTSet;
 	const PTSet &S = ptr::getPointsToSet(c->getVar(), PS);
 	for (PTSet::const_iterator p = S.begin(); p != S.end(); ++p)
-	  if (p->second == -1 && !isLocalToFunction(p->first, f->first) &&
+	  if (!isLocalToFunction(p->first, f->first) &&
 			  !isConstantValue(p->first))
 	    MOD[f->first].insert(p->first);
       }
