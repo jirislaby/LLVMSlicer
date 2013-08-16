@@ -668,8 +668,11 @@ count:
 #ifdef DEBUG_INITCRIT
         errs() << "    adding\n";
 #endif
-  ss.addInitialCriterion(CI,
-      Pointee(F.getParent()->getGlobalVariable("__ai_init_functions", true), -1));
+
+  const Value *aif = F.getParent()->getGlobalVariable("__ai_init_functions",
+      true);
+  ss.addInitialCriterion(CI, ptr::PointsToSets::Pointee(aif, -1));
+
   return true;
 }
 
@@ -692,7 +695,7 @@ bool llvm::slicing::findInitialCriterion(Function &F,
 #ifdef DEBUG_INITCRIT
         errs() << "    adding\n";
 #endif
-        ss.addInitialCriterion(SI, Pointee(LHS, -1));
+        ss.addInitialCriterion(SI, ptr::PointsToSets::Pointee(LHS, -1));
      }
     } else if (const CallInst *CI = dyn_cast<CallInst>(i)) {
       Function *callie = CI->getCalledFunction();
@@ -712,7 +715,8 @@ bool llvm::slicing::findInitialCriterion(Function &F,
               " to \n";
           RI->dump();
 #endif
-          ss.addInitialCriterion(RI, Pointee(&GV, -1), false);
+          ss.addInitialCriterion(RI, ptr::PointsToSets::Pointee(&GV, -1),
+	      false);
         }
       }
     }

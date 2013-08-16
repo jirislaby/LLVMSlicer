@@ -15,6 +15,7 @@ using namespace llvm;
 
 namespace llvm { namespace slicing { namespace detail {
 
+    typedef ptr::PointsToSets::Pointee Pointee;
     typedef std::map<const Pointee, const Pointee> ParamsToArgs;
     typedef std::set<Pointee> RelevantSet;
 

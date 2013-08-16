@@ -17,10 +17,12 @@
 
 namespace llvm { namespace slicing {
 
-typedef std::pair<const llvm::Value *, int> Pointee;
-typedef llvm::SmallSetVector<Pointee, 10> ValSet;
+typedef llvm::SmallSetVector<llvm::ptr::PointsToSets::Pointee, 10> ValSet;
 
 class InsInfo {
+private:
+  typedef llvm::ptr::PointsToSets::Pointee Pointee;
+
 public:
   InsInfo(const llvm::Instruction *i, const llvm::ptr::PointsToSets &PS,
                    const llvm::mods::Modifies &MOD);
@@ -48,6 +50,8 @@ private:
 };
 
 class FunctionStaticSlicer {
+  typedef llvm::ptr::PointsToSets::Pointee Pointee;
+
 public:
   typedef std::map<const llvm::Instruction *, InsInfo *> InsInfoMap;
 
