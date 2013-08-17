@@ -214,9 +214,10 @@ static unsigned long accumulateConstantOffset(const GetElementPtrInst *gep,
 	    off += SL->getElementOffset(ElementIdx);
 	    continue;
 	}
-
+#ifdef FIELD_DEBUG
 	errs() << "skipping " << OpC->getValue() << " in";
 	gep->dump();
+#endif
     }
 
     return off;
