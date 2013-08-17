@@ -21,7 +21,7 @@ class CallMaps {
 private:
   /* return type -> function */
   typedef std::multimap<const Type *, const Function *> FunctionsMap;
-  typedef std::multimap<const FunctionType *, const CallInst *> CallsMap;
+  typedef std::multimap<const Type *, const CallInst *> CallsMap;
 
 public:
   CallMaps(const Module &M) {
@@ -128,15 +128,19 @@ void CallMaps::collectReturnRuleCodes(const ReturnInst *r, OutIterator out) {
     return;
 
   const Function *f = r->getParent()->getParent();
-  const FunctionType *fTy = f->getFunctionType();
+  const FunctionType *funTy = f->getFunctionType();
+  const Type *retTy = funTy->getReturnType();
 
-  for (CallsMap::const_iterator b = CM.lower_bound(fTy),
-      e = CM.upper_bound(fTy); b != e; ++b)
-    if (const Function *g = b->second->getCalledFunction()) {
+  for (CallsMap::const_iterator b = CM.lower_bound(retTy),
+      e = CM.upper_bound(retTy); b != e; ++b) {
+    const CallInst *CI = b->second;
+
+    if (const Function *g = CI->getCalledFunction()) {
       if (f == g)
-	*out++ = argPassRuleCode(b->second, retVal);
-    } else
-      *out++ = argPassRuleCode(b->second, retVal);
+	*out++ = argPassRuleCode(CI, retVal);
+    } else if (compatibleFunTypes(funTy, g->getFunctionType()))
+      *out++ = argPassRuleCode(CI, retVal);
+  }
 }
 
 void CallMaps::buildCallMaps(const Module &M) {
@@ -153,7 +157,7 @@ void CallMaps::buildCallMaps(const Module &M) {
 		if (!isInlineAssembly(CI) && !callToMemoryManStuff(CI)) {
 		    const FunctionType *funTy = getCalleePrototype(CI);
 
-		    CM.insert(std::make_pair(funTy, CI));
+		    CM.insert(std::make_pair(funTy->getReturnType(), CI));
 		}
 	    } else if (const StoreInst *SI = dyn_cast<StoreInst>(&*i)) {
 		const Value *r = SI->getValueOperand();
