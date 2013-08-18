@@ -70,7 +70,7 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
     } else if (isa<ConstantInt>(l)) {
     } else {
       if (hasExtraReference(l)) {
-        addDEF(Pointee(l, -1));
+        addDEF(Pointee(l, 0));
       } else {
         const PTSet &S = getPointsToSet(l, PS);
 
