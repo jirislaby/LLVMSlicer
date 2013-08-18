@@ -38,6 +38,20 @@
 using namespace llvm;
 using namespace llvm::slicing;
 
+static uint64_t getSizeOfMem(const Value *val) {
+
+  if (const ConstantInt *CI = dyn_cast<ConstantInt>(val)) {
+    return CI->getLimitedValue();
+  } else if (const Constant *C = dyn_cast<Constant>(val)) {
+    if (C->isNullValue())
+      return 0;
+    assert(0 && "unknown constant");
+  }
+
+  /* This sucks indeed, it is only a wild guess... */
+  return 64;
+}
+
 InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
                  const mods::Modifies &MOD) : ins(i), sliced(true) {
   typedef ptr::PointsToSets::PointsToSet PTSet;
@@ -105,23 +119,29 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
       addDEF(Pointee(i, -1));
     } else if (isMemoryDeallocation(cv)) {
     } else if (isMemoryCopy(cv) || isMemoryMove(cv)) {
+      const Value *len = elimConstExpr(C->getArgOperand(2));
+      uint64_t lenConst = getSizeOfMem(len);
+
       const Value *l = elimConstExpr(C->getOperand(0));
       if (isPointerValue(l)) {
 	const PTSet &L = getPointsToSet(l, PS);
 	for (PTSet::const_iterator p = L.begin(); p != L.end(); ++p)
-	  addDEF(*p);
+	  for (uint64_t i = 0; i < lenConst; i++)
+	    addDEF(Pointee(p->first, p->second + i));
       }
+
       const Value *r = elimConstExpr(C->getOperand(1));
-      const Value *len = elimConstExpr(C->getOperand(2));
+      if (isPointerValue(r)) {
+	const PTSet &R = getPointsToSet(r, PS);
+	for (PTSet::const_iterator p = R.begin(); p != R.end(); ++p)
+	  for (uint64_t i = 0; i < lenConst; i++)
+	    addREF(Pointee(p->first, p->second + i));
+      }
+
       addREF(Pointee(l, -1));
       addREF(Pointee(r, -1));
       /* memcpy/memset wouldn't work with len being 'undef' */
       addREF(Pointee(len, -1));
-      if (isPointerValue(r)) {
-	const PTSet &R = getPointsToSet(r, PS);
-	for (PTSet::const_iterator p = R.begin(); p != R.end(); ++p)
-	  addREF(*p);
-      }
     } else if (!memoryManStuff(C)) {
       typedef std::vector<const llvm::Function *> CalledVec;
       CalledVec CV;
