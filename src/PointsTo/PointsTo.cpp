@@ -86,6 +86,14 @@ void CallMaps::collectCallRuleCodes(const CallInst *c, const Function *f,
 }
 
 bool CallMaps::compatibleTypes(const Type *t1, const Type *t2) {
+
+  /*
+   * Casting sucks, we can call (int *) with (char *) parameters.
+   * Let's over-approximate.
+   */
+  if (t1->isPointerTy() && t2->isPointerTy())
+    return true;
+
   return t1 == t2;
 }
 
