@@ -42,6 +42,7 @@ private:
   FunctionsMap FM;
   CallsMap CM;
 
+  static bool compatibleTypes(const Type *t1, const Type *t2);
   static bool compatibleFunTypes(const FunctionType *f1,
       const FunctionType *f2);
   static RuleCode argPassRuleCode(const Value *l, const Value *r);
@@ -84,17 +85,24 @@ void CallMaps::collectCallRuleCodes(const CallInst *c, const Function *f,
   }
 }
 
+bool CallMaps::compatibleTypes(const Type *t1, const Type *t2) {
+  return t1 == t2;
+}
+
 bool CallMaps::compatibleFunTypes(const FunctionType *f1,
 		const FunctionType *f2) {
 
-  if (!f1->isVarArg() && !f2->isVarArg())
-    return f1 == f2;
+  unsigned params1 = f1->getNumParams();
+  unsigned params2 = f2->getNumParams();
 
-  if (f1->getReturnType() != f2->getReturnType())
+  if (!f1->isVarArg() && !f2->isVarArg() && params1 != params2)
     return false;
 
-  for (int i = 0; i < f1->getNumParams() && i < f2->getNumParams(); i++)
-    if (f1->getParamType(i) != f2->getParamType(i))
+  if (!compatibleTypes(f1->getReturnType(), f2->getReturnType()))
+    return false;
+
+  for (int i = 0; i < params1 && i < params2; i++)
+    if (!compatibleTypes(f1->getParamType(i), f2->getParamType(i)))
       return false;
 
   return true;
