@@ -154,8 +154,8 @@ void CallMaps::collectReturnRuleCodes(const ReturnInst *r, OutIterator out) {
     if (const Function *g = CI->getCalledFunction()) {
       if (f == g)
 	*out++ = argPassRuleCode(CI, retVal);
-    } else if (compatibleFunTypes(funTy, g->getFunctionType()))
-      *out++ = argPassRuleCode(CI, retVal);
+    } else if (compatibleFunTypes(funTy, getCalleePrototype(CI)))
+	*out++ = argPassRuleCode(CI, retVal);
   }
 }
 
