@@ -81,6 +81,23 @@ namespace llvm { namespace mods {
 	  ++I;
       }
     }
+
+#ifdef DEBUG_DUMP
+    errs() << "\n==== MODSET DUMP ====\n";
+    for (ProgramStructure::const_iterator f = P.begin(); f != P.end(); ++f) {
+	const Function *fun = f->first;
+	const Modifies::ModSet &m = MOD[fun];
+
+	errs() << fun->getName() << "\n";
+	for (Modifies::ModSet::const_iterator I = m.begin(), E = m.end(); I != E; ++I) {
+	    const Instruction *val = dyn_cast<Instruction>(I->first);
+	    errs() << "\tFUN=" << val->getParent()->getParent()->getName() <<
+		" OFF=" << I->second << " ";
+	    val->dump();
+	}
+    }
+    errs() << "==== MODSET END ====\n";
+#endif
   }
 
 }}
