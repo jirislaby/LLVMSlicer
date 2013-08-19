@@ -211,9 +211,9 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
     return old_size != L.size();
 }
 
-static unsigned long accumulateConstantOffset(const GetElementPtrInst *gep,
-	const DataLayout &DL) {
-    unsigned long off = 0;
+static int64_t accumulateConstantOffset(const GetElementPtrInst *gep,
+	const DataLayout &DL, bool &isArray) {
+    int64_t off = 0;
 
     for (gep_type_iterator GTI = gep_type_begin(gep), GTE = gep_type_end(gep);
 	    GTI != GTE; ++GTI) {
@@ -223,15 +223,20 @@ static unsigned long accumulateConstantOffset(const GetElementPtrInst *gep,
 	if (OpC->isZero())
 	    continue;
 
+	int64_t ElementIdx = OpC->getSExtValue();
+
 	// Handle a struct index, which adds its field offset to the pointer.
 	if (StructType *STy = dyn_cast<StructType>(*GTI)) {
-	    unsigned ElementIdx = OpC->getZExtValue();
 	    const StructLayout *SL = DL.getStructLayout(STy);
 	    off += SL->getElementOffset(ElementIdx);
 	    continue;
+	} else if (SequentialType *STy = dyn_cast<SequentialType>(*GTI)) {
+	    off += ElementIdx * DL.getTypeStoreSize(GTI.getIndexedType());
+	    isArray = true;
+	    continue;
 	}
 #ifdef FIELD_DEBUG
-	errs() << "skipping " << OpC->getValue() << " in";
+	errs() << "skipping " << OpC->getValue() << " in ";
 	gep->dump();
 #endif
     }
@@ -250,7 +255,8 @@ static bool applyRule(PointsToSets &S, const llvm::DataLayout &DL, ASSIGNMENT<
 
     const GetElementPtrInst *gep = dyn_cast<GetElementPtrInst>(rval);
     const llvm::Value *op = elimConstExpr(gep->getPointerOperand());
-    unsigned long off = accumulateConstantOffset(gep, DL);
+    bool isArray = false;
+    int64_t off = accumulateConstantOffset(gep, DL, isArray);
 
     if (hasExtraReference(op)) {
 	L.insert(Ptr(op, off)); /* VAR = REF */
@@ -263,7 +269,14 @@ static bool applyRule(PointsToSets &S, const llvm::DataLayout &DL, ASSIGNMENT<
 	    if (L.count(*I))
 		    continue;
 
-	    L.insert(Ptr(I->first, I->second + off)); /* V = V */
+	    int64_t sum = I->second + off;
+	    assert(sum >= 0);
+
+	    /* an unsoundness :) */
+	    if (isArray && sum > 64)
+		sum = 64;
+
+	    L.insert(Ptr(I->first, sum)); /* V = V */
 	}
     }
 
