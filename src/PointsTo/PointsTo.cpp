@@ -270,7 +270,17 @@ static bool applyRule(PointsToSets &S, const llvm::DataLayout &DL, ASSIGNMENT<
 		    continue;
 
 	    int64_t sum = I->second + off;
-	    assert(sum >= 0);
+	    if (sum < 0) {
+		    assert(I->second >= 0);
+#ifdef DEBUG_CROPPING
+		    errs() << "variable index, cropping to 0: " <<
+			    I->second << "+" << off << "\n\t";
+		    gep->dump();
+		    errs() << "\tPTR=";
+		    I->first->dump();
+#endif
+		    sum = 0;
+	    }
 
 	    /* an unsoundness :) */
 	    if (isArray && sum > 64)
