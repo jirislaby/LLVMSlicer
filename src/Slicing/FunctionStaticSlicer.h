@@ -48,6 +48,8 @@ private:
       uint64_t lenConst);
   void addREFArray(const ptr::PointsToSets &PS, const Value *V,
       uint64_t lenConst);
+  void handleVariousFuns(const ptr::PointsToSets &PS, const CallInst *C,
+      const Function *F);
 
   const llvm::Instruction *ins;
   ValSet RC, DEF, REF;

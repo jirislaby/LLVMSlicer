@@ -64,6 +64,25 @@ void InsInfo::addDEFArray(const ptr::PointsToSets &PS, const Value *V,
   }
 }
 
+void InsInfo::handleVariousFuns(const ptr::PointsToSets &PS, const CallInst *C,
+    const Function *F) {
+  if (!F->hasName())
+    return;
+
+  StringRef fName = F->getName();
+
+  if (fName.equals("klee_make_symbolic")) {
+    const Value *l = elimConstExpr(C->getArgOperand(0));
+    const Value *len = elimConstExpr(C->getArgOperand(1));
+    uint64_t lenConst = getSizeOfMem(len);
+
+    addREF(Pointee(l, -1));
+    addDEFArray(PS, l, lenConst);
+    if (!isConstantValue(len))
+      addREF(Pointee(len, -1));
+  }
+}
+
 void InsInfo::addREFArray(const ptr::PointsToSets &PS, const Value *V,
     uint64_t lenConst) {
   if (isPointerValue(V)) {
@@ -164,7 +183,9 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
       /* did we miss something? */
       assert(!memoryManStuff(cv));
 
-      if (!isa<Function>(cv))
+      if (const Function *F = dyn_cast<Function>(cv))
+	handleVariousFuns(PS, C, F);
+      else
 	addREF(Pointee(cv, -1));
 
       CalledVec CV;
