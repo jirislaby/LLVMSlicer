@@ -118,7 +118,7 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
     } else if (isMemoryAllocation(cv)) {
       addDEF(Pointee(i, -1));
     } else if (isMemoryDeallocation(cv)) {
-    } else if (isMemoryCopy(cv) || isMemoryMove(cv)) {
+    } else if (isMemoryCopy(cv) || isMemoryMove(cv) || isMemorySet(cv)) {
       const Value *len = elimConstExpr(C->getArgOperand(2));
       uint64_t lenConst = getSizeOfMem(len);
 
@@ -129,21 +129,27 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
 	  for (uint64_t i = 0; i < lenConst; i++)
 	    addDEF(Pointee(p->first, p->second + i));
       }
+      addREF(Pointee(l, -1));
 
       const Value *r = elimConstExpr(C->getOperand(1));
-      if (isPointerValue(r)) {
-	const PTSet &R = getPointsToSet(r, PS);
-	for (PTSet::const_iterator p = R.begin(); p != R.end(); ++p)
-	  for (uint64_t i = 0; i < lenConst; i++)
-	    addREF(Pointee(p->first, p->second + i));
+      /* memset has a constant/variable there */
+      if (isMemoryCopy(cv) || isMemoryMove(cv)) {
+	if (isPointerValue(r)) {
+	  const PTSet &R = getPointsToSet(r, PS);
+	  for (PTSet::const_iterator p = R.begin(); p != R.end(); ++p)
+	    for (uint64_t i = 0; i < lenConst; i++)
+	      addREF(Pointee(p->first, p->second + i));
+	}
       }
-
-      addREF(Pointee(l, -1));
       addREF(Pointee(r, -1));
+
       /* memcpy/memset wouldn't work with len being 'undef' */
       addREF(Pointee(len, -1));
-    } else if (!memoryManStuff(cv)) {
+    } else {
       typedef std::vector<const llvm::Function *> CalledVec;
+
+      /* did we miss something? */
+      assert(!memoryManStuff(cv));
 
       if (!isa<Function>(cv))
 	addREF(Pointee(cv, -1));
