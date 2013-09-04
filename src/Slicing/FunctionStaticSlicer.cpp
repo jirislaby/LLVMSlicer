@@ -142,15 +142,14 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
       addREF(Pointee(r, -1));
       /* memcpy/memset wouldn't work with len being 'undef' */
       addREF(Pointee(len, -1));
-    } else if (!memoryManStuff(C)) {
+    } else if (!memoryManStuff(cv)) {
       typedef std::vector<const llvm::Function *> CalledVec;
+
+      if (!isa<Function>(cv))
+	addREF(Pointee(cv, -1));
+
       CalledVec CV;
       getCalledFunctions(C, PS, std::back_inserter(CV));
-      const Value *callie = C->getCalledValue();
-
-      if (!isa<Function>(callie))
-	addREF(Pointee(callie, -1));
-
       for (CalledVec::const_iterator f = CV.begin(); f != CV.end(); ++f) {
         mods::Modifies::mapped_type const& M = getModSet(*f, MOD);
         for (mods::Modifies::mapped_type::const_iterator v = M.begin();
