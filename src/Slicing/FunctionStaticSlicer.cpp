@@ -159,6 +159,8 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
      errs() << "ERROR: Inline assembler detected in " <<
           i->getParent()->getParent()->getName() << ", ignoring\n";
     } else if (isMemoryAllocation(cv)) {
+      if (!isConstantValue(C->getArgOperand(0)))
+	addREF(Pointee(C->getArgOperand(0), -1));
       addDEF(Pointee(i, -1));
     } else if (isMemoryDeallocation(cv)) {
     } else if (isMemoryCopy(cv) || isMemoryMove(cv) || isMemorySet(cv)) {
