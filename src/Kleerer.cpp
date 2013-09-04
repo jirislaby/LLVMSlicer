@@ -40,6 +40,7 @@ public:
       M(M), TD(TD), CG(CG), C(M.getContext()), intPtrTy(TD.getIntPtrType(C)),
       done(false) {
     voidPtrType = TypeBuilder<void *, false>::get(C);
+    size_tType = TypeBuilder<size_t, false>::get(C);
     intType = TypeBuilder<int, false>::get(C);
     uintType = TypeBuilder<unsigned, false>::get(C);
   }
@@ -58,6 +59,7 @@ private:
 
   /* types */
   Type *voidPtrType;
+  Type *size_tType;
   Type *intType;
   Type *uintType;
 
@@ -150,7 +152,7 @@ Instruction *Kleerer::call_klee_make_symbolic(Constant *name, BasicBlock *BB,
   if (addr->getType() != voidPtrType)
     addr = new BitCastInst(addr, voidPtrType, "", BB);
   p.push_back(addr);
-  Value *size = ConstantInt::get(uintType, getTypeSize(TD, type));
+  Value *size = ConstantInt::get(size_tType, getTypeSize(TD, type));
   if (arraySize)
     size = BinaryOperator::CreateMul(arraySize, size,
                                      "make_symbolic_size", BB);
@@ -288,7 +290,7 @@ Value *Kleerer::handlePtrArg(BasicBlock *mainBB, Constant *name,
   unsigned typeSize = getTypeSize(TD, elemTy);
   Value *arrSize = NULL;
   if (!st_desc || !(st_desc->flag & STF_ONE))
-    arrSize = ConstantInt::get(intType, typeSize < (1 << 20) / 4192 ? 4192 :
+    arrSize = ConstantInt::get(size_tType, typeSize < (1 << 20) / 4192 ? 4192 :
                                (1 << 20) / typeSize);
 
   ins = mallocSymbolic(mainBB, name, elemTy, typeSize, arrSize);
@@ -345,7 +347,7 @@ void Kleerer::writeMain(Function &F) {
   BasicBlock *mainBB = BasicBlock::Create(C, "entry", mainFun);
 
   klee_make_symbolic = Function::Create(
-              TypeBuilder<void(void *, unsigned, const char *), false>::get(C),
+              TypeBuilder<void(void *, size_t, const char *), false>::get(C),
               GlobalValue::ExternalLinkage, "klee_make_symbolic", &M);
 /*  Function *klee_int = Function::Create(
               TypeBuilder<int(const char *), false>::get(C),
