@@ -298,9 +298,13 @@ Value *Kleerer::handlePtrArg(BasicBlock *mainBB, Constant *name,
   const struct st_desc *st_desc = getStDesc(elemTy);
   unsigned typeSize = getTypeSize(TD, elemTy);
   Value *arrSize = NULL;
-  if (!st_desc || !(st_desc->flag & STF_ONE))
-    arrSize = ConstantInt::get(size_tType, typeSize < (1 << 20) / 4192 ? 4192 :
-                               (1 << 20) / typeSize);
+  if (!st_desc || !(st_desc->flag & STF_ONE)) {
+    unsigned count = (1 << 20) / typeSize;
+    if (count > 4096)
+      count = 4096;
+
+    arrSize = ConstantInt::get(size_tType, count);
+  }
 
   ins = mallocSymbolic(mainBB, name, elemTy, typeSize, arrSize);
   if (arrSize) {
