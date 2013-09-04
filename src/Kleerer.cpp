@@ -152,10 +152,19 @@ Instruction *Kleerer::call_klee_make_symbolic(Constant *name, BasicBlock *BB,
   if (addr->getType() != voidPtrType)
     addr = new BitCastInst(addr, voidPtrType, "", BB);
   p.push_back(addr);
-  Value *size = ConstantInt::get(size_tType, getTypeSize(TD, type));
-  if (arraySize)
-    size = BinaryOperator::CreateMul(arraySize, size,
+
+  unsigned typeSize = getTypeSize(TD, type);
+  Value *size;
+
+  if (arraySize && typeSize == 1)
+    size = arraySize;
+  else {
+    size = ConstantInt::get(size_tType, typeSize);
+    if (arraySize)
+      size = BinaryOperator::CreateMul(arraySize, size,
                                      "make_symbolic_size", BB);
+  }
+
   p.push_back(size);
   p.push_back(name);
 
