@@ -346,9 +346,12 @@ void Kleerer::writeMain(Function &F) {
                     GlobalValue::ExternalLinkage, "main", &M);
   BasicBlock *mainBB = BasicBlock::Create(C, "entry", mainFun);
 
-  klee_make_symbolic = Function::Create(
-              TypeBuilder<void(void *, size_t, const char *), false>::get(C),
-              GlobalValue::ExternalLinkage, "klee_make_symbolic", &M);
+  FunctionType *klee_make_symbolicTy =
+      TypeBuilder<void(void *, size_t, const char *), false>::get(C);
+  klee_make_symbolic = dyn_cast<Function>(
+      M.getOrInsertFunction("klee_make_symbolic", klee_make_symbolicTy));
+  /* if there was one, it should have the same type, i.e. we got Function */
+  assert(klee_make_symbolic);
 /*  Function *klee_int = Function::Create(
               TypeBuilder<int(const char *), false>::get(C),
               GlobalValue::ExternalLinkage, "klee_int", &M);*/
@@ -393,8 +396,6 @@ void Kleerer::writeMain(Function &F) {
   WriteBitcodeToFile(&M, out);
   errs() << __func__ << ": written: '" << name << "'\n";
   mainFun->eraseFromParent();
-  klee_make_symbolic->eraseFromParent();
-  klee_make_symbolic = NULL;
 //  done = true;
 }
 
