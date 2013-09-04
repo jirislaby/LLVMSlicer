@@ -52,6 +52,30 @@ static uint64_t getSizeOfMem(const Value *val) {
   return 64;
 }
 
+void InsInfo::addDEFArray(const ptr::PointsToSets &PS, const Value *V,
+    uint64_t lenConst) {
+  if (isPointerValue(V)) {
+    typedef ptr::PointsToSets::PointsToSet PTSet;
+
+    const PTSet &L = getPointsToSet(V, PS);
+    for (PTSet::const_iterator p = L.begin(); p != L.end(); ++p)
+      for (uint64_t i = 0; i < lenConst; i++)
+	addDEF(Pointee(p->first, p->second + i));
+  }
+}
+
+void InsInfo::addREFArray(const ptr::PointsToSets &PS, const Value *V,
+    uint64_t lenConst) {
+  if (isPointerValue(V)) {
+    typedef ptr::PointsToSets::PointsToSet PTSet;
+
+    const PTSet &R = getPointsToSet(V, PS);
+    for (PTSet::const_iterator p = R.begin(); p != R.end(); ++p)
+      for (uint64_t i = 0; i < lenConst; i++)
+	addREF(Pointee(p->first, p->second + i));
+  }
+}
+
 InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
                  const mods::Modifies &MOD) : ins(i), sliced(true) {
   typedef ptr::PointsToSets::PointsToSet PTSet;
@@ -123,24 +147,13 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
       uint64_t lenConst = getSizeOfMem(len);
 
       const Value *l = elimConstExpr(C->getOperand(0));
-      if (isPointerValue(l)) {
-	const PTSet &L = getPointsToSet(l, PS);
-	for (PTSet::const_iterator p = L.begin(); p != L.end(); ++p)
-	  for (uint64_t i = 0; i < lenConst; i++)
-	    addDEF(Pointee(p->first, p->second + i));
-      }
+      addDEFArray(PS, l, lenConst);
       addREF(Pointee(l, -1));
 
       const Value *r = elimConstExpr(C->getOperand(1));
       /* memset has a constant/variable there */
-      if (isMemoryCopy(cv) || isMemoryMove(cv)) {
-	if (isPointerValue(r)) {
-	  const PTSet &R = getPointsToSet(r, PS);
-	  for (PTSet::const_iterator p = R.begin(); p != R.end(); ++p)
-	    for (uint64_t i = 0; i < lenConst; i++)
-	      addREF(Pointee(p->first, p->second + i));
-	}
-      }
+      if (isMemoryCopy(cv) || isMemoryMove(cv))
+	addREFArray(PS, r, lenConst);
       addREF(Pointee(r, -1));
 
       /* memcpy/memset wouldn't work with len being 'undef' */

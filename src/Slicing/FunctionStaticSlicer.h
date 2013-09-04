@@ -44,6 +44,11 @@ public:
   bool isSliced() const { return sliced; }
 
 private:
+  void addDEFArray(const ptr::PointsToSets &PS, const Value *V,
+      uint64_t lenConst);
+  void addREFArray(const ptr::PointsToSets &PS, const Value *V,
+      uint64_t lenConst);
+
   const llvm::Instruction *ins;
   ValSet RC, DEF, REF;
   bool sliced;
