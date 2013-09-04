@@ -149,7 +149,7 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
 
     for (unsigned i = 1, e = gep->getNumOperands(); i != e; ++i) {
       Value *op = gep->getOperand(i);
-      if (!isa<ConstantInt>(op))
+      if (!isConstantValue(op))
 	addREF(Pointee(op, -1));
     }
   } else if (CallInst const* const C = dyn_cast<const CallInst>(i)) {
@@ -178,7 +178,8 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
       addREF(Pointee(r, -1));
 
       /* memcpy/memset wouldn't work with len being 'undef' */
-      addREF(Pointee(len, -1));
+      if (!isConstantValue(len))
+	addREF(Pointee(len, -1));
     } else {
       typedef std::vector<const llvm::Function *> CalledVec;
 
