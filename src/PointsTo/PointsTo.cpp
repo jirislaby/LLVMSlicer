@@ -293,6 +293,24 @@ static bool applyRule(PointsToSets &S, const llvm::DataLayout &DL, ASSIGNMENT<
 	    if (!checkOffset(DL, Rval, sum))
 	      continue;
 
+	    unsigned int sameCount = 0;
+	    for (PTSet::const_iterator II = L.begin(), EE = L.end();
+		II != EE; ++II) {
+	      if (II->first == Rval)
+		if (++sameCount >= 5)
+		  break;
+	    }
+
+	    if (sameCount >= 3) {
+#ifdef DEBUG_CROPPING
+	      errs() << "dropping GEP ";
+	      gep->dump();
+	      errs() << "\tHAVE " << off << "+" << " OFF=" << I->second << " ";
+	      Rval->dump();
+#endif
+	      continue;
+	    }
+
 	    if (sum < 0) {
 		    assert(I->second >= 0);
 #ifdef DEBUG_CROPPING
