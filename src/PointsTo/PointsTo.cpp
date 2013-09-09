@@ -408,7 +408,7 @@ static bool applyRule(PointsToSets &S, ASSIGNMENT<
 	PTSet &X = S[*i];
 	const std::size_t old_size = X.size();
 
-	L.insert(Ptr(rval, 0));
+	X.insert(Ptr(rval, 0));
 	change = change || X.size() != old_size;
     }
 
