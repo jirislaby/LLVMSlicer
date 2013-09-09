@@ -244,6 +244,20 @@ static int64_t accumulateConstantOffset(const GetElementPtrInst *gep,
     return off;
 }
 
+static bool checkOffset(const DataLayout &DL, const Value *Rval, uint64_t sum) {
+  if (const GlobalVariable *GV = dyn_cast<GlobalVariable>(Rval)) {
+    if (GV->hasInitializer() &&
+	sum >= DL.getTypeAllocSize(GV->getInitializer()->getType()))
+      return false;
+  } else if (const AllocaInst *AI = dyn_cast<AllocaInst>(Rval)) {
+    if (!AI->isArrayAllocation() &&
+	sum >= DL.getTypeAllocSize(AI->getAllocatedType()))
+      return false;
+  }
+
+  return true;
+}
+
 static bool applyRule(PointsToSets &S, const llvm::DataLayout &DL, ASSIGNMENT<
 		    VARIABLE<const llvm::Value *>,
 		    GEP<VARIABLE<const llvm::Value *> >
@@ -269,7 +283,16 @@ static bool applyRule(PointsToSets &S, const llvm::DataLayout &DL, ASSIGNMENT<
 	    if (L.count(*I))
 		    continue;
 
+	    const Value *Rval = I->first;
+
+	    if (off && (isa<Function>(Rval) || isa<ConstantPointerNull>(Rval)))
+	      continue;
+
 	    int64_t sum = I->second + off;
+
+	    if (!checkOffset(DL, Rval, sum))
+	      continue;
+
 	    if (sum < 0) {
 		    assert(I->second >= 0);
 #ifdef DEBUG_CROPPING
@@ -277,7 +300,7 @@ static bool applyRule(PointsToSets &S, const llvm::DataLayout &DL, ASSIGNMENT<
 			    I->second << "+" << off << "\n\t";
 		    gep->dump();
 		    errs() << "\tPTR=";
-		    I->first->dump();
+		    Rval->dump();
 #endif
 		    sum = 0;
 	    }
@@ -286,7 +309,7 @@ static bool applyRule(PointsToSets &S, const llvm::DataLayout &DL, ASSIGNMENT<
 	    if (isArray && sum > 64)
 		sum = 64;
 
-	    L.insert(Ptr(I->first, sum)); /* V = V */
+	    L.insert(Ptr(Rval, sum)); /* V = V */
 	}
     }
 
