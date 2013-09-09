@@ -258,6 +258,11 @@ static bool applyRule(PointsToSets &S, const llvm::DataLayout &DL, ASSIGNMENT<
 	const PTSet &R = S[Ptr(op, -1)];
 	for (PTSet::const_iterator I = R.begin(), E = R.end(); I != E; ++I) {
 	    assert(I->second >= 0);
+
+	    /* disable recursive structures */
+	    if (L.count(*I))
+		    continue;
+
 	    L.insert(Ptr(I->first, I->second + off)); /* V = V */
 	}
     }
