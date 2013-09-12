@@ -77,11 +77,19 @@ void CallMaps::collectCallRuleCodes(const CallInst *c, const Function *f,
     const Value *V = c;
     *out++ = ruleCode(ruleVar(V) = ruleAllocSite(V));
   } else {
+    static unsigned warned = 0;
     Function::const_arg_iterator fit = f->arg_begin();
+    unsigned callNumOperands = c->getNumArgOperands();
+    size_t i = 0;
 
-    for (size_t i = 0; fit != f->arg_end(); ++fit, ++i)
+    for (; fit != f->arg_end() && i < callNumOperands; ++fit, ++i)
       if (isPointerValue(&*fit))
 	*out++ = argPassRuleCode(&*fit, elimConstExpr(c->getOperand(i)));
+
+    if (i < callNumOperands && warned++ < 3) {
+      errs() << __func__ << ": skipped some vararg arguments in '" <<
+	f->getName() << "(" << i << ", " << callNumOperands << ")'\n";
+    }
   }
 }
 
