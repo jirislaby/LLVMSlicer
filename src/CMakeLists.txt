@@ -1,3 +1,5 @@
+set(LLVM_LINK_COMPONENTS core engine bitwriter)
+
 add_llvm_loadable_module(LLVMSlicer
 	Kleerer.cpp
 	ModStats.cpp
