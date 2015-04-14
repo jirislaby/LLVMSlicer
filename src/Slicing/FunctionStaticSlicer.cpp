@@ -80,9 +80,6 @@ void InsInfo::handleVariousFuns(const ptr::PointsToSets &PS, const CallInst *C,
     addDEFArray(PS, l, lenConst);
     if (!isConstantValue(len))
       addREF(Pointee(len, -1));
-  } else if (fName.equals("klee_assume")) {
-    const Value *l = elimConstExpr(C->getArgOperand(0));
-    addREF(Pointee(l, -1));
   }
 }
 
@@ -752,6 +749,7 @@ bool llvm::slicing::findInitialCriterion(Function &F,
 #ifdef DEBUG_INITCRIT
   errs() << __func__ << " ============ BEGIN\n";
 #endif
+  const Function *Fklee_assume = F.getParent()->getFunction("klee_assume");
   const Function *F__assert_fail = F.getParent()->getFunction("__assert_fail");
   if (!F__assert_fail) /* no cookies in this module */
     return false;
@@ -770,6 +768,9 @@ bool llvm::slicing::findInitialCriterion(Function &F,
       Function *callie = CI->getCalledFunction();
       if (callie == F__assert_fail) {
 	added = handleAssert(F, ss, CI);
+      } else if (callie == Fklee_assume) { // this is kind of hack
+	const Value *l = elimConstExpr(CI->getArgOperand(0));
+	ss.addInitialCriterion(CI, ptr::PointsToSets::Pointee(l, -1));
       }
     } else if (const ReturnInst *RI = dyn_cast<ReturnInst>(i)) {
       if (starting) {
