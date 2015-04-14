@@ -218,6 +218,8 @@ InsInfo::InsInfo(const Instruction *i, const ptr::PointsToSets &PS,
       addREF(Pointee(CI->getOperand(0), -1));
   } else if (const AllocaInst *AI = dyn_cast<const AllocaInst>(i)) {
       addDEF(Pointee(AI, -1));
+    if (!isConstantValue(AI->getArraySize()))
+      addREF(Pointee(AI->getArraySize(), -1));
   } else if (const CmpInst *CI = dyn_cast<const CmpInst>(i)) {
     addDEF(Pointee(i, -1));
 
