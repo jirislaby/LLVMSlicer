@@ -80,6 +80,9 @@ void InsInfo::handleVariousFuns(const ptr::PointsToSets &PS, const CallInst *C,
     addDEFArray(PS, l, lenConst);
     if (!isConstantValue(len))
       addREF(Pointee(len, -1));
+  } else if (fName.equals("klee_assume")) {
+    const Value *l = elimConstExpr(C->getArgOperand(0));
+    addREF(Pointee(l, -1));
   }
 }
 
