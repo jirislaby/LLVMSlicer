@@ -4,9 +4,9 @@
 #ifndef POINTSTO_RULEEXPRESSIONS_H
 #define POINTSTO_RULEEXPRESSIONS_H
 
-#include "llvm/Constants.h"
-#include "llvm/Function.h"
-#include "llvm/Instructions.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/Instructions.h"
 
 #include "../Languages/LLVM.h"
 

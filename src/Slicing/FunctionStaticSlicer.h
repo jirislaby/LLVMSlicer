@@ -7,7 +7,7 @@
 #include <map>
 #include <utility> /* pair */
 
-#include "llvm/Value.h"
+#include "llvm/IR/Value.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/Support/InstIterator.h"
 

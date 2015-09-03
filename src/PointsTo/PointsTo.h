@@ -8,7 +8,7 @@
 #include <set>
 #include <vector>
 
-#include "llvm/Value.h"
+#include "llvm/IR/Value.h"
 
 #include "RuleExpressions.h"
 

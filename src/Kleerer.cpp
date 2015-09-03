@@ -1,11 +1,11 @@
-#include "llvm/Attributes.h"
-#include "llvm/Constants.h"
-#include "llvm/Instructions.h"
+#include "llvm/IR/Attributes.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/Instructions.h"
 #include "llvm/Pass.h"
 #include "llvm/PassManager.h"
-#include "llvm/Module.h"
-#include "llvm/DataLayout.h"
-#include "llvm/TypeBuilder.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/DataLayout.h"
+#include "llvm/IR/TypeBuilder.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Support/InstIterator.h"
@@ -202,8 +202,8 @@ void Kleerer::makeGlobalsSymbolic(Module &M, BasicBlock *BB) {
 Constant *Kleerer::get_assert_fail()
 {
   Type *constCharPtrTy = TypeBuilder<const char *, false>::get(C);
-  AttrListPtr attrs = AttrListPtr().addAttr(C, ~0,
-		  Attributes::get(C, Attributes::NoReturn));
+  AttributeSet attrs = AttributeSet().addAttribute(C,
+		  AttributeSet::FunctionIndex, Attribute::NoReturn);
   return M.getOrInsertFunction("__assert_fail", attrs, Type::getVoidTy(C),
                                constCharPtrTy, constCharPtrTy, uintType,
                                constCharPtrTy, NULL);

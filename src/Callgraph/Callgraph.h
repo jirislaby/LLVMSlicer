@@ -9,7 +9,7 @@
 #include <iterator>
 #include <utility>
 
-#include "llvm/Function.h"
+#include "llvm/IR/Function.h"
 #include "llvm/ADT/STLExtras.h" /* tie */
 
 #include "../Languages/LLVM.h"

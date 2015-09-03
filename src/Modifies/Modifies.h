@@ -8,8 +8,8 @@
 #include <set>
 #include <vector>
 
-#include "llvm/Function.h"
-#include "llvm/Value.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/Value.h"
 
 #include "../Languages/LLVM.h"
 #include "../PointsTo/PointsTo.h"

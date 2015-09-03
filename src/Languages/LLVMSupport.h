@@ -4,8 +4,8 @@
 #ifndef LANGUAGES_LLVMSUPPORT_H
 #define LANGUAGES_LLVMSUPPORT_H
 
-#include <llvm/Function.h>
-#include <llvm/Instructions.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Instructions.h>
 
 #include "../PointsTo/PointsTo.h"
 

@@ -4,10 +4,10 @@
 #include <algorithm>
 #include <iterator>
 
-#include "llvm/Constant.h"
-#include "llvm/Instruction.h"
-#include "llvm/Instructions.h"
-#include "llvm/Module.h"
+#include "llvm/IR/Constant.h"
+#include "llvm/IR/Instruction.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
 
 #include "../Callgraph/Callgraph.h"
 #include "../PointsTo/PointsTo.h"

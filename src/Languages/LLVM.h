@@ -4,16 +4,16 @@
 #ifndef LANGUAGES_LLVM_H
 #define LANGUAGES_LLVM_H
 
-#include <llvm/Module.h>
-#include <llvm/Function.h>
-#include <llvm/BasicBlock.h>
-#include <llvm/Instruction.h>
-#include <llvm/Instructions.h>
-#include <llvm/Value.h>
-#include <llvm/GlobalValue.h>
-#include <llvm/Type.h>
-#include <llvm/DerivedTypes.h>
-#include <llvm/Intrinsics.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/Instruction.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Value.h>
+#include <llvm/IR/GlobalValue.h>
+#include <llvm/IR/Type.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Intrinsics.h>
 #include <llvm/ADT/SetVector.h>
 #include <llvm/Support/InstIterator.h>
 #include <llvm/Support/raw_os_ostream.h>

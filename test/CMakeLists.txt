@@ -1,4 +1,4 @@
-set(LLVM_LINK_COMPONENTS core engine asmparser bitreader)
+set(LLVM_LINK_COMPONENTS core engine asmparser bitreader irreader)
 set(LLVM_OPTIONAL_SOURCES field-sensitive-test.cpp dump-points-to.cpp)
 
 add_llvm_executable(field-sensitive-test field-sensitive-test.cpp)

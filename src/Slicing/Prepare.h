@@ -4,12 +4,12 @@
 #ifndef SLICING_PREPARE_H
 #define SLICING_PREPARE_H
 
-#include "llvm/Constants.h"
-#include "llvm/GlobalVariable.h"
-#include "llvm/Module.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/GlobalVariable.h"
+#include "llvm/IR/Module.h"
 
 static inline const llvm::ConstantArray *getInitFuns(const llvm::Module &M) {
-  llvm::GlobalVariable *initFunsVar =
+  const llvm::GlobalVariable *initFunsVar =
       M.getGlobalVariable("__ai_init_functions", true);
 
   if (!initFunsVar)

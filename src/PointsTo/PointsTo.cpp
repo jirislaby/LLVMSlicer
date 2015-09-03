@@ -3,12 +3,12 @@
 
 #include <map>
 
-#include "llvm/BasicBlock.h"
-#include "llvm/DataLayout.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/DataLayout.h"
 #include "llvm/Support/GetElementPtrTypeIterator.h"
-#include "llvm/Instruction.h"
-#include "llvm/Instructions.h"
-#include "llvm/Module.h"
+#include "llvm/IR/Instruction.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
 
 #include "PointsTo.h"
 #include "RuleExpressions.h"
